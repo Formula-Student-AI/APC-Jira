@@ -21,6 +21,8 @@ import { useFieldOptions, useViewItems } from '../../store/hooks'
 import type { Item } from '../../types'
 import { OptionDot } from '../../ui/OptionChip'
 import type { BoardViewConfig } from '../config'
+import { SubteamPicker } from '../SubteamPicker'
+import { boardForSubteams, useShownSubteams } from '../subteams'
 import { addItem, moveCard } from './boardActions'
 import {
   buildGroups,
@@ -66,7 +68,17 @@ function countBy(items: Item[], field: GroupField): Map<string, number> {
   return counts
 }
 
-export function BoardView({ view, query }: { view: BoardViewConfig; query: string }) {
+interface BoardViewProps {
+  view: BoardViewConfig
+  query: string
+  /** Subteams picked in the subteam bar (Subteam Board only) */
+  teams: string[]
+}
+
+export function BoardView({ view: configured, query, teams }: BoardViewProps) {
+  const shownTeams = useShownSubteams(configured, teams)
+  // One subteam picked on the Subteam Board: its own board, in Status columns.
+  const view = useMemo(() => boardForSubteams(configured, shownTeams), [configured, shownTeams])
   const items = useViewItems(view.filter, query)
   const columnOptions = useFieldOptions(view.columnField)
   const laneOptions = useFieldOptions(view.swimlaneField ?? '')
@@ -152,13 +164,20 @@ export function BoardView({ view, query }: { view: BoardViewConfig; query: strin
 
   return (
     <div className="bview">
+      {configured.subteamPicker && (
+        <div className="view-toolbar">
+          <SubteamPicker mode={configured.subteamPicker} shown={shownTeams} />
+        </div>
+      )}
       {items.length === 0 && (
         <p className="bview-hint">
           {filtering
             ? 'No items match the filter.'
             : view.id === 'self-kanban'
               ? 'Nothing is assigned to you yet. Use “+ Add item” in a column to create something for yourself, or get assigned on the Kanban.'
-              : 'No items yet. Use “+ Add item” in a column to create the first one.'}
+              : shownTeams.length === 1
+                ? `${shownTeams[0]} has no items yet. Use “+ Add item” in a column to create one.`
+                : 'No items yet. Use “+ Add item” in a column to create the first one.'}
         </p>
       )}
       <DndContext

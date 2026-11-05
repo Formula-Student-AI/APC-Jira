@@ -1,16 +1,17 @@
-/* Shared UI primitives: Modal (ui/Modal.tsx), Dropdown (ui/Dropdown.tsx) and menu lists. */
+/* Shared UI primitives: Modal (ui/Modal.tsx), Dropdown (ui/Dropdown.tsx), menu lists and the subteam bar. */
 
 .modal {
   padding: 0;
-  border: 1px solid var(--border);
+  border: 0;
   border-radius: var(--radius-lg);
   background: var(--surface);
   color: var(--text);
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-lg);
   max-height: min(720px, calc(100dvh - 24px));
 }
 .modal::backdrop {
   background: var(--overlay);
+  backdrop-filter: blur(2px);
 }
 .modal-content {
   display: flex;
@@ -22,15 +23,14 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 12px 12px 12px 16px;
-  border-bottom: 1px solid var(--border-muted);
+  padding: 18px 16px 10px 24px;
 }
 .modal-header h2 {
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 600;
 }
 .modal-body {
-  padding: 16px;
+  padding: 8px 24px 20px;
   overflow: auto;
 }
 .modal-footer {
@@ -38,8 +38,7 @@
   justify-content: flex-end;
   flex-wrap: wrap;
   gap: 8px;
-  padding: 12px 16px;
-  border-top: 1px solid var(--border-muted);
+  padding: 12px 24px 20px;
 }
 
 .dropdown {
@@ -48,15 +47,21 @@
 }
 .dropdown-menu {
   position: absolute;
-  top: calc(100% + 4px);
+  top: calc(100% + 6px);
   z-index: 60;
   max-height: min(420px, 70dvh);
   overflow: auto;
-  padding: 4px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  background: var(--surface-2);
+  padding: 6px;
+  border-radius: var(--radius-md);
+  background: var(--surface-overlay);
   box-shadow: var(--shadow);
+  animation: menu-in 120ms ease-out;
+}
+@keyframes menu-in {
+  from {
+    transform: translateY(-4px);
+    opacity: 0;
+  }
 }
 .dropdown-left {
   left: 0;
@@ -74,7 +79,7 @@
   min-height: 32px;
   padding: 6px 8px;
   border: 0;
-  border-radius: var(--radius);
+  border-radius: var(--radius-sm);
   background: transparent;
   color: var(--text);
   font-size: 14px;
@@ -84,20 +89,99 @@
 .menu-item:hover,
 .menu-item:focus-visible,
 .menu-item[aria-selected='true'] {
-  background: var(--surface-3);
+  background: var(--btn-bg);
   outline: none;
 }
+.menu-item:disabled {
+  cursor: progress;
+  opacity: 0.6;
+}
 .menu-item-danger {
-  color: var(--danger);
+  color: var(--danger-text);
 }
 .menu-divider {
   height: 1px;
-  margin: 4px -4px;
+  margin: 6px -6px;
   background: var(--border-muted);
 }
 .menu-heading {
-  padding: 6px 8px 2px;
-  color: var(--text-muted);
-  font-size: 12px;
+  margin: 0;
+  padding: 6px 8px 4px;
+  color: var(--text-subtle);
+  font-family: var(--mono);
+  font-size: 11px;
   font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+/* ---------------------------------------------------------------- subteam bar (views/SubteamPicker.tsx) */
+
+/* A row above a view, for its own controls (the Subteam Board's subteam bar). */
+.view-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding: 12px 16px 0;
+}
+
+.stp {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.stp-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease,
+    color 120ms ease;
+}
+.stp-pill:hover {
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+.stp-pill[aria-pressed='true'] {
+  border-color: var(--opt-border);
+  background: var(--opt-bg);
+  color: var(--opt-fg);
+  font-weight: 600;
+}
+.stp-all[aria-pressed='true'] {
+  border-color: var(--text);
+  background: var(--text);
+  color: var(--text-inverse);
+}
+.stp-check {
+  flex: none;
+}
+
+@media (max-width: 640px) {
+  .view-toolbar {
+    padding: 10px 12px 0;
+  }
+  /* One scrollable row instead of several lines of buttons. */
+  .stp {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .stp::-webkit-scrollbar {
+    display: none;
+  }
 }

@@ -1,66 +1,160 @@
-/* Bristol FSAI Board: dark theme in the style of GitHub Projects, with Bristol FSAI red as the accent. */
+/*
+ * Bristol FSAI Board: a soft, Jira-like look in light and dark, with Bristol FSAI red as the accent and
+ * the Geist type family from the society's website (fsai.cssbristol.co.uk).
+ * The theme is <html data-theme="light|dark"> (src/lib/theme.ts). Light is the base; dark overrides it.
+ */
 
 :root {
-  color-scheme: dark;
+  color-scheme: light;
 
   /* Surfaces */
-  --bg: #0d1117;
-  --bg-inset: #010409;
-  --surface: #151b23;
-  --surface-2: #1c232c;
-  --surface-3: #262c36;
-  --overlay: rgba(1, 4, 9, 0.6);
+  --bg: #ffffff; /* the page */
+  --bg-inset: #ffffff; /* the header */
+  --surface: #ffffff; /* cards, side panel, dialogs */
+  --surface-overlay: #ffffff; /* menus and popovers */
+  --surface-hover: #fafbfc; /* a card under the pointer */
+  --surface-2: #f7f8f9; /* quiet fills: table header, code, callouts */
+  --surface-3: #f1f2f4; /* stronger fills: tags, pressed things */
+  --surface-sunken: #f7f8f9; /* board columns */
+  --overlay: rgba(9, 30, 66, 0.45);
+  --glow: rgba(171, 31, 45, 0.09);
 
   /* Lines */
-  --border: #30363d;
-  --border-muted: #21262d;
-  --border-strong: #3d444d;
+  --border: #dcdfe4;
+  --border-muted: #ebecf0;
+  --border-strong: #b3b9c4;
 
   /* Text */
-  --text: #e6edf3;
-  --text-muted: #9198a1;
-  --text-subtle: #6e7681;
-  --link: #4493f8;
+  --text: #172b4d;
+  --text-muted: #44546f;
+  --text-subtle: #626f86;
+  --text-inverse: #ffffff;
+  --link: #0c66e4;
 
   /* Bristol FSAI red */
   --accent: #ab1f2d;
-  --accent-hover: #c22a3a;
-  --accent-active: #8f1824;
-  --accent-text: #ff8b95;
-  --accent-soft: rgba(171, 31, 45, 0.16);
-  --accent-border: rgba(225, 70, 85, 0.55);
-  --focus: #ff6b78;
+  --accent-hover: #951b27;
+  --accent-active: #7f1721;
+  --accent-text: #ab1f2d;
+  --accent-soft: rgba(171, 31, 45, 0.07);
+  --accent-border: rgba(171, 31, 45, 0.45);
+  --focus: #388bff;
 
   /* States */
-  --success: #3fb950;
-  --warning: #d29922;
-  --danger: #f85149;
-  --danger-soft: rgba(248, 81, 73, 0.15);
+  --success: #22a06b;
+  --success-soft: rgba(34, 160, 107, 0.18);
+  --warning: #e56910;
+  --danger: #c9372c;
+  --danger-text: #ae2e24;
+  --danger-soft: #ffeceb;
+  --danger-soft-hover: #ffd5d2;
+  --danger-border: #fd9891;
+  --danger-hatch: rgba(201, 55, 44, 0.3);
 
-  /* Shape */
+  /* Controls */
+  --btn-bg: rgba(9, 30, 66, 0.06);
+  --btn-bg-hover: rgba(9, 30, 66, 0.12);
+  --btn-bg-active: rgba(9, 30, 66, 0.18);
+  --input-bg: #f7f8f9;
+  --input-bg-hover: #f1f2f4;
+  --input-border: #dcdfe4;
+
+  /* Shape and depth */
   --radius-sm: 4px;
   --radius: 6px;
-  --radius-lg: 10px;
-  --shadow: 0 8px 24px rgba(1, 4, 9, 0.75);
-  --shadow-sm: 0 1px 0 rgba(1, 4, 9, 0.4);
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --shadow-sm: 0 1px 1px rgba(9, 30, 66, 0.12);
+  --shadow-card: 0 1px 1px rgba(9, 30, 66, 0.2), 0 0 1px rgba(9, 30, 66, 0.28);
+  --shadow-card-hover: 0 4px 8px -2px rgba(9, 30, 66, 0.2), 0 0 1px rgba(9, 30, 66, 0.3);
+  --shadow: 0 8px 16px -4px rgba(9, 30, 66, 0.2), 0 0 1px rgba(9, 30, 66, 0.3);
+  --shadow-lg: 0 16px 32px -8px rgba(9, 30, 66, 0.26), 0 0 1px rgba(9, 30, 66, 0.3);
 
-  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
-  --mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+  --font: 'Geist Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --mono: 'Geist Mono Variable', ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
 
   --header-h: 56px;
   --tabs-h: 44px;
   --panel-w: min(560px, 100vw);
 }
 
-/* Option colours (GitHub Primer dark). Use with colorClass() from lib/options.ts. */
-.opt-gray { --opt-fg: #9198a1; --opt-bg: rgba(110, 118, 129, 0.18); --opt-border: rgba(110, 118, 129, 0.55); --opt-solid: #6e7681; }
-.opt-blue { --opt-fg: #58a6ff; --opt-bg: rgba(56, 139, 253, 0.15); --opt-border: rgba(56, 139, 253, 0.55); --opt-solid: #1f6feb; }
-.opt-green { --opt-fg: #3fb950; --opt-bg: rgba(46, 160, 67, 0.15); --opt-border: rgba(46, 160, 67, 0.55); --opt-solid: #238636; }
-.opt-yellow { --opt-fg: #d29922; --opt-bg: rgba(187, 128, 9, 0.15); --opt-border: rgba(187, 128, 9, 0.55); --opt-solid: #9e6a03; }
-.opt-orange { --opt-fg: #f0883e; --opt-bg: rgba(219, 109, 40, 0.15); --opt-border: rgba(219, 109, 40, 0.55); --opt-solid: #bd561d; }
-.opt-red { --opt-fg: #ff7b72; --opt-bg: rgba(248, 81, 73, 0.15); --opt-border: rgba(248, 81, 73, 0.55); --opt-solid: #da3633; }
-.opt-pink { --opt-fg: #f778ba; --opt-bg: rgba(219, 97, 162, 0.15); --opt-border: rgba(219, 97, 162, 0.55); --opt-solid: #bf4b8a; }
-.opt-purple { --opt-fg: #bc8cff; --opt-bg: rgba(163, 113, 247, 0.15); --opt-border: rgba(163, 113, 247, 0.55); --opt-solid: #8957e5; }
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --bg: #1d2125;
+  --bg-inset: #1d2125;
+  --surface: #22272b;
+  --surface-overlay: #282e33;
+  --surface-hover: #282e33;
+  --surface-2: #282e33;
+  --surface-3: #2c333a;
+  --surface-sunken: #161a1d;
+  --overlay: rgba(3, 4, 4, 0.6);
+  --glow: rgba(171, 31, 45, 0.24);
+
+  --border: #38414a;
+  --border-muted: #2c333a;
+  --border-strong: #596773;
+
+  --text: #c7d1db;
+  --text-muted: #9fadbc;
+  --text-subtle: #8c9bab;
+  --text-inverse: #1d2125;
+  --link: #579dff;
+
+  --accent: #ab1f2d;
+  --accent-hover: #c22a3a;
+  --accent-active: #8f1824;
+  --accent-text: #ff8f87;
+  --accent-soft: rgba(248, 113, 104, 0.12);
+  --accent-border: rgba(248, 113, 104, 0.5);
+  --focus: #85b8ff;
+
+  --success: #4bce97;
+  --success-soft: rgba(75, 206, 151, 0.2);
+  --warning: #fea362;
+  --danger: #f87168;
+  --danger-text: #fd9891;
+  --danger-soft: #42221f;
+  --danger-soft-hover: #5d1f1a;
+  --danger-border: #ae2e24;
+  --danger-hatch: rgba(248, 113, 104, 0.35);
+
+  --btn-bg: rgba(161, 189, 217, 0.08);
+  --btn-bg-hover: rgba(161, 189, 217, 0.16);
+  --btn-bg-active: rgba(161, 189, 217, 0.24);
+  --input-bg: #22272b;
+  --input-bg-hover: #282e33;
+  --input-border: #38414a;
+
+  --shadow-sm: 0 1px 1px rgba(3, 4, 4, 0.4);
+  --shadow-card: 0 1px 1px rgba(3, 4, 4, 0.5), 0 0 1px rgba(3, 4, 4, 0.5);
+  --shadow-card-hover: 0 4px 8px -2px rgba(3, 4, 4, 0.6), 0 0 0 1px rgba(166, 197, 226, 0.12);
+  --shadow: 0 0 0 1px rgba(166, 197, 226, 0.12), 0 8px 16px -4px rgba(3, 4, 4, 0.5);
+  --shadow-lg: 0 0 0 1px rgba(166, 197, 226, 0.12), 0 16px 32px -8px rgba(3, 4, 4, 0.6);
+}
+
+/*
+ * Option colours, in Jira's palette: --opt-fg text on --opt-bg, --opt-border, and --opt-solid for dots
+ * and bar edges. Use with colorClass() from lib/options.ts.
+ */
+.opt-gray { --opt-fg: #44546f; --opt-bg: #f1f2f4; --opt-border: #dcdfe4; --opt-solid: #8590a2; }
+.opt-blue { --opt-fg: #0055cc; --opt-bg: #e9f2ff; --opt-border: #85b8ff; --opt-solid: #1d7afc; }
+.opt-green { --opt-fg: #216e4e; --opt-bg: #dcfff1; --opt-border: #7ee2b8; --opt-solid: #22a06b; }
+.opt-yellow { --opt-fg: #7f5f01; --opt-bg: #fff7d6; --opt-border: #f5cd47; --opt-solid: #e2b203; }
+.opt-orange { --opt-fg: #a54800; --opt-bg: #fff3eb; --opt-border: #fec195; --opt-solid: #f38a3f; }
+.opt-red { --opt-fg: #ae2e24; --opt-bg: #ffeceb; --opt-border: #fd9891; --opt-solid: #e2483d; }
+.opt-pink { --opt-fg: #943d73; --opt-bg: #ffecf8; --opt-border: #f797d2; --opt-solid: #cd519d; }
+.opt-purple { --opt-fg: #5e4db2; --opt-bg: #f3f0ff; --opt-border: #b8acf6; --opt-solid: #8270db; }
+
+[data-theme='dark'] .opt-gray { --opt-fg: #9fadbc; --opt-bg: #2c333a; --opt-border: #454f59; --opt-solid: #738496; }
+[data-theme='dark'] .opt-blue { --opt-fg: #85b8ff; --opt-bg: #1c2b41; --opt-border: #0055cc; --opt-solid: #579dff; }
+[data-theme='dark'] .opt-green { --opt-fg: #7ee2b8; --opt-bg: #1c3329; --opt-border: #216e4e; --opt-solid: #4bce97; }
+[data-theme='dark'] .opt-yellow { --opt-fg: #f5cd47; --opt-bg: #332e1b; --opt-border: #7f5f01; --opt-solid: #cf9f02; }
+[data-theme='dark'] .opt-orange { --opt-fg: #fec195; --opt-bg: #38291e; --opt-border: #a54800; --opt-solid: #f38a3f; }
+[data-theme='dark'] .opt-red { --opt-fg: #fd9891; --opt-bg: #42221f; --opt-border: #ae2e24; --opt-solid: #f87168; }
+[data-theme='dark'] .opt-pink { --opt-fg: #f797d2; --opt-bg: #3d2232; --opt-border: #943d73; --opt-solid: #e774bb; }
+[data-theme='dark'] .opt-purple { --opt-fg: #b8acf6; --opt-bg: #2b273f; --opt-border: #5e4db2; --opt-solid: #9f8fef; }
 
 /* ---------------------------------------------------------------- base */
 
@@ -82,8 +176,9 @@ body {
   color: var(--text);
   font-family: var(--font);
   font-size: 14px;
-  line-height: 1.5;
+  line-height: 20px;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   -webkit-text-size-adjust: 100%;
 }
 
@@ -105,11 +200,11 @@ textarea {
 
 :focus-visible {
   outline: 2px solid var(--focus);
-  outline-offset: 1px;
+  outline-offset: 2px;
 }
 
 ::selection {
-  background: rgba(171, 31, 45, 0.45);
+  background: rgba(171, 31, 45, 0.22);
 }
 
 * {
@@ -122,6 +217,7 @@ h2,
 h3,
 h4 {
   margin: 0;
+  font-weight: 600;
   line-height: 1.25;
 }
 
@@ -147,6 +243,23 @@ h4 {
   font-family: var(--mono);
 }
 
+/* A small spaced-out label, as on the society's website ("SPONSOR SPOTLIGHT"). */
+.eyebrow {
+  color: var(--text-subtle);
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  line-height: 16px;
+  text-transform: uppercase;
+}
+
+/* The logo comes in two versions; only the one for the current theme shows. */
+:root:not([data-theme='dark']) .logo-on-dark,
+:root[data-theme='dark'] .logo-on-light {
+  display: none;
+}
+
 /* ---------------------------------------------------------------- buttons */
 
 .btn {
@@ -156,9 +269,9 @@ h4 {
   gap: 6px;
   height: 32px;
   padding: 0 12px;
-  border: 1px solid var(--border);
+  border: 0;
   border-radius: var(--radius);
-  background: var(--surface-2);
+  background: var(--btn-bg);
   color: var(--text);
   font-size: 14px;
   font-weight: 500;
@@ -166,46 +279,50 @@ h4 {
   white-space: nowrap;
   cursor: pointer;
   user-select: none;
-  transition: background-color 80ms ease, border-color 80ms ease;
+  transition:
+    background-color 120ms ease,
+    color 120ms ease,
+    box-shadow 120ms ease;
 }
 .btn:hover:not(:disabled) {
-  background: var(--surface-3);
-  border-color: var(--border-strong);
+  background: var(--btn-bg-hover);
+}
+.btn:active:not(:disabled) {
+  background: var(--btn-bg-active);
 }
 .btn:disabled {
-  opacity: 0.55;
+  opacity: 0.5;
   cursor: not-allowed;
 }
 .btn-primary {
   background: var(--accent);
-  border-color: rgba(255, 255, 255, 0.08);
   color: #fff;
 }
 .btn-primary:hover:not(:disabled) {
   background: var(--accent-hover);
-  border-color: rgba(255, 255, 255, 0.12);
 }
 .btn-primary:active:not(:disabled) {
   background: var(--accent-active);
 }
 .btn-danger {
-  color: var(--danger);
+  background: var(--danger-soft);
+  color: var(--danger-text);
 }
 .btn-danger:hover:not(:disabled) {
-  background: var(--danger-soft);
-  border-color: rgba(248, 81, 73, 0.5);
+  background: var(--danger-soft-hover);
 }
 .btn-ghost {
   background: transparent;
-  border-color: transparent;
 }
 .btn-ghost:hover:not(:disabled) {
-  background: var(--surface-2);
-  border-color: transparent;
+  background: var(--btn-bg);
+}
+.btn-ghost:active:not(:disabled) {
+  background: var(--btn-bg-hover);
 }
 .btn-sm {
   height: 28px;
-  padding: 0 8px;
+  padding: 0 10px;
   font-size: 13px;
 }
 .btn-icon {
@@ -223,20 +340,30 @@ h4 {
 .textarea {
   width: 100%;
   min-height: 32px;
-  padding: 5px 12px;
-  border: 1px solid var(--border);
+  padding: 5px 10px;
+  border: 1px solid var(--input-border);
   border-radius: var(--radius);
-  background: var(--bg);
+  background-color: var(--input-bg);
   color: var(--text);
   font-size: 14px;
   line-height: 20px;
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease,
+    box-shadow 120ms ease;
+}
+.input:hover:not(:focus):not(:disabled),
+.select:hover:not(:focus):not(:disabled),
+.textarea:hover:not(:focus):not(:disabled) {
+  background-color: var(--input-bg-hover);
 }
 .input:focus,
 .select:focus,
 .textarea:focus {
   outline: none;
   border-color: var(--focus);
-  box-shadow: 0 0 0 3px rgba(255, 107, 120, 0.25);
+  background-color: var(--surface);
+  box-shadow: 0 0 0 1px var(--focus);
 }
 .input::placeholder,
 .textarea::placeholder {
@@ -249,41 +376,46 @@ h4 {
 }
 .select {
   appearance: none;
-  padding-right: 28px;
-  background-image: linear-gradient(45deg, transparent 50%, var(--text-muted) 50%),
+  padding-right: 30px;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--text-muted) 50%),
     linear-gradient(135deg, var(--text-muted) 50%, transparent 50%);
-  background-position: calc(100% - 15px) 14px, calc(100% - 10px) 14px;
+  background-position:
+    calc(100% - 16px) 14px,
+    calc(100% - 11px) 14px;
   background-size: 5px 5px;
   background-repeat: no-repeat;
+  cursor: pointer;
 }
 .field-label {
   display: block;
   margin-bottom: 4px;
-  color: var(--text-muted);
+  color: var(--text-subtle);
   font-size: 12px;
   font-weight: 600;
 }
 .field-error {
   margin-top: 6px;
-  color: var(--danger);
+  color: var(--danger-text);
   font-size: 13px;
 }
 
-/* ---------------------------------------------------------------- chips, badges, avatars */
+/* ---------------------------------------------------------------- chips, lozenges, badges, avatars */
 
+/* A value in its option colour: a soft pill (subteams, priorities). */
 .chip {
   display: inline-flex;
   align-items: center;
+  gap: 4px;
   max-width: 100%;
   height: 20px;
   padding: 0 8px;
-  border: 1px solid var(--opt-border, var(--border));
   border-radius: 999px;
-  background: var(--opt-bg, transparent);
+  background: var(--opt-bg, var(--surface-3));
   color: var(--opt-fg, var(--text-muted));
   font-size: 12px;
   font-weight: 500;
-  line-height: 18px;
+  line-height: 20px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -292,12 +424,23 @@ h4 {
   height: 24px;
   padding: 0 10px;
   font-size: 13px;
-  line-height: 22px;
+  line-height: 24px;
 }
+/* Labels: Jira-style grey tags. */
 .chip-plain {
   --opt-fg: var(--text-muted);
-  --opt-bg: transparent;
-  --opt-border: var(--border);
+  --opt-bg: var(--surface-3);
+  border-radius: var(--radius-sm);
+}
+/* Statuses: Jira lozenges. */
+.chip-status {
+  height: 20px;
+  padding: 0 6px;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
 }
 .chip-dot {
   width: 10px;
@@ -305,7 +448,6 @@ h4 {
   flex: none;
   border-radius: 50%;
   background: var(--opt-solid, var(--text-subtle));
-  border: 1px solid var(--opt-border, transparent);
 }
 
 .badge {
@@ -313,7 +455,7 @@ h4 {
   align-items: center;
   gap: 4px;
   height: 20px;
-  padding: 0 7px;
+  padding: 0 8px;
   border-radius: 999px;
   font-size: 12px;
   font-weight: 600;
@@ -321,17 +463,22 @@ h4 {
   white-space: nowrap;
 }
 .badge-blocked {
-  border: 1px solid rgba(248, 81, 73, 0.55);
+  padding: 0 6px;
+  border-radius: var(--radius-sm);
   background: var(--danger-soft);
-  color: #ff7b72;
+  color: var(--danger-text);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
 }
 .badge-count {
   min-width: 20px;
   justify-content: center;
   padding: 0 6px;
-  background: var(--surface-3);
+  background: var(--btn-bg-hover);
   color: var(--text-muted);
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .avatar {
@@ -339,10 +486,9 @@ h4 {
   place-items: center;
   flex: none;
   border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.1);
   color: #fff;
   font-size: 10px;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: 0.02em;
   line-height: 1;
   user-select: none;
@@ -378,8 +524,8 @@ h4 {
 .spinner {
   width: 16px;
   height: 16px;
-  border: 2px solid var(--border-strong);
-  border-top-color: var(--accent-text);
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -417,18 +563,19 @@ h4 {
   place-items: center;
   min-height: 100dvh;
   padding: 24px 16px;
+  background: radial-gradient(ellipse 90% 55% at 50% -12%, var(--glow), transparent 70%), var(--bg);
 }
 .full-page-card {
   width: min(420px, 100%);
   padding: 32px 24px;
-  border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   background: var(--surface);
+  box-shadow: var(--shadow);
   text-align: center;
 }
 .full-page-card h1 {
-  font-size: 20px;
   margin-bottom: 8px;
+  font-size: 20px;
 }
 
 @media (prefers-reduced-motion: reduce) {

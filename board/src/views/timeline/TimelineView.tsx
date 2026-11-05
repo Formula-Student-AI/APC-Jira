@@ -15,6 +15,8 @@ import type { Item } from '../../types'
 import { AvatarStack } from '../../ui/Avatar'
 import { OptionDot } from '../../ui/OptionChip'
 import type { TimelineViewConfig } from '../config'
+import { SubteamPicker } from '../SubteamPicker'
+import { filterWithSubteams, useShownSubteams } from '../subteams'
 import {
   barFor,
   computeRange,
@@ -46,9 +48,22 @@ function loadZoom(): Zoom {
   }
 }
 
-export function TimelineView({ view, query }: { view: TimelineViewConfig; query: string }) {
-  const items = useViewItems(view.filter, query)
-  const subteams = useFieldOptions('subteam')
+interface TimelineViewProps {
+  view: TimelineViewConfig
+  query: string
+  /** Subteams picked in the subteam bar (empty = all) */
+  teams: string[]
+}
+
+export function TimelineView({ view, query, teams }: TimelineViewProps) {
+  const shownTeams = useShownSubteams(view, teams)
+  const items = useViewItems(filterWithSubteams(view, shownTeams), query)
+  const allSubteams = useFieldOptions('subteam')
+  // Only the picked subteams get rows.
+  const subteams = useMemo(
+    () => (shownTeams.length ? allSubteams.filter((option) => shownTeams.includes(option.name)) : allSubteams),
+    [allSubteams, shownTeams],
+  )
   const today = useToday()
   const [zoom, setZoom] = useState<Zoom>(loadZoom)
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(() => new Set())
@@ -111,14 +126,8 @@ export function TimelineView({ view, query }: { view: TimelineViewConfig; query:
           <CalendarIcon size={14} />
           Today
         </button>
-        <ul className="tl-legend" aria-label="Subteam colours">
-          {subteams.map((option) => (
-            <li key={option.id}>
-              <OptionDot field="subteam" name={option.name} />
-              {option.name}
-            </li>
-          ))}
-        </ul>
+        {/* The subteam buttons double as the colour key. */}
+        <SubteamPicker mode={view.subteamPicker ?? 'many'} shown={shownTeams} />
       </div>
 
       <div className="tl-scroll" ref={scrollRef}>
@@ -137,7 +146,11 @@ export function TimelineView({ view, query }: { view: TimelineViewConfig; query:
               />
             ))}
             <UndatedRows items={undated} collapsed={collapsed.has('undated')} onToggle={() => toggle('undated')} today={today} />
-            {items.length === 0 && <p className="tl-empty muted">{query.trim() ? 'No items match the filter.' : 'No items yet.'}</p>}
+            {items.length === 0 && (
+              <p className="tl-empty muted">
+                {query.trim() ? 'No items match the filter.' : shownTeams.length ? 'These subteams have no items yet.' : 'No items yet.'}
+              </p>
+            )}
           </div>
         </div>
       </div>
@@ -188,9 +201,12 @@ function Scale({ range, zoom, px, todayIndex }: { range: Range; zoom: Zoom; px: 
 function Gridlines({ range, zoom, px, todayIndex }: { range: Range; zoom: Zoom; px: number; todayIndex: number }) {
   return (
     <div className="tl-grid" aria-hidden="true">
-      {monthSpans(range, zoom).map((month) => (
-        <span key={month.key} className="tl-gridline" style={{ left: month.start * px }} />
-      ))}
+      {/* A month that began before the range would put its line left of the dates, under the labels. */}
+      {monthSpans(range, zoom)
+        .filter((month) => month.start > 0)
+        .map((month) => (
+          <span key={month.key} className="tl-gridline" style={{ left: month.start * px }} />
+        ))}
       {todayIndex >= 0 && todayIndex < range.days && (
         <span className="tl-today" style={{ left: todayIndex * px + px / 2 }}>
           <span className="tl-today-label">Today</span>

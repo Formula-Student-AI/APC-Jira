@@ -8,6 +8,18 @@ import { bootstrapAuth, useAuth } from '../store/auth'
 import './login.css'
 import { useLoginFlow, type LoginStep } from './useLoginFlow'
 
+/** "Bristol FSAI Board" with the last word in red, as headings are on the society's website. */
+function TitleWithAccent({ text }: { text: string }) {
+  const split = text.lastIndexOf(' ')
+  if (split < 0) return <>{text}</>
+  return (
+    <>
+      {text.slice(0, split + 1)}
+      <span className="login-title-accent">{text.slice(split + 1)}</span>
+    </>
+  )
+}
+
 export function LoginScreen() {
   const flow = useLoginFlow()
   const { mode, step, busy, error } = flow
@@ -21,13 +33,22 @@ export function LoginScreen() {
       <main className="login-main">
         <header className="login-header">
           <img
-            className="login-logo-img"
+            className="login-logo-img logo-on-light"
+            src={`${import.meta.env.BASE_URL}logo-login-light.png`}
+            alt={ORG_NAME}
+            width={213}
+            height={120}
+          />
+          <img
+            className="login-logo-img logo-on-dark"
             src={`${import.meta.env.BASE_URL}logo-login.png`}
             alt={ORG_NAME}
             width={213}
             height={120}
           />
-          <h1 className="login-title">{APP_NAME}</h1>
+          <h1 className="login-title">
+            <TitleWithAccent text={APP_NAME} />
+          </h1>
           <p className="login-subtitle">{PLAN_LABEL}</p>
         </header>
 

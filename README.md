@@ -6,6 +6,8 @@ moved on the timeline) shows up for everyone else within about a second, without
 
 - **Live site:** https://formula-student-ai.github.io/APC-Jira/
 - **Built with:** React + TypeScript (Vite) on GitHub Pages; Supabase (Postgres, Realtime, Auth) for data and live updates.
+- **Look:** soft, Jira-like light and dark themes in Bristol FSAI red, with the Geist and Geist Mono
+  fonts used on the [society's website](https://fsai.cssbristol.co.uk/) (bundled with the app, so no font requests to Google).
 
 The structure (statuses, fields and views) is copied from the GitHub Project used for
 HyPower-Bristol's BSEP plan. The board itself started empty.
@@ -41,6 +43,10 @@ HyPower-Bristol's BSEP plan. The board itself started empty.
    | **Subteam Board** | One column per subteam (Mechanical, Powertrain, Electrical, Braking System, Admin), grouped by Status |
    | **Blocked** | A table of everything whose Status is Blocked, with the reason |
 
+   The **Subteam Board** has a row of subteam buttons: pick one subteam to see just its board
+   (its items in Status columns), or **All subteams**. On the **Timeline** the same buttons show one
+   or several subteams at a time. The choice is part of the address (`?team=Mechanical`), so a
+   subteam's board can be shared as a link, and new items you add there join that subteam.
 3. Drag cards between columns or rows to change their Status or subteam, and up or down to reorder.
    On a phone, press and hold a card to pick it up. On the Timeline, drag a bar to move it, or
    drag its ends to change the start or due date.
@@ -51,7 +57,9 @@ HyPower-Bristol's BSEP plan. The board itself started empty.
 5. Use **+ Add item** at the bottom of a column, or **+ New item** in the header. A new item gets
    whatever the current view implies, so it shows up where you are. For example, on Self Kanban it
    is assigned to you.
-6. **Archive** an item to hide it (from the ⋯ menu in the panel). Type `is:archived` in the filter
+6. **Light or dark:** user menu > **Theme**: Light, Dark, or Auto (follows your device). The choice
+   is remembered on each device.
+7. **Archive** an item to hide it (from the ⋯ menu in the panel). Type `is:archived` in the filter
    to find archived items and restore them. Only board admins can delete items permanently.
 
 **Filter box:** type words to search titles and descriptions, `#12` to find item 12, or use fields:

@@ -96,10 +96,11 @@ async function rest(method, path, { body, prefer } = {}) {
 
 async function fetchAll(table, select, order) {
   const rows = [];
-  for (let offset = 0; ; offset += 1000) {
-    const page = await rest('GET', `${table}?select=${select}&order=${order}&limit=1000&offset=${offset}`);
+  // Page until a page comes back empty, so a lower "Max rows" API setting can't cut the list short.
+  for (;;) {
+    const page = await rest('GET', `${table}?select=${select}&order=${order}&limit=1000&offset=${rows.length}`);
+    if (!page.length) return rows;
     rows.push(...page);
-    if (page.length < 1000) return rows;
   }
 }
 

@@ -9,13 +9,17 @@ interface OptionChipProps {
   title?: string
 }
 
-/** A dropdown value shown as a pill in its option colour. Renders nothing for an empty value. */
+/**
+ * A dropdown value shown in its option colour: a soft pill, or a Jira-style lozenge for a status.
+ * Renders nothing for an empty value.
+ */
 export function OptionChip({ field, name, size = 'sm', title }: OptionChipProps) {
   const options = useBoard((s) => s.options)
   if (!name) return null
   const color = optionColor(options, field, name)
+  const classes = ['chip', size === 'md' && 'chip-md', field === 'status' && 'chip-status', colorClass(color)]
   return (
-    <span className={`chip${size === 'md' ? ' chip-md' : ''} ${colorClass(color)}`} title={title ?? name}>
+    <span className={classes.filter(Boolean).join(' ')} title={title ?? name}>
       {name}
     </span>
   )

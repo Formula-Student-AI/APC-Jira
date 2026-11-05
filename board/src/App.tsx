@@ -44,7 +44,7 @@ function BoardShell() {
       <Header route={route} />
       <main className="app-main" aria-label={view.name}>
         {load === 'ready' ? (
-          <ViewSwitch view={view} query={route.q} />
+          <ViewSwitch view={view} query={route.q} teams={route.teams} />
         ) : load === 'error' ? (
           <div className="empty-state">
             <p>Couldn't load the board: {loadError}</p>
@@ -65,12 +65,12 @@ function BoardShell() {
   )
 }
 
-function ViewSwitch({ view, query }: { view: ViewConfig; query: string }) {
+function ViewSwitch({ view, query, teams }: { view: ViewConfig; query: string; teams: string[] }) {
   switch (view.layout) {
     case 'board':
-      return <BoardView key={view.id} view={view} query={query} />
+      return <BoardView key={view.id} view={view} query={query} teams={teams} />
     case 'roadmap':
-      return <TimelineView key={view.id} view={view} query={query} />
+      return <TimelineView key={view.id} view={view} query={query} teams={teams} />
     case 'table':
       return <TableView key={view.id} view={view} query={query} />
   }

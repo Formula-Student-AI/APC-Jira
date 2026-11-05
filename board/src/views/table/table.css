@@ -20,15 +20,16 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 4px 12px;
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--border);
+  padding: 16px 20px 12px;
 }
 .tview-name {
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  font-family: var(--mono);
   font-size: 16px;
-  font-weight: 600;
+  font-weight: 700;
+  letter-spacing: -0.01em;
 }
 .tview-name svg {
   color: var(--text-muted);
@@ -37,17 +38,26 @@
   color: var(--danger);
 }
 .tview-count {
+  padding: 0 8px;
+  border-radius: 999px;
+  background: var(--btn-bg-hover);
   color: var(--text-muted);
-  font-size: 13px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 20px;
 }
 
 /* ---------------------------------------------------------------- table */
 
 /* Scrolls both ways inside the view, so the page itself never scrolls sideways. */
+/* The rounded frame fits its rows, and scrolls once there are more than fit on screen. */
 .tview-scroll {
-  flex: 1;
+  flex: 0 1 auto;
   min-height: 0;
+  margin: 0 20px 16px;
   overflow: auto;
+  border: 1px solid var(--border-muted);
+  border-radius: var(--radius-lg);
   overscroll-behavior: contain;
   /* Rows reached with the arrow keys stay clear of the sticky header. */
   scroll-padding-top: var(--tview-head-h);
@@ -75,8 +85,7 @@
 .tview-table th,
 .tview-table td {
   height: var(--tview-row-h);
-  padding: 0 8px;
-  border-right: 1px solid var(--border-muted);
+  padding: 0 10px;
   border-bottom: 1px solid var(--border-muted);
   overflow: hidden;
   text-align: left;
@@ -90,14 +99,18 @@
   z-index: 2;
   height: var(--tview-head-h);
   border-bottom-color: var(--border);
-  background: var(--surface);
-  color: var(--text-muted);
+  background: var(--surface-2);
+  color: var(--text-subtle);
   font-size: 12px;
   font-weight: 600;
 }
 .tview-table td {
-  background: var(--tview-row-bg, var(--bg));
+  background: var(--tview-row-bg, var(--surface));
   color: var(--text);
+  transition: background-color 100ms ease;
+}
+.tview-table tbody tr:last-child td {
+  border-bottom: 0;
 }
 
 /* # and Title stay pinned on the left while the rest scrolls sideways. */
@@ -113,7 +126,7 @@
   position: sticky;
   left: var(--tview-num-w);
   z-index: 1;
-  border-right-color: var(--border);
+  border-right: 1px solid var(--border-muted);
 }
 .tview-table th.tview-num,
 .tview-table th.tview-title {
@@ -130,12 +143,12 @@
 }
 @media (hover: hover) {
   .tview-row:hover {
-    --tview-row-bg: var(--surface);
+    --tview-row-bg: var(--surface-2);
   }
 }
-/* The item open in the side panel */
+/* The item open in the side panel (row colours stay opaque: # and Title are pinned over the rest) */
 .tview-row[aria-current='true'] {
-  --tview-row-bg: var(--surface-2);
+  --tview-row-bg: var(--surface-3);
 }
 .tview-row[aria-current='true'] > td:first-child {
   box-shadow: inset 3px 0 0 var(--accent);
@@ -191,7 +204,7 @@
 }
 /* Match the avatar overlap ring to the row colour. */
 .tview-row .avatar-stack .avatar + .avatar {
-  box-shadow: 0 0 0 2px var(--tview-row-bg, var(--bg));
+  box-shadow: 0 0 0 2px var(--tview-row-bg, var(--surface));
 }
 
 /* ---------------------------------------------------------------- empty */
@@ -219,7 +232,10 @@
     --tview-title-min: 168px;
   }
   .tview-head {
-    padding: 10px 12px;
+    padding: 12px 12px 10px;
+  }
+  .tview-scroll {
+    margin: 0 12px 12px;
   }
   /* No spare room to share: growing columns keep their set width. */
   .tview-col-grow {

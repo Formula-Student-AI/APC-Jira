@@ -1,4 +1,4 @@
-// Tiny hash router so the app works on GitHub Pages: #/<view>?item=<number>&q=<filter>
+// Tiny hash router so the app works on GitHub Pages: #/<view>?item=<number>&q=<filter>&team=<subteam>…
 import { useSyncExternalStore } from 'react'
 import { DEFAULT_VIEW, viewById, type ViewId } from '../views/config'
 
@@ -8,6 +8,8 @@ export interface Route {
   item: number | null
   /** Filter box text */
   q: string
+  /** Subteams picked in the subteam bar (Subteam Board, Timeline); empty = all */
+  teams: string[]
 }
 
 const LAST_VIEW_KEY = 'fsai-board:last-view'
@@ -30,6 +32,7 @@ export function parseHash(hash: string): Route {
     view: viewById(path)?.id ?? readLastView(),
     item: Number.isInteger(itemParam) && itemParam > 0 ? itemParam : null,
     q: params.get('q') ?? '',
+    teams: [...new Set(params.getAll('team').map((name) => name.trim()).filter(Boolean))],
   }
 }
 
@@ -37,6 +40,7 @@ export function formatHash(route: Route): string {
   const params = new URLSearchParams()
   if (route.item) params.set('item', String(route.item))
   if (route.q) params.set('q', route.q)
+  for (const team of route.teams) params.append('team', team)
   const query = params.toString()
   return `#/${route.view}${query ? `?${query}` : ''}`
 }

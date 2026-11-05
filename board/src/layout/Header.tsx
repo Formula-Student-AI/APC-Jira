@@ -25,7 +25,8 @@ export function Header({ route }: { route: Route }) {
     <header className="hdr">
       <div className="hdr-top">
         <div className="hdr-brand">
-          <img className="hdr-logo-img" src={`${import.meta.env.BASE_URL}logo-header.png`} alt="" width={64} height={36} />
+          <img className="hdr-logo-img logo-on-light" src={`${import.meta.env.BASE_URL}logo-header-light.png`} alt="" width={64} height={36} />
+          <img className="hdr-logo-img logo-on-dark" src={`${import.meta.env.BASE_URL}logo-header.png`} alt="" width={64} height={36} />
           <span className="hdr-title">
             <span className="sr-only">{ORG_NAME} · </span>
             {PLAN_LABEL}

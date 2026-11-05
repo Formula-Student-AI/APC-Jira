@@ -93,7 +93,7 @@
   cursor: pointer;
 }
 .settings-color[aria-pressed='true'] {
-  outline: 2px solid var(--text);
+  outline: 2px solid var(--focus);
   outline-offset: 2px;
 }
 
@@ -182,9 +182,9 @@
   align-items: center;
   gap: 6px;
   max-width: 100%;
-  padding: 1px 1px 1px 4px;
-  border: 1px solid var(--border);
+  padding: 2px 2px 2px 4px;
   border-radius: 999px;
+  background: var(--surface-3);
 }
 .settings-lead-name {
   min-width: 0;

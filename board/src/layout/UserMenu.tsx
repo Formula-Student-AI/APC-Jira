@@ -1,5 +1,6 @@
-import { ArrowSwitchIcon, ChevronDownIcon, GearIcon, PencilIcon } from '@primer/octicons-react'
+import { ArrowSwitchIcon, ChevronDownIcon, DeviceDesktopIcon, GearIcon, MoonIcon, PencilIcon, SunIcon } from '@primer/octicons-react'
 import { useId, useState, type FormEvent } from 'react'
+import { setThemeChoice, useThemeChoice, type ThemeChoice } from '../lib/theme'
 import { BoardSettingsDialog } from '../settings/BoardSettingsDialog'
 import { errorText, setMyName, switchUser } from '../store/auth'
 import { useHasBoardAdminRole, useIsBoardAdmin, useMe } from '../store/hooks'
@@ -13,6 +14,7 @@ export function UserMenu() {
   const adminActive = useIsBoardAdmin()
   const adminRole = useHasBoardAdminRole()
   const [dialog, setDialog] = useState<'name' | 'settings' | null>(null)
+  const themeLabelId = useId()
   if (!member) return null
 
   return (
@@ -54,12 +56,45 @@ export function UserMenu() {
             <button type="button" className="menu-item" onClick={() => { close(); void switchUser() }}>
               <ArrowSwitchIcon /> Switch user
             </button>
+            <div className="menu-divider" />
+            <p className="menu-heading" id={themeLabelId}>
+              Theme
+            </p>
+            <ThemePicker labelledBy={themeLabelId} />
           </div>
         )}
       </Dropdown>
       {dialog === 'name' && <EditNameDialog current={member.full_name} onClose={() => setDialog(null)} />}
       {dialog === 'settings' && <BoardSettingsDialog onClose={() => setDialog(null)} />}
     </>
+  )
+}
+
+const THEMES: { id: ThemeChoice; label: string; hint: string; Icon: typeof SunIcon }[] = [
+  { id: 'light', label: 'Light', hint: 'Light theme', Icon: SunIcon },
+  { id: 'dark', label: 'Dark', hint: 'Dark theme', Icon: MoonIcon },
+  { id: 'system', label: 'Auto', hint: "Match this device's setting", Icon: DeviceDesktopIcon },
+]
+
+/** Light / Dark / Auto (match the device), remembered on this device. */
+function ThemePicker({ labelledBy }: { labelledBy: string }) {
+  const theme = useThemeChoice()
+  return (
+    <div className="hdr-theme" role="group" aria-labelledby={labelledBy}>
+      {THEMES.map(({ id, label, hint, Icon }) => (
+        <button
+          key={id}
+          type="button"
+          className="hdr-theme-option"
+          aria-pressed={theme === id}
+          title={hint}
+          onClick={() => setThemeChoice(id)}
+        >
+          <Icon size={14} />
+          {label}
+        </button>
+      ))}
+    </div>
   )
 }
 

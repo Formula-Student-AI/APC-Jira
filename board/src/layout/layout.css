@@ -2,7 +2,7 @@
 
 .hdr {
   flex: none;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--border-muted);
   background: var(--bg-inset);
 }
 
@@ -12,12 +12,12 @@
   justify-content: space-between;
   gap: 12px;
   height: var(--header-h);
-  padding: 0 16px;
+  padding: 0 20px;
 }
 .hdr-brand {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   min-width: 0;
 }
 .hdr-logo-img {
@@ -31,8 +31,10 @@
   border-left: 1px solid var(--border);
   line-height: 24px;
   overflow: hidden;
-  font-size: 16px;
+  font-family: var(--mono);
+  font-size: 15px;
   font-weight: 600;
+  letter-spacing: -0.01em;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -47,9 +49,13 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 0 6px;
+  height: 24px;
+  padding: 0 10px 0 8px;
+  border-radius: 999px;
+  background: var(--btn-bg);
   color: var(--text-muted);
   font-size: 12px;
+  font-weight: 500;
   white-space: nowrap;
 }
 .hdr-live-dot {
@@ -60,7 +66,7 @@
 }
 .hdr-live-live .hdr-live-dot {
   background: var(--success);
-  box-shadow: 0 0 0 3px rgba(63, 185, 80, 0.18);
+  box-shadow: 0 0 0 3px var(--success-soft);
 }
 .hdr-live-connecting .hdr-live-dot,
 .hdr-live-reconnecting .hdr-live-dot {
@@ -80,7 +86,8 @@
 
 .hdr-user {
   gap: 8px;
-  padding: 0 6px;
+  padding: 0 8px 0 4px;
+  border-radius: 999px;
 }
 .hdr-user-name {
   max-width: 160px;
@@ -99,7 +106,6 @@
 .hdr-admin-badge {
   align-self: flex-start;
   margin-top: 6px;
-  border: 1px solid var(--accent-border);
   background: var(--accent-soft);
   color: var(--accent-text);
 }
@@ -108,16 +114,49 @@
   line-height: 1.4;
 }
 
+/* Theme: Light / Dark / Auto, as one segmented control. */
+.hdr-theme {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2px;
+  margin: 0 4px 4px;
+  padding: 2px;
+  border-radius: var(--radius);
+  background: var(--btn-bg);
+}
+.hdr-theme-option {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 28px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.hdr-theme-option:hover {
+  color: var(--text);
+}
+.hdr-theme-option[aria-pressed='true'] {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow-card);
+}
+
 .hdr-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 0 16px;
+  padding: 0 20px;
 }
 .hdr-tabs {
   display: flex;
-  gap: 2px;
+  gap: 4px;
   min-width: 0;
   overflow-x: auto;
   scrollbar-width: none;
@@ -126,26 +165,52 @@
   display: none;
 }
 .hdr-tab {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 6px;
   height: var(--tabs-h);
-  padding: 0 12px;
+  padding: 0 10px;
   border: 0;
-  border-bottom: 2px solid transparent;
   background: transparent;
   color: var(--text-muted);
   font-size: 14px;
+  font-weight: 500;
   white-space: nowrap;
   cursor: pointer;
+  isolation: isolate;
+}
+/* The soft highlight behind a tab, and the red line under the current one. */
+.hdr-tab::before {
+  content: '';
+  position: absolute;
+  inset: 6px 2px;
+  z-index: -1;
+  border-radius: var(--radius);
+  transition: background-color 120ms ease;
 }
 .hdr-tab:hover {
   color: var(--text);
 }
+.hdr-tab:hover::before {
+  background: var(--btn-bg);
+}
+.hdr-tab::after {
+  content: '';
+  position: absolute;
+  right: 8px;
+  bottom: 0;
+  left: 8px;
+  height: 2px;
+  border-radius: 2px 2px 0 0;
+  background: transparent;
+}
 .hdr-tab-active {
-  border-bottom-color: var(--accent);
   color: var(--text);
   font-weight: 600;
+}
+.hdr-tab-active::after {
+  background: var(--accent);
 }
 
 .hdr-filter {
@@ -159,8 +224,8 @@
   max-width: 180px;
   padding: 2px 8px;
   overflow: hidden;
-  border: 1px solid var(--border);
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-3);
   color: var(--text-muted);
   font-family: var(--mono);
   font-size: 12px;
@@ -177,6 +242,7 @@
 .hdr-filter-icon {
   position: absolute;
   left: 10px;
+  z-index: 1;
   color: var(--text-subtle);
   pointer-events: none;
 }
@@ -240,22 +306,24 @@
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  padding: 10px 8px 10px 12px;
-  border: 1px solid var(--border);
-  border-left: 3px solid var(--link);
-  border-radius: var(--radius);
-  background: var(--surface-2);
-  box-shadow: var(--shadow);
+  padding: 12px 8px 12px 14px;
+  border-radius: var(--radius-md);
+  background: var(--surface-overlay);
+  box-shadow:
+    inset 3px 0 0 var(--link),
+    var(--shadow-lg);
   pointer-events: auto;
-  animation: toast-in 160ms ease-out;
+  animation: toast-in 180ms ease-out;
 }
 .toast-error {
-  border-left-color: var(--danger);
+  box-shadow:
+    inset 3px 0 0 var(--danger),
+    var(--shadow-lg);
 }
 .toast-icon {
   flex: none;
   margin-top: 2px;
-  color: var(--text-muted);
+  color: var(--link);
 }
 .toast-error .toast-icon {
   color: var(--danger);
@@ -294,7 +362,7 @@
   }
   .hdr-title {
     padding-left: 8px;
-    font-size: 14px;
+    font-size: 13px;
   }
   .hdr-logo-img {
     height: 30px;
@@ -302,6 +370,9 @@
   .hdr-new {
     width: 32px;
     padding: 0;
+  }
+  .hdr-live {
+    padding: 0 8px;
   }
   .hdr-new-label,
   .hdr-live-label,

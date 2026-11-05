@@ -11,8 +11,8 @@
   min-height: 100dvh;
   padding: 40px 16px calc(40px + env(safe-area-inset-bottom));
   background:
-    radial-gradient(ellipse 90% 55% at 50% -12%, rgba(171, 31, 45, 0.26), transparent 70%),
-    var(--bg);
+    radial-gradient(ellipse 90% 55% at 50% -12%, var(--glow), transparent 70%),
+    var(--surface-2);
 }
 
 .login-main {
@@ -40,9 +40,15 @@
   margin-bottom: 12px;
   user-select: none;
 }
+/* As on the society's website: Geist Mono, heavy, with the last word in red. */
 .login-title {
-  font-size: 24px;
-  font-weight: 600;
+  font-family: var(--mono);
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+.login-title-accent {
+  color: var(--accent-text);
 }
 .login-subtitle {
   margin: 0;
@@ -58,9 +64,9 @@
   align-items: center;
   gap: 8px 10px;
   padding: 10px 12px;
-  border: 1px solid rgba(248, 81, 73, 0.45);
   border-radius: var(--radius-lg);
   background: var(--danger-soft);
+  box-shadow: inset 3px 0 0 var(--danger);
 }
 .login-banner-icon {
   flex: none;
@@ -88,11 +94,10 @@
   flex-direction: column;
   gap: 16px;
   min-width: 0;
-  padding: 20px;
-  border: 1px solid var(--border);
+  padding: 24px;
   border-radius: var(--radius-lg);
   background: var(--surface);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow);
 }
 
 .login-field {
@@ -120,14 +125,18 @@
   display: flex;
   align-items: stretch;
   min-width: 0;
-  border: 1px solid var(--border);
+  border: 1px solid var(--input-border);
   border-radius: var(--radius);
-  background: var(--bg);
+  background: var(--input-bg);
   overflow: hidden;
+  transition:
+    border-color 120ms ease,
+    box-shadow 120ms ease;
 }
 .login-input-group:focus-within {
   border-color: var(--focus);
-  box-shadow: 0 0 0 3px rgba(255, 107, 120, 0.25);
+  background: var(--surface);
+  box-shadow: 0 0 0 1px var(--focus);
 }
 .login-input-group .input.login-input,
 .login-input-group .input.login-input:focus {
@@ -147,8 +156,8 @@
   flex: none;
   align-items: center;
   padding: 0 12px;
-  border-left: 1px solid var(--border);
-  background: var(--surface-2);
+  border-left: 1px solid var(--input-border);
+  background: var(--surface-3);
   color: var(--text-muted);
   font-size: 15px;
   white-space: nowrap;
@@ -166,6 +175,9 @@
 }
 .input.login-code::placeholder {
   color: var(--border-strong);
+}
+.input.login-code {
+  font-weight: 600;
 }
 
 .login-step-text {
@@ -190,8 +202,7 @@
   gap: 8px;
   margin: 0;
   padding: 10px 12px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-md);
   background: var(--surface-2);
   font-size: 14px;
 }

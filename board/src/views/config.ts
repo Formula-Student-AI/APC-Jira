@@ -10,6 +10,8 @@ interface ViewBase {
   name: string
   /** Base filter, same syntax as the filter box (combined with what the user types). */
   filter: string
+  /** A bar of subteam buttons above the view: show 'one' subteam at a time, or 'many' (see subteams.ts). */
+  subteamPicker?: 'one' | 'many'
 }
 
 export interface BoardViewConfig extends ViewBase {
@@ -56,22 +58,25 @@ export const VIEWS: ViewConfig[] = [
     swimlaneField: 'subteam',
   },
   {
-    // GitHub "Timeline": roadmap sorted by Subsystems (now Subteam)
+    // GitHub "Timeline": roadmap sorted by Subsystems (now Subteam). Show any number of subteams.
     id: 'timeline',
     name: 'Timeline',
     layout: 'roadmap',
     filter: '',
     groupField: 'subteam',
     fields: ['assignees', 'status'],
+    subteamPicker: 'many',
   },
   {
-    // GitHub "Subteam Board": board, columns = Subsystems (now Subteam), swimlanes = Status
+    // GitHub "Subteam Board": board, columns = Subsystems (now Subteam), swimlanes = Status.
+    // With one subteam picked it becomes that subteam's board: its items in Status columns.
     id: 'subteam-board',
     name: 'Subteam Board',
     layout: 'board',
     filter: '',
     columnField: 'subteam',
     swimlaneField: 'status',
+    subteamPicker: 'one',
   },
   {
     // GitHub "Blocked": table, filter status:Blocked

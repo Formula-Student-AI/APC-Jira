@@ -7,6 +7,7 @@ import { useFieldOptions } from '../store/hooks'
 import type { NewItem } from '../types'
 import { Modal } from '../ui/Modal'
 import type { ViewConfig } from '../views/config'
+import { filterWithSubteams, useShownSubteams } from '../views/subteams'
 
 /**
  * "+ New item". Starts with whatever the current view and filter imply (e.g. assigned to you on
@@ -18,9 +19,11 @@ export function NewItemDialog({ route, view, onClose }: { route: Route; view: Vi
   const options = useBoard((s) => s.options)
   const statusOptions = useFieldOptions('status')
   const subteamOptions = useFieldOptions('subteam')
+  // A subteam picked in the subteam bar counts too, so the new item lands where you are looking.
+  const shownTeams = useShownSubteams(view, route.teams)
   const defaults = useMemo(
-    () => defaultsFromFilter(combineFilters(view.filter, route.q), { me, members, options }),
-    [view.filter, route.q, me, members, options],
+    () => defaultsFromFilter(combineFilters(filterWithSubteams(view, shownTeams), route.q), { me, members, options }),
+    [view, shownTeams, route.q, me, members, options],
   )
   const [title, setTitle] = useState('')
   const [status, setStatus] = useState(defaults.status ?? statusOptions[0]?.name ?? '')

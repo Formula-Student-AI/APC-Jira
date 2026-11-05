@@ -11,9 +11,9 @@
 
 .bview-hint {
   margin: 12px 16px 0;
-  padding: 10px 12px;
-  border: 1px dashed var(--border);
-  border-radius: var(--radius);
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
   color: var(--text-muted);
   font-size: 13px;
 }
@@ -48,24 +48,28 @@
   background: var(--bg);
 }
 
+/* Column headers: Jira-style small capitals on the column's grey. */
 .bview-colhead {
   display: flex;
   align-items: center;
   gap: 8px;
   flex: none;
   width: var(--bview-col-w);
-  min-height: 36px;
-  padding: 6px 10px;
-  border: 1px solid var(--border-muted);
-  border-radius: var(--radius);
-  background: var(--surface);
+  min-height: 40px;
+  padding: 6px 12px;
+  border-radius: var(--radius-lg);
+  background: var(--surface-sunken);
 }
 .bview-colname {
   flex: 1;
   min-width: 0;
   overflow: hidden;
+  color: var(--text-muted);
+  font-size: 12px;
   font-weight: 600;
+  letter-spacing: 0.04em;
   text-overflow: ellipsis;
+  text-transform: uppercase;
   white-space: nowrap;
 }
 
@@ -86,16 +90,20 @@
   align-items: center;
   gap: 8px;
   min-height: 32px;
-  padding: 4px 8px;
+  padding: 4px 10px 4px 6px;
   border: 0;
   border-radius: var(--radius);
   background: transparent;
   color: var(--text);
   font-weight: 600;
   cursor: pointer;
+  transition: background-color 120ms ease;
 }
 .bview-lanetoggle:hover {
-  background: var(--surface-2);
+  background: var(--btn-bg);
+}
+.bview-lanetoggle svg {
+  color: var(--text-subtle);
 }
 .bview-lanename {
   white-space: nowrap;
@@ -115,14 +123,15 @@
   width: var(--bview-col-w);
   min-height: 64px;
   padding: 8px;
-  border: 1px solid var(--border-muted);
   border-radius: var(--radius-lg);
-  background: rgba(21, 27, 35, 0.55);
-  transition: border-color 80ms ease, background-color 80ms ease;
+  background: var(--surface-sunken);
+  transition:
+    box-shadow 120ms ease,
+    background-color 120ms ease;
 }
 .bview-cell-over {
-  border-color: var(--accent-border);
   background: var(--accent-soft);
+  box-shadow: inset 0 0 0 2px var(--accent-border);
 }
 
 .bview-add {
@@ -136,11 +145,13 @@
   background: transparent;
   color: var(--text-muted);
   font-size: 13px;
+  font-weight: 500;
   text-align: left;
   cursor: pointer;
+  transition: background-color 120ms ease;
 }
 .bview-add:hover {
-  background: var(--surface-2);
+  background: var(--btn-bg-hover);
   color: var(--text);
 }
 
@@ -156,22 +167,26 @@
 
 /* ---------------------------------------------------------------- cards */
 
+/* Cards: white on the column's grey, lifted by a soft shadow instead of a border (as in Jira). */
 .bcard {
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   background: var(--surface);
+  box-shadow: var(--shadow-card);
   cursor: grab;
   touch-action: manipulation;
   user-select: none;
   -webkit-user-select: none;
-  transition: border-color 80ms ease, box-shadow 80ms ease;
+  transition:
+    box-shadow 140ms ease,
+    background-color 140ms ease;
 }
 .bcard:hover {
-  border-color: var(--border-strong);
+  background: var(--surface-hover);
+  box-shadow: var(--shadow-card-hover);
 }
 .bcard:focus-visible {
   outline: 2px solid var(--focus);
-  outline-offset: 1px;
+  outline-offset: 2px;
 }
 .bcard-placeholder {
   opacity: 0.35;
@@ -184,16 +199,15 @@
 .bcard-body {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 10px 12px;
+  gap: 8px;
+  padding: 12px;
 }
 .bcard-overlay {
-  border: 1px solid var(--accent-border);
-  border-radius: 8px;
-  background: var(--surface-2);
-  box-shadow: var(--shadow);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-lg);
   cursor: grabbing;
-  transform: rotate(1.5deg);
+  transform: rotate(2deg);
 }
 
 .bcard-top {
@@ -209,16 +223,17 @@
   gap: 6px;
 }
 .bcard-number {
-  color: var(--text-muted);
+  color: var(--text-subtle);
   font-family: var(--mono);
   font-size: 12px;
+  font-weight: 500;
 }
 .bcard-title {
   display: -webkit-box;
   margin: 0;
   overflow: hidden;
   font-weight: 500;
-  line-height: 1.35;
+  line-height: 20px;
   overflow-wrap: anywhere;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 3;
@@ -242,11 +257,15 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  color: var(--text-muted);
+  height: 20px;
+  color: var(--text-subtle);
   font-size: 12px;
 }
 .bcard-overdue {
-  color: var(--danger);
+  padding: 0 6px;
+  border-radius: var(--radius-sm);
+  background: var(--danger-soft);
+  color: var(--danger-text);
   font-weight: 600;
 }
 
