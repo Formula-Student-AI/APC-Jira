@@ -5,6 +5,7 @@ import { AlertIcon, PersonAddIcon } from '@primer/octicons-react'
 import { useId, useState, type Ref } from 'react'
 import { APP_NAME, EMAIL_DOMAIN, emailFor, ORG_NAME, PLAN_LABEL, type AuthMode } from '../config'
 import { bootstrapAuth, useAuth } from '../store/auth'
+import { ThemeSwitch } from '../ui/ThemeSwitch'
 import './login.css'
 import { useLoginFlow, type LoginStep } from './useLoginFlow'
 
@@ -30,6 +31,7 @@ export function LoginScreen() {
 
   return (
     <div className="login-page">
+      <ThemeSwitch className="login-theme" />
       <main className="login-main">
         <header className="login-header">
           <img

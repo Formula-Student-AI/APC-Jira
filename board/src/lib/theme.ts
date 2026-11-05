@@ -1,6 +1,6 @@
-// Light, dark, or match the device (Jira's three choices). Remembered on this device and applied as
-// <html data-theme="light|dark">. index.html applies the saved choice before the first paint, so the page
-// never flashes the wrong theme; keep its inline script in step with this file.
+// Light, dark, or match the device (Jira's three choices). A first visit is light. The choice is remembered
+// on this device and applied as <html data-theme="light|dark">. index.html applies the saved choice before
+// the first paint, so the page never flashes the wrong theme; keep its inline script in step with this file.
 
 import { useSyncExternalStore } from 'react'
 
@@ -8,15 +8,22 @@ export type ThemeChoice = 'light' | 'dark' | 'system'
 
 export const THEME_KEY = 'fsai-board:theme'
 
+/** What a first visit (nothing saved yet) gets. */
+export const DEFAULT_THEME: ThemeChoice = 'light'
+
 const listeners = new Set<() => void>()
 const darkQuery = typeof window !== 'undefined' && window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null
 
+/** A saved choice, or the default when there is none (or it isn't one we know). */
+export function choiceFrom(saved: string | null): ThemeChoice {
+  return saved === 'light' || saved === 'dark' || saved === 'system' ? saved : DEFAULT_THEME
+}
+
 export function readThemeChoice(): ThemeChoice {
   try {
-    const saved = localStorage.getItem(THEME_KEY)
-    return saved === 'light' || saved === 'dark' ? saved : 'system'
+    return choiceFrom(localStorage.getItem(THEME_KEY))
   } catch {
-    return 'system'
+    return DEFAULT_THEME
   }
 }
 
@@ -27,9 +34,13 @@ export function resolveTheme(value: ThemeChoice, deviceIsDark: boolean): 'light'
   return value === 'system' ? (deviceIsDark ? 'dark' : 'light') : value
 }
 
+function shownTheme(): 'light' | 'dark' {
+  return resolveTheme(choice, darkQuery?.matches ?? false)
+}
+
 /** Puts the current choice on the page (and the browser's toolbar colour). */
 export function applyTheme(): void {
-  const theme = resolveTheme(choice, darkQuery?.matches ?? false)
+  const theme = shownTheme()
   document.documentElement.dataset.theme = theme
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme === 'dark' ? '#1d2125' : '#ffffff')
 }
@@ -42,8 +53,7 @@ function changed(): void {
 export function setThemeChoice(next: ThemeChoice): void {
   choice = next
   try {
-    if (next === 'system') localStorage.removeItem(THEME_KEY)
-    else localStorage.setItem(THEME_KEY, next)
+    localStorage.setItem(THEME_KEY, next)
   } catch {
     // Storage unavailable (private mode): the choice lasts until the page is closed.
   }
@@ -70,4 +80,9 @@ function subscribe(listener: () => void): () => void {
 /** The current choice; re-renders when it changes. */
 export function useThemeChoice(): ThemeChoice {
   return useSyncExternalStore(subscribe, () => choice, () => choice)
+}
+
+/** The theme showing now (light or dark), also when the choice is to match the device. */
+export function useShownTheme(): 'light' | 'dark' {
+  return useSyncExternalStore(subscribe, shownTheme, shownTheme)
 }

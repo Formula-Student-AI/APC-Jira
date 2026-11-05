@@ -68,8 +68,9 @@ HyPower-Bristol's BSEP plan. The board itself started empty.
 5. Use **+ Add item** at the bottom of a column, or **+ New item** in the header. A new item gets
    whatever the current view implies, so it shows up where you are. For example, on Self Kanban it
    is assigned to you.
-6. **Light or dark:** user menu > **Theme**: Light, Dark, or Auto (follows your device). The choice
-   is remembered on each device.
+6. **Light or dark:** the board opens in light mode the first time. Switch with the sun/moon toggle
+   at the top right of the sign-in page, or later in user menu > **Theme** (Light, Dark, or Auto to
+   follow your device). The choice is remembered on each device.
 7. **Archive** an item to hide it (from the ⋯ menu in the panel). Type `is:archived` in the filter
    to find archived items and restore them. Only board admins can delete items permanently.
 

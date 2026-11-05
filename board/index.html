@@ -11,16 +11,16 @@
     <title>Bristol FSAI Board</title>
     <script>
       // The saved theme before the first paint, so the page never flashes the wrong one (see src/lib/theme.ts).
+      // Nothing saved yet (a first visit): light.
       ;(function () {
-        var theme = null
+        var choice = null
         try {
-          theme = localStorage.getItem('fsai-board:theme')
+          choice = localStorage.getItem('fsai-board:theme')
         } catch (error) {
-          // storage unavailable: follow the device
+          // storage unavailable: use the default
         }
-        if (theme !== 'light' && theme !== 'dark') {
-          theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
-        }
+        var deviceDark = !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)
+        var theme = choice === 'dark' || (choice === 'system' && deviceDark) ? 'dark' : 'light'
         document.documentElement.setAttribute('data-theme', theme)
       })()
     </script>

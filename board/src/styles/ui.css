@@ -185,3 +185,51 @@
     display: none;
   }
 }
+
+/* ---------------------------------------------------------------- light/dark switch (ui/ThemeSwitch.tsx) */
+
+.theme-switch {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  width: 60px;
+  height: 32px;
+  padding: 0 9px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text-subtle);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  transition: border-color 160ms ease;
+}
+.theme-switch:hover {
+  border-color: var(--border-strong);
+}
+/* The icons sit above the knob; the one under it shows in white. */
+.theme-switch-icon {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  transition: color 180ms ease;
+}
+.theme-switch[aria-checked='false'] .theme-switch-sun,
+.theme-switch[aria-checked='true'] .theme-switch-moon {
+  color: #fff;
+}
+.theme-switch-knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: var(--shadow-sm);
+  transition: transform 180ms ease;
+}
+.theme-switch[aria-checked='true'] .theme-switch-knob {
+  transform: translateX(28px);
+}
