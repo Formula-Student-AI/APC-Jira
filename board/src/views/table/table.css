@@ -1,0 +1,228 @@
+/* Table view (views/table/TableView.tsx). Class prefix: tview- */
+
+.tview {
+  --tview-num-w: 64px;
+  --tview-title-min: 280px;
+  --tview-head-h: 36px;
+  --tview-row-h: 40px;
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* ---------------------------------------------------------------- view name and count */
+
+.tview-head {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.tview-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 600;
+}
+.tview-name svg {
+  color: var(--text-muted);
+}
+.tview-name .tview-name-blocked {
+  color: var(--danger);
+}
+.tview-count {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+/* ---------------------------------------------------------------- table */
+
+/* Scrolls both ways inside the view, so the page itself never scrolls sideways. */
+.tview-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  /* Rows reached with the arrow keys stay clear of the sticky header. */
+  scroll-padding-top: var(--tview-head-h);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/*
+ * Fixed layout: every column has a set width except Title (and growing columns on wide screens),
+ * which share whatever room is left. --tview-cols-w (set inline) is the sum of the other columns.
+ */
+.tview-table {
+  width: max(100%, calc(var(--tview-num-w) + var(--tview-title-min) + var(--tview-cols-w, 0px)));
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 14px;
+}
+.tview-col-num {
+  width: var(--tview-num-w);
+}
+.tview-col-grow {
+  width: auto;
+}
+
+.tview-table th,
+.tview-table td {
+  height: var(--tview-row-h);
+  padding: 0 8px;
+  border-right: 1px solid var(--border-muted);
+  border-bottom: 1px solid var(--border-muted);
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+.tview-table th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  height: var(--tview-head-h);
+  border-bottom-color: var(--border);
+  background: var(--surface);
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+.tview-table td {
+  background: var(--tview-row-bg, var(--bg));
+  color: var(--text);
+}
+
+/* # and Title stay pinned on the left while the rest scrolls sideways. */
+.tview-table .tview-num {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  color: var(--text-muted);
+  font-family: var(--mono);
+  font-size: 13px;
+}
+.tview-table .tview-title {
+  position: sticky;
+  left: var(--tview-num-w);
+  z-index: 1;
+  border-right-color: var(--border);
+}
+.tview-table th.tview-num,
+.tview-table th.tview-title {
+  z-index: 3;
+}
+.tview-table td.tview-title {
+  font-weight: 500;
+}
+
+/* ---------------------------------------------------------------- rows */
+
+.tview-row {
+  cursor: pointer;
+}
+@media (hover: hover) {
+  .tview-row:hover {
+    --tview-row-bg: var(--surface);
+  }
+}
+/* The item open in the side panel */
+.tview-row[aria-current='true'] {
+  --tview-row-bg: var(--surface-2);
+}
+.tview-row[aria-current='true'] > td:first-child {
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+/* Still being created: can't be opened yet */
+.tview-row[aria-disabled='true'] {
+  cursor: progress;
+}
+.tview-table .tview-row[aria-disabled='true'] td {
+  color: var(--text-subtle);
+}
+
+/* Keyboard focus: a ring around the whole row (outlines on <tr> aren't drawn everywhere). */
+.tview-row:focus-visible {
+  outline: none;
+}
+.tview-row:focus-visible > td {
+  box-shadow:
+    inset 0 2px 0 var(--focus),
+    inset 0 -2px 0 var(--focus);
+}
+.tview-row:focus-visible > td:first-child {
+  box-shadow:
+    inset 2px 0 0 var(--focus),
+    inset 0 2px 0 var(--focus),
+    inset 0 -2px 0 var(--focus);
+}
+.tview-row:focus-visible > td:last-child {
+  box-shadow:
+    inset -2px 0 0 var(--focus),
+    inset 0 2px 0 var(--focus),
+    inset 0 -2px 0 var(--focus);
+}
+
+/* ---------------------------------------------------------------- cells */
+
+.tview-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+}
+.tview-ellipsis {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tview-table td.tview-none {
+  color: var(--text-subtle);
+  font-style: italic;
+}
+/* Match the avatar overlap ring to the row colour. */
+.tview-row .avatar-stack .avatar + .avatar {
+  box-shadow: 0 0 0 2px var(--tview-row-bg, var(--bg));
+}
+
+/* ---------------------------------------------------------------- empty */
+
+.tview-empty {
+  flex: 1;
+  align-content: center;
+}
+.tview-empty svg {
+  color: var(--text-subtle);
+}
+.tview-empty .tview-empty-ok {
+  color: var(--success);
+}
+.tview-empty p {
+  margin: 0;
+  font-size: 15px;
+}
+
+/* ---------------------------------------------------------------- phones */
+
+@media (max-width: 640px) {
+  .tview {
+    --tview-num-w: 56px;
+    --tview-title-min: 168px;
+  }
+  .tview-head {
+    padding: 10px 12px;
+  }
+  /* No spare room to share: growing columns keep their set width. */
+  .tview-col-grow {
+    width: var(--tview-col-w);
+  }
+}

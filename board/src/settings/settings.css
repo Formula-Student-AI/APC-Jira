@@ -1,0 +1,149 @@
+/* Board settings dialog. */
+
+.settings-note {
+  margin: 0 0 12px;
+  font-size: 13px;
+}
+.settings-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--border-muted);
+}
+.settings-tab {
+  height: 36px;
+  padding: 0 12px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.settings-tab[aria-selected='true'] {
+  border-bottom-color: var(--accent);
+  color: var(--text);
+  font-weight: 600;
+}
+
+.settings-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.settings-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.settings-row .field-label {
+  margin: 0;
+}
+.settings-field {
+  width: auto;
+  min-width: 200px;
+}
+.settings-help {
+  margin: 0;
+  font-size: 13px;
+}
+
+.settings-options {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.settings-option {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+}
+.settings-option-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.settings-locked {
+  grid-column: 2 / -1;
+  margin-top: -4px;
+  font-size: 12px;
+}
+.settings-swatch {
+  width: 14px;
+  height: 14px;
+}
+.settings-palette {
+  display: grid;
+  grid-template-columns: repeat(4, 36px);
+  gap: 8px;
+  padding: 6px;
+}
+.settings-color {
+  width: 36px;
+  height: 36px;
+  border: 2px solid var(--opt-border);
+  border-radius: 50%;
+  background: var(--opt-solid);
+  cursor: pointer;
+}
+.settings-color[aria-pressed='true'] {
+  outline: 2px solid var(--text);
+  outline-offset: 2px;
+}
+
+.settings-add {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-muted);
+}
+.settings-add-member {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) auto;
+  padding-top: 0;
+  border-top: 0;
+}
+.settings-add-error {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+.settings-table-wrap {
+  overflow-x: auto;
+}
+.settings-members {
+  width: 100%;
+  min-width: 520px;
+  border-collapse: collapse;
+}
+.settings-members th {
+  padding: 6px 8px;
+  color: var(--text-muted);
+  font-size: 12px;
+  text-align: left;
+}
+.settings-members td {
+  padding: 4px 8px;
+  border-top: 1px solid var(--border-muted);
+}
+.settings-members input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+}
+.settings-member-name {
+  min-width: 180px;
+}
+.settings-retired td {
+  opacity: 0.6;
+}
+
+@media (max-width: 560px) {
+  .settings-add-member {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

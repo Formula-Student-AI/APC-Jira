@@ -1,0 +1,285 @@
+/* Board views: columns, swimlanes, cells and cards. */
+
+.bview {
+  --bview-col-w: 300px;
+  --bview-gap: 12px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.bview-hint {
+  margin: 12px 16px 0;
+  padding: 10px 12px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.bview-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.bview-grid {
+  display: inline-flex;
+  flex-direction: column;
+  min-width: 100%;
+  padding-bottom: 24px;
+}
+
+.bview-header,
+.bview-row {
+  display: flex;
+  gap: var(--bview-gap);
+  padding: 0 16px;
+}
+
+.bview-header {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  padding-top: 12px;
+  padding-bottom: 8px;
+  background: var(--bg);
+}
+
+.bview-colhead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+  width: var(--bview-col-w);
+  min-height: 36px;
+  padding: 6px 10px;
+  border: 1px solid var(--border-muted);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.bview-colname {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bview-lane + .bview-lane {
+  margin-top: 4px;
+}
+
+.bview-lanehead {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  width: max-content;
+  max-width: 100vw;
+  padding: 8px 16px 4px;
+}
+.bview-lanetoggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text);
+  font-weight: 600;
+  cursor: pointer;
+}
+.bview-lanetoggle:hover {
+  background: var(--surface-2);
+}
+.bview-lanename {
+  white-space: nowrap;
+}
+
+.bview-row {
+  align-items: stretch;
+  padding-top: 4px;
+  padding-bottom: 8px;
+}
+
+.bview-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: none;
+  width: var(--bview-col-w);
+  min-height: 64px;
+  padding: 8px;
+  border: 1px solid var(--border-muted);
+  border-radius: var(--radius-lg);
+  background: rgba(21, 27, 35, 0.55);
+  transition: border-color 80ms ease, background-color 80ms ease;
+}
+.bview-cell-over {
+  border-color: var(--accent-border);
+  background: var(--accent-soft);
+}
+
+.bview-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+.bview-add:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.bview-composer {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.bview-composer-actions {
+  display: flex;
+  gap: 6px;
+}
+
+/* ---------------------------------------------------------------- cards */
+
+.bcard {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  cursor: grab;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: border-color 80ms ease, box-shadow 80ms ease;
+}
+.bcard:hover {
+  border-color: var(--border-strong);
+}
+.bcard:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+.bcard-placeholder {
+  opacity: 0.35;
+}
+.bcard-pending {
+  cursor: default;
+  opacity: 0.75;
+}
+
+.bcard-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+}
+.bcard-overlay {
+  border: 1px solid var(--accent-border);
+  border-radius: 8px;
+  background: var(--surface-2);
+  box-shadow: var(--shadow);
+  cursor: grabbing;
+  transform: rotate(1.5deg);
+}
+
+.bcard-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 20px;
+}
+.bcard-number {
+  color: var(--text-muted);
+  font-family: var(--mono);
+  font-size: 12px;
+}
+.bcard-title {
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  font-weight: 500;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+}
+
+.bcard-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.bcard-member,
+.bcard-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  height: 20px;
+  padding: 0 6px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text-muted);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.bcard-member .avatar {
+  margin-left: -4px;
+}
+
+.bcard-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 22px;
+}
+.bcard-dates {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+.bcard-overdue {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+@media (max-width: 640px) {
+  .bview {
+    --bview-col-w: 86vw;
+    --bview-gap: 10px;
+  }
+  .bview-scroll {
+    scroll-snap-type: x proximity;
+  }
+  .bview-colhead,
+  .bview-cell {
+    scroll-snap-align: start;
+    scroll-margin-left: 12px;
+  }
+  .bview-header,
+  .bview-row {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+}
