@@ -1,0 +1,71 @@
+# Builds Bristol FSAI Board (board/) and publishes it to GitHub Pages on every push to main.
+# Settings come from repository Actions *variables* (Settings > Secrets and variables > Actions > Variables):
+#   VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY (publishable key; meant to be public, RLS protects the data),
+#   VITE_USERNAME_PATTERN (optional), VITE_AUTH_MODE (optional: trust | email_code).
+# The Supabase secret / service-role key is never used here.
+name: Deploy Bristol FSAI Board
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'board/**'
+      - '.github/workflows/deploy.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: board
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: board/package-lock.json
+
+      - run: npm ci
+
+      - name: Lint and test
+        run: |
+          npm run lint
+          npm test
+
+      - name: Build
+        run: npm run build
+        env:
+          # The site is served from https://<owner>.github.io/<repo>/
+          BASE_PATH: /${{ github.event.repository.name }}/
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
+          VITE_USERNAME_PATTERN: ${{ vars.VITE_USERNAME_PATTERN }}
+          VITE_AUTH_MODE: ${{ vars.VITE_AUTH_MODE }}
+
+      - uses: actions/configure-pages@v6
+
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: board/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5
