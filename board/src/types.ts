@@ -53,6 +53,8 @@ export interface Item {
   blocked_by: number[]
   /** Numbers of items this one relates to (Jira: "relates to"); shown on both items */
   related_to: number[]
+  /** A key date: a diamond on the Timeline (at its due date), with a line across the whole timeline */
+  is_milestone: boolean
   extra: ItemExtra
   /** Order within a board column (ascending) */
   position: number
@@ -80,6 +82,7 @@ export type ItemPatch = Partial<
     | 'blocked_reason'
     | 'blocked_by'
     | 'related_to'
+    | 'is_milestone'
     | 'extra'
     | 'position'
     | 'archived'

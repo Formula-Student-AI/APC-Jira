@@ -134,6 +134,9 @@ alter sequence public.item_number_seq owned by public.items.number;
 -- Jira's "relates to" links: numbers of items this one relates to. A link is kept on one of the two items
 -- and shown on both. ("blocks" / "is blocked by" are blocked_by.)
 alter table public.items add column if not exists related_to bigint[] not null default '{}';
+-- A milestone is a key date (design freeze, competition): the Timeline shows it as a diamond on its due
+-- date, with a line across the whole timeline.
+alter table public.items add column if not exists is_milestone boolean not null default false;
 alter table public.items drop constraint if exists items_limits;
 alter table public.items add constraint items_limits check (
   octet_length(extra::text) <= 8000

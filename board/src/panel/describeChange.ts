@@ -65,6 +65,8 @@ export function describeActivity(entry: Activity, members: Record<string, Member
       lines.push(`renamed this from “${short(String(change.old ?? ''))}” to “${short(String(change.new ?? ''))}”`)
     } else if (key === 'description') {
       lines.push('edited the description')
+    } else if (key === 'is_milestone') {
+      lines.push(change.new ? 'made this a milestone' : 'made this an ordinary task again')
     } else if (key === 'attachments') {
       lines.push(change.new ? `added the image “${short(String(change.new))}”` : `removed the image “${short(String(change.old ?? ''))}”`)
     } else if (key === 'blocked_reason') {

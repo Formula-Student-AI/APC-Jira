@@ -233,3 +233,11 @@
 .theme-switch[aria-checked='true'] .theme-switch-knob {
   transform: translateX(28px);
 }
+
+/* A milestone's diamond (ui/MilestoneIcon.tsx). */
+.milestone-icon {
+  flex: none;
+}
+.milestone-icon path {
+  fill: var(--milestone, var(--accent));
+}

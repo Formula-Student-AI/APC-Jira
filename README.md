@@ -61,6 +61,11 @@ HyPower-Bristol's BSEP plan. The board itself started empty.
    the blocked one's, in red when the blocked task starts before the blocking one ends. To link on
    the Timeline, hover a bar and drag the round handle at its end onto another task (from its
    start, it's the other way round).
+   **Milestones** (key dates such as a design freeze or the competition): on the Timeline, press
+   **◆ Milestone**, give it a name and a date. It shows as a diamond on its date, with a dashed line
+   across the whole Timeline (whatever subteams are shown). Any task can be made a milestone with the
+   **Milestone** switch in its panel. Link tasks to a milestone ("blocks") to see in red when they
+   would finish too late. `is:milestone` in the filter box lists them.
    **Images** (Attachments in the panel): add them with **+**, drop them on the section, or paste
    one anywhere in the open item. They are shrunk in your browser first (longest side 1600 px, about
    0.2-0.4 MB for a phone photo) and shown as thumbnails; click one to see it full size, download

@@ -211,7 +211,7 @@ export function timelineLinks(
   for (const group of groups) {
     for (const item of group.items) {
       const y = centres.get(item.number)
-      const bar = barFor(item, range)
+      const bar = shownBar(item, range)
       if (y !== undefined && bar) shown.set(item.number, { item, bar, y })
     }
   }
@@ -224,10 +224,61 @@ export function timelineLinks(
         key: `${number}>${blocked.item.number}`,
         from: number,
         to: blocked.item.number,
-        path: linkPath((blocker.bar.end + 1) * px, blocker.y, blocked.bar.start * px, blocked.y),
+        path: linkPath(
+          linkX(blocker.item, blocker.bar, 'end', px),
+          blocker.y,
+          linkX(blocked.item, blocked.bar, 'start', px),
+          blocked.y,
+        ),
         clash: clashes(blocker.item, blocked.item),
       })
     }
   }
   return lines
+}
+
+// ------------------------------------------------------------------------------------------ milestones
+
+type Dated = Pick<Item, 'start_date' | 'due_date' | 'is_milestone'>
+
+/** Half the width of a milestone's diamond, in px. */
+export const DIAMOND_R = 8
+
+/** The bar drawn for an item. A milestone is a single day: its due date (or else its start date). */
+export function shownBar(item: Dated, range: Range): Bar | null {
+  const bar = barFor(item, range)
+  return bar && item.is_milestone ? { start: bar.end, end: bar.end } : bar
+}
+
+/** Where a link meets an item: the end or start of its bar, or the tips of a milestone's diamond. */
+export function linkX(item: Dated, bar: Bar, side: 'start' | 'end', px: number): number {
+  if (item.is_milestone) {
+    const centre = (bar.start + 0.5) * px
+    return side === 'end' ? centre + DIAMOND_R : centre - DIAMOND_R
+  }
+  return side === 'end' ? (bar.end + 1) * px : bar.start * px
+}
+
+export interface MilestoneMarker {
+  id: string
+  number: number
+  title: string
+  subteam: string | null
+  /** 'YYYY-MM-DD' */
+  date: string
+  /** Centre of the milestone's day, in px from the timeline's start */
+  x: number
+}
+
+/** Every dated milestone on the board (whatever the view shows), as a line across the timeline. */
+export function milestoneMarkers(items: Iterable<Item>, range: Range, px: number): MilestoneMarker[] {
+  const markers: MilestoneMarker[] = []
+  for (const item of items) {
+    if (!item.is_milestone || item.archived) continue
+    const bar = shownBar(item, range)
+    const date = item.due_date ?? item.start_date
+    if (!bar || !date || bar.start < 0 || bar.start >= range.days) continue
+    markers.push({ id: item.id, number: item.number, title: item.title, subteam: item.subteam, date, x: (bar.start + 0.5) * px })
+  }
+  return markers.sort((a, b) => a.x - b.x || a.number - b.number)
 }

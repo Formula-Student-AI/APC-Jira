@@ -492,6 +492,7 @@ export async function createItem(input: NewItem): Promise<Item | null> {
     blocked_reason: null,
     blocked_by: [],
     related_to: [],
+    is_milestone: false,
     extra: {},
     position: Date.now() / 1000,
     archived: false,

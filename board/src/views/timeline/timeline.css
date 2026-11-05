@@ -471,3 +471,92 @@
     display: none;
   }
 }
+
+/* ------------------------------------------------------------ milestones */
+
+/* In its row: a diamond centred on its day, with the name beside it. */
+.tl-bar.tl-milestone {
+  top: calc(50% - 8px);
+  bottom: auto;
+  height: 16px;
+  padding: 0;
+  overflow: visible;
+  border: 0;
+  background: none;
+  box-shadow: none;
+}
+.tl-milestone-diamond {
+  position: absolute;
+  inset: 2px;
+  border: 2px solid var(--surface);
+  border-radius: 2px;
+  background: var(--opt-solid);
+  box-shadow: 0 0 0 1px var(--opt-border);
+  transform: rotate(45deg);
+}
+.tl-milestone.tl-bar-blocked {
+  background-image: none;
+}
+.tl-milestone.tl-bar-blocked .tl-milestone-diamond {
+  background: var(--danger);
+}
+.tl-milestone.tl-bar-dragging .tl-milestone-diamond {
+  box-shadow:
+    0 0 0 1px var(--opt-border),
+    var(--shadow);
+}
+.tl-milestone-label {
+  position: absolute;
+  top: 50%;
+  left: calc(100% + 22px);
+  color: var(--opt-fg);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+.tl-milestone:focus-visible {
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+
+/* Across the timeline: a dashed line in the milestone's colour, with its name at the top. */
+.tl-marker {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 3;
+  width: 0;
+}
+.tl-marker::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -1px;
+  border-left: 2px dashed var(--opt-solid);
+  opacity: 0.55;
+}
+.tl-marker-label {
+  position: sticky;
+  top: 56px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 20px;
+  margin-left: 4px;
+  padding: 0 8px 0 6px;
+  border: 1px solid var(--opt-border);
+  border-radius: 999px;
+  background: var(--opt-bg);
+  color: var(--opt-fg);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  pointer-events: auto;
+  cursor: pointer;
+}
+.tl-marker-label .milestone-icon path {
+  fill: var(--opt-solid);
+}

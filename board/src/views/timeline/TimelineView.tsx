@@ -2,13 +2,14 @@
 // Drag a bar to move it, drag its ends to change the dates; arrow keys do the same on a focused bar.
 // Links between tasks are drawn as lines from the end of the blocking bar to the start of the blocked one
 // (red when the dates clash); drag from the round handle at either end of a bar onto another task to link them.
+// Milestones are diamonds on their date, each with a line across the whole timeline.
 
 import { addDays } from 'date-fns'
 import { BlockedIcon, CalendarIcon, ChevronDownIcon, ChevronRightIcon } from '@primer/octicons-react'
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent, type RefObject } from 'react'
 import { isBlocked } from '../../fields'
 import { useToday } from '../../lib/clock'
-import { formatDayRange, parseDay, toDay } from '../../lib/format'
+import { formatDay, formatDayRange, parseDay, toDay } from '../../lib/format'
 import { datesClash } from '../../lib/links'
 import { colorClass, optionColor } from '../../lib/options'
 import { openItem } from '../../lib/router'
@@ -16,29 +17,35 @@ import { addLink, updateItem, useBoard } from '../../store/board'
 import { useFieldOptions, useViewItems } from '../../store/hooks'
 import type { Item } from '../../types'
 import { AvatarStack } from '../../ui/Avatar'
+import { MilestoneIcon } from '../../ui/MilestoneIcon'
 import { OptionDot } from '../../ui/OptionChip'
 import type { TimelineViewConfig } from '../config'
 import { SubteamPicker } from '../SubteamPicker'
 import { filterWithSubteams, useShownSubteams } from '../subteams'
+import { MilestoneDialog } from './MilestoneDialog'
 import {
-  barFor,
   computeRange,
   datesForBar,
   dayIndex,
   dayString,
+  DIAMOND_R,
   dragBar,
   GROUP_H,
+  linkX,
+  milestoneMarkers,
   groupForTimeline,
   monthSpans,
   PX_PER_DAY,
   ROW_H,
   rowLayout,
+  shownBar,
   timelineLinks,
   weekTicks,
   ZOOMS,
   type Bar,
   type DragMode,
   type LinkLine,
+  type MilestoneMarker,
   type Range,
   type TimelineGroup,
   type Zoom,
@@ -85,6 +92,10 @@ export function TimelineView({ view, query, teams }: TimelineViewProps) {
   const { groups, undated } = useMemo(() => groupForTimeline(items, subteams), [items, subteams])
   const layout = useMemo(() => rowLayout(groups, collapsed), [groups, collapsed])
   const links = useMemo(() => timelineLinks(groups, layout.centres, range, px, datesClash), [groups, layout, range, px])
+  // Milestones are key dates for everyone: their lines show whatever the filter or subteams picked.
+  const allItems = useBoard((s) => s.items)
+  const markers = useMemo(() => milestoneMarkers(Object.values(allItems), range, px), [allItems, range, px])
+  const [addingMilestone, setAddingMilestone] = useState(false)
   const layerRef = useRef<SVGSVGElement>(null)
   const draftPathRef = useRef<SVGPathElement>(null)
   const linking = useLinking(layout.centres, px, items, layerRef, draftPathRef)
@@ -141,6 +152,10 @@ export function TimelineView({ view, query, teams }: TimelineViewProps) {
           <CalendarIcon size={14} />
           Today
         </button>
+        <button type="button" className="btn btn-sm" onClick={() => setAddingMilestone(true)}>
+          <MilestoneIcon size={11} label="" />
+          Milestone
+        </button>
         {/* The subteam buttons double as the colour key. */}
         <SubteamPicker mode={view.subteamPicker ?? 'many'} shown={shownTeams} />
       </div>
@@ -149,7 +164,7 @@ export function TimelineView({ view, query, teams }: TimelineViewProps) {
         <div className="tl-canvas" style={canvasStyle}>
           <Scale range={range} zoom={zoom} px={px} todayIndex={todayIndex} />
           <div className="tl-body">
-            <Gridlines range={range} zoom={zoom} px={px} todayIndex={todayIndex} />
+            <Gridlines range={range} zoom={zoom} px={px} todayIndex={todayIndex} markers={markers} />
             <LinkLayer links={links} height={layout.height} draft={linking.draft} layerRef={layerRef} draftPathRef={draftPathRef} />
             {groups.map((group) => (
               <GroupRows
@@ -169,6 +184,9 @@ export function TimelineView({ view, query, teams }: TimelineViewProps) {
               today={today}
               linkTarget={linking.target}
             />
+            {addingMilestone && (
+              <MilestoneDialog subteam={shownTeams.length === 1 ? shownTeams[0] : null} onClose={() => setAddingMilestone(false)} />
+            )}
             {items.length === 0 && (
               <p className="tl-empty muted">
                 {query.trim() ? 'No items match the filter.' : shownTeams.length ? 'These subteams have no items yet.' : 'No items yet.'}
@@ -241,7 +259,7 @@ function useLinking(
     start(item, side, bar) {
       const y = centres.get(item.number)
       if (y === undefined) return
-      setDraft({ from: item, side, x: side === 'end' ? (bar.end + 1) * px : bar.start * px, y })
+      setDraft({ from: item, side, x: linkX(item, bar, side, px), y })
       setTarget(null)
     },
     move(event) {
@@ -324,7 +342,16 @@ function Scale({ range, zoom, px, todayIndex }: { range: Range; zoom: Zoom; px: 
   )
 }
 
-function Gridlines({ range, zoom, px, todayIndex }: { range: Range; zoom: Zoom; px: number; todayIndex: number }) {
+interface GridlinesProps {
+  range: Range
+  zoom: Zoom
+  px: number
+  todayIndex: number
+  markers: MilestoneMarker[]
+}
+
+function Gridlines({ range, zoom, px, todayIndex, markers }: GridlinesProps) {
+  const options = useBoard((s) => s.options)
   return (
     <div className="tl-grid" aria-hidden="true">
       {/* A month that began before the range would put its line left of the dates, under the labels. */}
@@ -338,6 +365,25 @@ function Gridlines({ range, zoom, px, todayIndex }: { range: Range; zoom: Zoom; 
           <span className="tl-today-label">Today</span>
         </span>
       )}
+      {/* Milestones: a line across the timeline, with the name at the top (click it to open). */}
+      {markers.map((marker) => (
+        <span
+          key={marker.id}
+          className={`tl-marker ${colorClass(optionColor(options, 'subteam', marker.subteam))}`}
+          style={{ left: marker.x }}
+        >
+          <button
+            type="button"
+            className="tl-marker-label"
+            tabIndex={-1}
+            title={`${marker.title}, ${formatDay(marker.date)}`}
+            onClick={() => openItem(marker.number)}
+          >
+            <MilestoneIcon size={10} label="" />
+            {marker.title}
+          </button>
+        </span>
+      ))}
     </div>
   )
 }
@@ -364,7 +410,7 @@ function GroupRows({ group, collapsed, onToggle, range, px, linking }: GroupRows
       </div>
       {!collapsed &&
         group.items.map((item) => {
-          const bar = barFor(item, range)
+          const bar = shownBar(item, range)
           return (
             <div
               key={item.id}
@@ -490,24 +536,29 @@ function TimelineBar({ item, bar, range, px, linking }: BarProps) {
     } else if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
       event.preventDefault()
       const delta = event.key === 'ArrowLeft' ? -1 : 1
-      const mode: DragMode = event.shiftKey ? 'end' : 'move'
+      const mode: DragMode = event.shiftKey && !item.is_milestone ? 'end' : 'move'
       save(dragBar(bar, mode, delta), mode)
     }
   }
 
-  const label = formatDayRange(item.start_date, item.due_date)
+  const milestone = item.is_milestone
+  const label = milestone ? formatDay(item.due_date ?? item.start_date ?? '') : formatDayRange(item.start_date, item.due_date)
   const linkingFromHere = linking.draft?.from.id === item.id
+  // A milestone is a diamond centred on its day; a task is a bar over its days.
+  const place = milestone
+    ? { left: (shown.start + 0.5) * px - DIAMOND_R, width: DIAMOND_R * 2 }
+    : { left: shown.start * px, width: Math.max(px, (shown.end - shown.start + 1) * px) }
   const previewLabel = preview
     ? formatDayRange(dayString(range, preview.start), dayString(range, preview.end))
     : null
 
   return (
     <div
-      className={`tl-bar ${colorClass(color)}${isBlocked(item) ? ' tl-bar-blocked' : ''}${preview ? ' tl-bar-dragging' : ''}${linkingFromHere ? ' tl-bar-linking' : ''}`}
-      style={{ left: shown.start * px, width: Math.max(px, (shown.end - shown.start + 1) * px) }}
+      className={`tl-bar ${colorClass(color)}${milestone ? ' tl-milestone' : ''}${isBlocked(item) ? ' tl-bar-blocked' : ''}${preview ? ' tl-bar-dragging' : ''}${linkingFromHere ? ' tl-bar-linking' : ''}`}
+      style={place}
       role="button"
       tabIndex={pending ? -1 : 0}
-      aria-label={`#${item.number} ${item.title}, ${label}. Arrow keys move it by a day, Shift+arrows change the due date, Enter opens it.`}
+      aria-label={`${milestone ? 'Milestone ' : ''}#${item.number} ${item.title}, ${label}. Arrow keys move it by a day${milestone ? '' : ', Shift+arrows change the due date'}, Enter opens it.`}
       title={`#${item.number} ${item.title} (${label})`}
       data-mode="move"
       onPointerDown={onPointerDown}
@@ -516,10 +567,19 @@ function TimelineBar({ item, bar, range, px, linking }: BarProps) {
       onPointerCancel={onPointerCancel}
       onKeyDown={onKeyDown}
     >
-      <span className="tl-handle tl-handle-start" data-mode="start" onPointerDown={onPointerDown} aria-hidden="true" />
-      {isBlocked(item) && <BlockedIcon size={12} className="tl-bar-icon" />}
-      <span className="tl-bar-label">{item.title}</span>
-      <span className="tl-handle tl-handle-end" data-mode="end" onPointerDown={onPointerDown} aria-hidden="true" />
+      {milestone ? (
+        <>
+          <span className="tl-milestone-diamond" aria-hidden="true" />
+          <span className="tl-milestone-label">{item.title}</span>
+        </>
+      ) : (
+        <>
+          <span className="tl-handle tl-handle-start" data-mode="start" onPointerDown={onPointerDown} aria-hidden="true" />
+          {isBlocked(item) && <BlockedIcon size={12} className="tl-bar-icon" />}
+          <span className="tl-bar-label">{item.title}</span>
+          <span className="tl-handle tl-handle-end" data-mode="end" onPointerDown={onPointerDown} aria-hidden="true" />
+        </>
+      )}
       {!pending && linkHandle('start')}
       {!pending && linkHandle('end')}
       {previewLabel && <span className="tl-tooltip">{previewLabel}</span>}

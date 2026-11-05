@@ -18,6 +18,7 @@ function item(overrides: Partial<Item> = {}): Item {
     blocked_reason: null,
     blocked_by: [],
     related_to: [],
+    is_milestone: false,
     extra: { priority: 'High' },
     position: 1,
     archived: false,
@@ -168,6 +169,12 @@ describe('matchesFilter', () => {
     expect(match('no:priority', item({ extra: {} }))).toBe(true)
     expect(match('has:lead')).toBe(true)
     expect(match('no:lead', item({ subteam: 'Mechanical' }))).toBe(true)
+  })
+
+  it('supports is:milestone', () => {
+    expect(match('is:milestone', item({ is_milestone: true }))).toBe(true)
+    expect(match('is:milestone')).toBe(false)
+    expect(match('-is:milestone')).toBe(true)
   })
 
   it('supports is:blocked and is:archived', () => {

@@ -34,6 +34,7 @@ export function PanelFields({ item }: { item: Item }) {
         <LabelsEditor item={item} />
       </Row>
       <DateRows item={item} />
+      <MilestoneRow item={item} />
     </dl>
   )
 }
@@ -107,6 +108,28 @@ function OptionSelect({ item, field }: { item: Item; field: SelectFieldKey }) {
         {value && !options.some((option) => option.name === value) && <option value={value}>{value}</option>}
       </select>
     </div>
+  )
+}
+
+/** A milestone is a key date: a diamond on the Timeline (at its due date), with a line across it. */
+function MilestoneRow({ item }: { item: Item }) {
+  return (
+    <Row label="Milestone" wide>
+      <label className="ip-switch">
+        <input
+          type="checkbox"
+          role="switch"
+          checked={item.is_milestone}
+          onChange={(event) => void updateItem(item.id, { is_milestone: event.target.checked }, 'the milestone setting')}
+        />
+        <span className="ip-switch-track" aria-hidden="true" />
+        <span className="ip-switch-text">
+          {item.is_milestone
+            ? 'A key date: a diamond on the Timeline at the due date, with a line across it'
+            : 'Make this a key date on the Timeline'}
+        </span>
+      </label>
+    </Row>
   )
 }
 
