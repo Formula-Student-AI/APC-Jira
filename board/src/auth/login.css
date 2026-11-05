@@ -32,33 +32,13 @@
   margin-bottom: 8px;
   text-align: center;
 }
-.login-brand {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 14px;
-}
-.login-logo {
-  display: inline-grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  background: var(--accent);
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.1),
-    0 6px 18px rgba(171, 31, 45, 0.4);
-  color: #fff;
-  font-size: 17px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  line-height: 1;
+.login-logo-img {
+  display: block;
+  width: 213px;
+  max-width: 70vw;
+  height: auto;
+  margin-bottom: 12px;
   user-select: none;
-}
-.login-wordmark {
-  font-size: 18px;
-  font-weight: 700;
-  letter-spacing: -0.01em;
 }
 .login-title {
   font-size: 24px;

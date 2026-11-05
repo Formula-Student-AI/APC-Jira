@@ -40,22 +40,22 @@
     },
     {
       "name": "Powertrain",
-      "color": "ORANGE",
-      "description": null
-    },
-    {
-      "name": "Electrical",
-      "color": "YELLOW",
-      "description": null
-    },
-    {
-      "name": "Braking System",
       "color": "PURPLE",
       "description": null
     },
     {
-      "name": "Admin",
+      "name": "Electrical",
       "color": "GREEN",
+      "description": null
+    },
+    {
+      "name": "Braking System",
+      "color": "RED",
+      "description": null
+    },
+    {
+      "name": "Admin",
+      "color": "ORANGE",
       "description": null
     }
   ],

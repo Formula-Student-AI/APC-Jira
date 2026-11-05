@@ -20,20 +20,16 @@
   gap: 10px;
   min-width: 0;
 }
-.hdr-logo {
-  display: inline-grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
+.hdr-logo-img {
+  display: block;
   flex: none;
-  border-radius: 8px;
-  background: var(--accent);
-  color: #fff;
-  font-size: 14px;
-  font-weight: 800;
-  letter-spacing: -0.5px;
+  width: auto;
+  height: 36px;
 }
 .hdr-title {
+  padding-left: 12px;
+  border-left: 1px solid var(--border);
+  line-height: 24px;
   overflow: hidden;
   font-size: 16px;
   font-weight: 600;
@@ -297,7 +293,11 @@
     padding: 0 12px;
   }
   .hdr-title {
+    padding-left: 8px;
     font-size: 14px;
+  }
+  .hdr-logo-img {
+    height: 30px;
   }
   .hdr-new {
     width: 32px;

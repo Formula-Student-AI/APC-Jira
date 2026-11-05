@@ -20,12 +20,13 @@ export function LoginScreen() {
     <div className="login-page">
       <main className="login-main">
         <header className="login-header">
-          <div className="login-brand">
-            <span className="login-logo" aria-hidden="true">
-              FS
-            </span>
-            <span className="login-wordmark">{ORG_NAME}</span>
-          </div>
+          <img
+            className="login-logo-img"
+            src={`${import.meta.env.BASE_URL}logo-login.png`}
+            alt={ORG_NAME}
+            width={213}
+            height={120}
+          />
           <h1 className="login-title">{APP_NAME}</h1>
           <p className="login-subtitle">{PLAN_LABEL}</p>
         </header>

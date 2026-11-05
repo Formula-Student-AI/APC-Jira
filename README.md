@@ -4,7 +4,7 @@ Bristol FSAI's live planning board for the 2026–27 plan: a Jira-style board wh
 tracks its work. Any change someone makes (a new item, a card dragged to another column, a date
 moved on the timeline) shows up for everyone else within about a second, without refreshing.
 
-- **Live site:** https://mithunkrish-05.github.io/APC-Jira/
+- **Live site:** https://formula-student-ai.github.io/APC-Jira/
 - **Built with:** React + TypeScript (Vite) on GitHub Pages; Supabase (Postgres, Realtime, Auth) for data and live updates.
 
 The structure (statuses, fields and views) is copied from the GitHub Project used for
