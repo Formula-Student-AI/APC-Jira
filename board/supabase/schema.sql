@@ -962,6 +962,154 @@ grant execute on function
   to authenticated;
 
 -- -----------------------------------------------------------------------------
+-- Attachments: images on items. The files live in the private Storage bucket "attachments", as
+-- <item id>/<attachment id>.webp (or .jpg) plus a small "-thumb" copy; this table says what they are.
+-- The browser shrinks every image before uploading (longest side 1600 px), so a photo takes about
+-- 0.2-0.4 MB. Limits: 2 MB per image, 20 per item, 900 MB in all (Supabase Free has 1 GB of storage).
+-- Order of work: the browser adds the row here (checked and given its file paths by the trigger),
+-- then uploads the two files, which Storage only accepts for paths with a row here.
+-- -----------------------------------------------------------------------------
+
+create table if not exists public.attachments (
+  id          uuid primary key default gen_random_uuid(),
+  item_id     uuid not null references public.items (id) on delete cascade,
+  name        text not null check (char_length(btrim(name)) between 1 and 200),
+  mime        text not null check (mime in ('image/webp', 'image/jpeg')),
+  size        integer not null check (size between 1 and 2097152),
+  thumb_size  integer not null check (thumb_size between 1 and 262144),
+  width       integer not null check (width between 1 and 10000),
+  height      integer not null check (height between 1 and 10000),
+  path        text not null unique,
+  thumb_path  text not null unique,
+  created_by  text references public.members (username) on update cascade on delete set null,
+  created_at  timestamptz not null default now()
+);
+comment on table public.attachments is 'Images on items; the files are in the Storage bucket "attachments".';
+create index if not exists attachments_item_idx on public.attachments (item_id, created_at);
+
+create or replace function public.attachments_before_insert()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+declare
+  v_member text := public.current_member();
+  v_ext    text := case new.mime when 'image/webp' then 'webp' else 'jpg' end;
+begin
+  if auth.uid() is not null then
+    if v_member is null then
+      raise exception 'This device is not logged in as a board member' using errcode = '42501';
+    end if;
+    new.created_by := v_member;
+    new.created_at := now();
+  end if;
+  new.name := btrim(new.name);
+  -- The paths are always made here, never taken from the browser.
+  new.path := new.item_id::text || '/' || new.id::text || '.' || v_ext;
+  new.thumb_path := new.item_id::text || '/' || new.id::text || '-thumb.' || v_ext;
+  if (select count(*) from public.attachments a where a.item_id = new.item_id) >= 20 then
+    raise exception 'An item can have at most 20 attachments' using errcode = '23514';
+  end if;
+  if (select coalesce(sum(a.size + a.thumb_size), 0) from public.attachments a) + new.size + new.thumb_size
+     > 900 * 1024 * 1024 then
+    raise exception 'Attachment storage is full (900 MB). Delete some old attachments first.' using errcode = '53100';
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists attachments_before_insert on public.attachments;
+create trigger attachments_before_insert
+  before insert on public.attachments
+  for each row execute function public.attachments_before_insert();
+
+-- Adding or removing an attachment shows in the item's history (not when the item itself is deleted).
+create or replace function public.attachments_log_activity()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_item public.items;
+begin
+  select * into v_item from public.items i where i.id = coalesce(new.item_id, old.item_id);
+  if not found then
+    return null;
+  end if;
+  insert into public.activity (item_id, item_number, username, action, changes)
+  values (
+    v_item.id, v_item.number, public.current_member(), 'updated',
+    jsonb_build_object('attachments', jsonb_build_object(
+      'old', case when tg_op = 'DELETE' then to_jsonb(old.name) else 'null'::jsonb end,
+      'new', case when tg_op = 'INSERT' then to_jsonb(new.name) else 'null'::jsonb end))
+  );
+  return null;
+end;
+$$;
+
+drop trigger if exists attachments_log_activity on public.attachments;
+create trigger attachments_log_activity
+  after insert or delete on public.attachments
+  for each row execute function public.attachments_log_activity();
+
+alter table public.attachments enable row level security;
+
+drop policy if exists attachments_read on public.attachments;
+create policy attachments_read on public.attachments
+  for select to authenticated using ((select public.current_member()) is not null);
+
+drop policy if exists attachments_insert_by_member on public.attachments;
+create policy attachments_insert_by_member on public.attachments
+  for insert to authenticated with check ((select public.current_member()) is not null);
+
+-- The person who added an attachment can remove it; board admins can remove any.
+drop policy if exists attachments_delete on public.attachments;
+create policy attachments_delete on public.attachments
+  for delete to authenticated
+  using (created_by = (select public.current_member()) or (select public.is_board_admin()));
+
+revoke all on table public.attachments from anon, authenticated;
+grant select, insert, delete on table public.attachments to authenticated;
+
+-- The private bucket. Storage itself refuses files over 2 MB and anything but WebP or JPEG.
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('attachments', 'attachments', false, 2097152, array['image/webp', 'image/jpeg'])
+on conflict (id) do update
+  set public = false, file_size_limit = excluded.file_size_limit, allowed_mime_types = excluded.allowed_mime_types;
+
+-- Members can view the files; a file can only be uploaded to the paths of a row its uploader added
+-- above; and a file can be removed once its row is gone (or by a board admin).
+drop policy if exists attachments_files_read on storage.objects;
+create policy attachments_files_read on storage.objects
+  for select to authenticated
+  using (bucket_id = 'attachments' and (select public.current_member()) is not null);
+
+drop policy if exists attachments_files_upload on storage.objects;
+create policy attachments_files_upload on storage.objects
+  for insert to authenticated
+  with check (
+    bucket_id = 'attachments'
+    and exists (
+      select 1 from public.attachments a
+      where (a.path = objects.name or a.thumb_path = objects.name)
+        and a.created_by = (select public.current_member())
+    )
+  );
+
+drop policy if exists attachments_files_delete on storage.objects;
+create policy attachments_files_delete on storage.objects
+  for delete to authenticated
+  using (
+    bucket_id = 'attachments'
+    and (select public.current_member()) is not null
+    and (
+      (select public.is_board_admin())
+      or not exists (select 1 from public.attachments a where a.path = objects.name or a.thumb_path = objects.name)
+    )
+  );
+
+-- -----------------------------------------------------------------------------
 -- Backups: a read-only login for the scheduled backup (GitHub Actions in the private
 -- Formula-Student-AI/APC-Jira-backups repo). It can read the board tables and change nothing.
 -- Its password is never in this file: it is set separately and kept only in that repo's Actions secret.
@@ -1002,7 +1150,7 @@ begin
   if not exists (select 1 from pg_publication where pubname = 'supabase_realtime') then
     create publication supabase_realtime;
   end if;
-  foreach t in array array['items', 'members', 'field_options', 'activity'] loop
+  foreach t in array array['items', 'members', 'field_options', 'activity', 'attachments'] loop
     if not exists (
       select 1 from pg_publication_tables
       where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = t

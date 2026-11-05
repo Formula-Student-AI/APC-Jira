@@ -88,6 +88,24 @@ export type ItemPatch = Partial<
 
 export type NewItem = { title: string } & ItemPatch
 
+/** An image on an item. The files are in the private Storage bucket "attachments". */
+export interface Attachment {
+  id: string
+  item_id: string
+  name: string
+  mime: 'image/webp' | 'image/jpeg'
+  /** Bytes of the 1600 px copy */
+  size: number
+  /** Bytes of the 400 px thumbnail */
+  thumb_size: number
+  width: number
+  height: number
+  path: string
+  thumb_path: string
+  created_by: string | null
+  created_at: string
+}
+
 export type ActivityAction = 'created' | 'updated' | 'archived' | 'restored' | 'deleted'
 
 export interface Activity {

@@ -19,6 +19,7 @@ import { useIsBoardAdmin, useItemByNumber, useSaveState } from '../store/hooks'
 import type { Item } from '../types'
 import { Dropdown } from '../ui/Dropdown'
 import { Modal } from '../ui/Modal'
+import { Attachments } from './Attachments'
 import { BlockingSection } from './BlockingSection'
 import { focusPanel } from './dom'
 import { History } from './History'
@@ -87,6 +88,7 @@ function PanelContent({ item }: { item: Item }) {
           <h3 className="ip-section-title">Description</h3>
           <MarkdownEditor item={item} />
         </section>
+        <Attachments item={item} />
         <LinkedTasks item={item} />
         <section className="ip-section">
           <h3 className="ip-section-title">History</h3>

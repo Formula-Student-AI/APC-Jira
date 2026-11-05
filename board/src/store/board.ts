@@ -9,7 +9,7 @@ import { errorMessage } from '../lib/format'
 import { linkTypeProblem, withNumber, type LinkType } from '../lib/links'
 import { sortOptions } from '../lib/options'
 import { supabase } from '../lib/supabase'
-import type { Activity, FieldOption, Item, ItemExtra, ItemPatch, Member, NewItem } from '../types'
+import type { Activity, Attachment, FieldOption, Item, ItemExtra, ItemPatch, Member, NewItem } from '../types'
 import { currentUsername, refreshSession } from './auth'
 
 export type LoadState = 'idle' | 'loading' | 'ready' | 'error'
@@ -35,6 +35,8 @@ export interface BoardState {
   options: FieldOption[]
   /** History per item id, newest first. Loaded when an item panel opens (loadActivity). */
   activity: Record<string, Activity[]>
+  /** Attachments (images) per item id, oldest first */
+  attachments: Record<string, Attachment[]>
   load: LoadState
   loadError: string | null
   live: LiveState
@@ -49,6 +51,7 @@ const initialState: BoardState = {
   members: {},
   options: [],
   activity: {},
+  attachments: {},
   load: 'idle',
   loadError: null,
   live: 'connecting',
@@ -163,10 +166,11 @@ export async function loadBoard(): Promise<void> {
   const seq = ++loadSeq
   if (get().load !== 'ready') set({ load: 'loading', loadError: null })
   try {
-    const [items, members, options] = await Promise.all([
+    const [items, members, options, attachments] = await Promise.all([
       fetchAll<Item>('items', 'number'),
       fetchAll<Member>('members', 'username'),
       fetchAll<FieldOption>('field_options', 'sort_order'),
+      fetchAll<Attachment>('attachments', 'created_at'),
     ])
     if (seq !== loadSeq) return // a newer load started meanwhile
     set((s) => {
@@ -188,6 +192,7 @@ export async function loadBoard(): Promise<void> {
         items: shown,
         members: Object.fromEntries(members.map((m) => [m.username, m])),
         options: sortOptions(options),
+        attachments: groupAttachments(attachments),
         load: 'ready',
         loadError: null,
       }
@@ -262,6 +267,47 @@ function onOptionChange(payload: RealtimePostgresChangesPayload<FieldOption>): v
   putOption(payload.new as FieldOption)
 }
 
+// ---------------------------------------------------------------------------
+// Attachments (uploads and deletes are in store/attachments.ts)
+// ---------------------------------------------------------------------------
+
+function groupAttachments(rows: Attachment[]): Record<string, Attachment[]> {
+  const byItem: Record<string, Attachment[]> = {}
+  for (const row of rows) (byItem[row.item_id] ??= []).push(row)
+  return byItem
+}
+
+/** Show an attachment (once), after an upload or from realtime. */
+export function putAttachment(row: Attachment): void {
+  set((s) => {
+    const list = s.attachments[row.item_id] ?? []
+    if (list.some((a) => a.id === row.id)) return {}
+    const next = [...list, row].sort((a, b) => a.created_at.localeCompare(b.created_at))
+    return { attachments: { ...s.attachments, [row.item_id]: next } }
+  })
+}
+
+/** Stop showing an attachment (deleted here or elsewhere). */
+export function dropAttachment(id: string): void {
+  set((s) => {
+    for (const [itemId, list] of Object.entries(s.attachments)) {
+      if (list.some((a) => a.id === id)) {
+        return { attachments: { ...s.attachments, [itemId]: list.filter((a) => a.id !== id) } }
+      }
+    }
+    return {}
+  })
+}
+
+function onAttachmentChange(payload: RealtimePostgresChangesPayload<Attachment>): void {
+  if (payload.eventType === 'DELETE') {
+    const id = (payload.old as Partial<Attachment>).id
+    if (id) dropAttachment(id)
+  } else if (payload.eventType === 'INSERT') {
+    putAttachment(payload.new as Attachment)
+  }
+}
+
 function onActivityInsert(payload: RealtimePostgresChangesPayload<Activity>): void {
   const entry = payload.new as Activity
   set((s) => {
@@ -300,6 +346,7 @@ export function startBoard(): void {
     .on('postgres_changes', { event: '*', schema: 'public', table: 'members' }, onMemberChange)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'field_options' }, onOptionChange)
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'activity' }, onActivityInsert)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'attachments' }, onAttachmentChange)
     .on('system', {}, (payload: { extension?: string; status?: string }) => {
       // Sent once the server really streams database changes for this channel (just after SUBSCRIBED).
       // Refetch then, so nothing changed between the last load and this moment is missed.
@@ -496,11 +543,21 @@ export async function deleteItem(id: string): Promise<boolean> {
   if (!previousBase) return false
   setItem(id, { base: null, overlay: null })
 
+  // The item's attachment rows go with it (cascade); their files are removed afterwards.
+  const files = (get().attachments[id] ?? []).flatMap((a) => [a.path, a.thumb_path])
   const { data, error } = await supabase.from('items').delete().eq('id', id).select('id')
   if (error || !data || data.length === 0) {
     setItem(id, { base: previousBase, overlay: previousOverlay ?? null })
     pushToast('error', `Couldn't delete the item: ${error?.message ?? 'only board admins can delete items'}`)
     return false
+  }
+  if (files.length) {
+    set((s) => {
+      const rest = { ...s.attachments }
+      delete rest[id]
+      return { attachments: rest }
+    })
+    void supabase.storage.from('attachments').remove(files)
   }
   return true
 }

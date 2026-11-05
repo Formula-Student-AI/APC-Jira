@@ -253,6 +253,19 @@
   gap: 8px;
   min-height: 22px;
 }
+.bcard-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.bcard-attachments {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--text-subtle);
+  font-size: 12px;
+}
 .bcard-dates {
   display: inline-flex;
   align-items: center;

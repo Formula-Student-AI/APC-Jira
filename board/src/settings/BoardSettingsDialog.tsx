@@ -5,8 +5,10 @@ import { ArrowDownIcon, ArrowUpIcon, PlusIcon, TrashIcon, XIcon } from '@primer/
 import { useId, useState, type FormEvent } from 'react'
 import { USERNAME_PATTERN, normalizeUsername } from '../config'
 import { BLOCKED_STATUS, FIELDS, SELECT_FIELDS, type SelectFieldKey } from '../fields'
+import { formatBytes } from '../lib/images'
 import { colorClass } from '../lib/options'
 import { MemberMenu } from '../panel/MemberPicker'
+import { MAX_TOTAL_BYTES } from '../store/attachments'
 import { memberName } from '../panel/members'
 import {
   addMember,
@@ -44,6 +46,7 @@ export function BoardSettingsDialog({ onClose }: { onClose: () => void }) {
       <p className="muted settings-note">
         Board admin is a permission to manage this board. It has nothing to do with the Admin subteam.
       </p>
+      <StorageUse />
       <div className="settings-tabs" role="tablist" aria-label="Settings">
         {TABS.map(({ id, label }) => (
           <button key={id} type="button" role="tab" aria-selected={tab === id} className="settings-tab" onClick={() => setTab(id)}>
@@ -55,6 +58,33 @@ export function BoardSettingsDialog({ onClose }: { onClose: () => void }) {
       {tab === 'options' && <OptionsTab />}
       {tab === 'members' && <MembersTab />}
     </Modal>
+  )
+}
+
+/** How much of the attachment allowance is used (images are shrunk before upload). */
+function StorageUse() {
+  const attachments = useBoard((s) => s.attachments)
+  let bytes = 0
+  let count = 0
+  for (const list of Object.values(attachments)) {
+    for (const a of list) {
+      bytes += a.size + a.thumb_size
+      count++
+    }
+  }
+  const share = Math.min(100, (bytes / MAX_TOTAL_BYTES) * 100)
+  return (
+    <div className="settings-storage">
+      <div className="settings-storage-text">
+        <span>
+          Attachments: {count} image{count === 1 ? '' : 's'}, {formatBytes(bytes)} of {formatBytes(MAX_TOTAL_BYTES)}
+        </span>
+        <span className="muted">{share < 1 ? '<1' : Math.round(share)}% used</span>
+      </div>
+      <div className="settings-storage-bar" role="progressbar" aria-label="Attachment storage used" aria-valuenow={Math.round(share)} aria-valuemin={0} aria-valuemax={100}>
+        <span style={{ width: `${share}%` }} />
+      </div>
+    </div>
   )
 }
 

@@ -61,6 +61,10 @@ HyPower-Bristol's BSEP plan. The board itself started empty.
    the blocked one's, in red when the blocked task starts before the blocking one ends. To link on
    the Timeline, hover a bar and drag the round handle at its end onto another task (from its
    start, it's the other way round).
+   **Images** (Attachments in the panel): add them with **+**, drop them on the section, or paste
+   one anywhere in the open item. They are shrunk in your browser first (longest side 1600 px, about
+   0.2-0.4 MB for a phone photo) and shown as thumbnails; click one to see it full size, download
+   or remove it. Cards show a paperclip with the number of images.
 5. Use **+ Add item** at the bottom of a column, or **+ New item** in the header. A new item gets
    whatever the current view implies, so it shows up where you are. For example, on Self Kanban it
    is assigned to you.
@@ -295,8 +299,15 @@ These were the limits at the time of writing (November 2026); check the
 - **Supabase pauses a free project after about a week with no activity.** The site then can't
   load. Restore it from the Supabase dashboard (open the project and choose **Restore**). It takes
   a few minutes, and nothing is lost.
-- The database is limited to about 500 MB, which is plenty for a planning board. Realtime has a
-  limit on concurrent connections and monthly messages that a society board won't come near.
+- **Tasks:** the database is limited to 500 MB. The board used 12 MB when it started (most of that
+  is Supabase's own tables), and a task with its history takes roughly 5-10 KB, so there is room for
+  tens of thousands of tasks. Per task: a 300-character title, a 50,000-character description,
+  30 assignees, 30 labels and 50 links of each type. Members: up to 300 (`board_settings.member_limit`).
+- **Images:** Supabase Free has 1 GB of file storage. Images are shrunk before upload, so a photo
+  takes about 0.2-0.4 MB (plus a 15-30 KB thumbnail): roughly 3,000-4,500 photos. The database
+  enforces 2 MB per image, 20 images per task and 900 MB in all; Board settings shows how much is
+  used. Removing an image frees its space. Images are not part of the backups (only the tasks are).
+- **Realtime:** about 200 people can have the board open at once.
 - Without custom SMTP, Supabase sends very few emails (see email codes above).
 - **GitHub:** Pages from a private repository needs GitHub Pro. Actions minutes for private
   repositories are limited (2,000 a month on the free plan). The private backups use about

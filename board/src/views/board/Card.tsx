@@ -3,7 +3,7 @@
 
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { CalendarIcon } from '@primer/octicons-react'
+import { CalendarIcon, PaperclipIcon } from '@primer/octicons-react'
 import { memo, type KeyboardEvent } from 'react'
 import { isBlocked } from '../../fields'
 import { useToday } from '../../lib/clock'
@@ -68,6 +68,7 @@ export function CardBody({ item, overlay = false }: CardProps & { overlay?: bool
       .map((username) => s.members[username]?.full_name ?? username)
       .join(', '),
   )
+  const attachments = useBoard((s) => s.attachments[item.id]?.length ?? 0)
   const dates = formatDayRange(item.start_date, item.due_date)
   const overdue = isOverdue(item.due_date, item.status, today)
   const hasChips = !!item.subteam || item.labels.length > 0
@@ -96,16 +97,22 @@ export function CardBody({ item, overlay = false }: CardProps & { overlay?: bool
           ))}
         </div>
       )}
-      {(dates || item.assignees.length > 0) && (
+      {(dates || item.assignees.length > 0 || attachments > 0) && (
         <div className="bcard-footer">
-          {dates ? (
-            <span className={cx('bcard-dates', overdue && 'bcard-overdue')} title={overdue ? 'Overdue' : 'Dates'}>
-              <CalendarIcon size={12} />
-              {dates}
-            </span>
-          ) : (
-            <span />
-          )}
+          <span className="bcard-meta">
+            {dates && (
+              <span className={cx('bcard-dates', overdue && 'bcard-overdue')} title={overdue ? 'Overdue' : 'Dates'}>
+                <CalendarIcon size={12} />
+                {dates}
+              </span>
+            )}
+            {attachments > 0 && (
+              <span className="bcard-attachments" title={`${attachments} attachment${attachments === 1 ? '' : 's'}`}>
+                <PaperclipIcon size={12} />
+                {attachments}
+              </span>
+            )}
+          </span>
           <AvatarStack usernames={item.assignees} size={20} />
         </div>
       )}
