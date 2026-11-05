@@ -180,8 +180,10 @@
   position: sticky;
   left: 0;
   z-index: 4;
-  width: max-content;
+  width: var(--tl-label-w);
   padding: 10px 8px 4px;
+  border-right: 1px solid var(--border);
+  background: var(--bg);
 }
 .tl-group-toggle {
   display: inline-flex;
