@@ -6,6 +6,7 @@
 import type { RealtimeChannel, RealtimePostgresChangesPayload } from '@supabase/supabase-js'
 import { create } from 'zustand'
 import { errorMessage } from '../lib/format'
+import { linkProblem, withBlocker } from '../lib/links'
 import { sortOptions } from '../lib/options'
 import { supabase } from '../lib/supabase'
 import type { Activity, FieldOption, Item, ItemExtra, ItemPatch, Member, NewItem } from '../types'
@@ -592,4 +593,32 @@ export async function addMember(username: string, fullName: string): Promise<boo
     return false
   }
   return true
+}
+
+// ---------------------------------------------------------------------------
+// Links between items ("is blocked by" / "blocks")
+// ---------------------------------------------------------------------------
+
+/**
+ * Make item `itemId` wait on item number `blocker` (Jira's "is blocked by"). Checked against the
+ * latest board first: self-links, repeats and loops are explained instead of saved.
+ */
+export function addBlocker(itemId: string, blocker: number): void {
+  const items = get().items
+  const item = items[itemId]
+  if (!item) return
+  const byNumber = new Map(Object.values(items).map((other) => [other.number, other]))
+  const problem = linkProblem(byNumber, item, blocker)
+  if (problem) {
+    pushToast('info', problem)
+    return
+  }
+  void updateItem(itemId, { blocked_by: withBlocker(item.blocked_by, blocker) }, 'the link')
+}
+
+/** Remove the link that makes item `itemId` wait on item number `blocker`. */
+export function removeBlocker(itemId: string, blocker: number): void {
+  const item = get().items[itemId]
+  if (!item?.blocked_by.includes(blocker)) return
+  void updateItem(itemId, { blocked_by: item.blocked_by.filter((number) => number !== blocker) }, 'the link')
 }

@@ -277,15 +277,13 @@
   text-decoration: underline;
 }
 
-.ip-labels,
-.ip-blockers {
+.ip-labels {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 6px;
 }
-.ip-label,
-.ip-blocker {
+.ip-label {
   gap: 4px;
   padding-right: 2px;
 }
@@ -305,8 +303,7 @@
   background: var(--btn-bg-hover);
   color: var(--text);
 }
-.ip-label-input,
-.ip-blocker-input {
+.ip-label-input {
   flex: 1;
   min-width: 120px;
   max-width: 220px;
@@ -533,4 +530,85 @@
   .ip-title {
     font-size: 20px;
   }
+}
+
+/* ------------------------------------------------------------ linked tasks */
+
+.ip-link-group + .ip-link-group {
+  margin-top: 14px;
+}
+.ip-link-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 28px;
+  margin-bottom: 4px;
+}
+.ip-link-head .field-label {
+  margin: 0;
+}
+.ip-link-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ip-link-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 2px 6px 2px 12px;
+  border: 1px solid var(--border-muted);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  transition: background-color 120ms ease;
+}
+.ip-link-row:hover {
+  background: var(--surface-2);
+}
+.ip-link-open {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  padding: 6px 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+.ip-link-open:hover:not(:disabled) .ip-link-title {
+  text-decoration: underline;
+}
+.ip-link-open:disabled {
+  color: var(--text-subtle);
+  cursor: default;
+}
+.ip-link-number {
+  flex: none;
+  color: var(--text-subtle);
+  font-family: var(--mono);
+  font-size: 12px;
+}
+.ip-link-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ip-link-clash {
+  display: inline-flex;
+  flex: none;
+  color: var(--danger);
+}
+.ip-link-none {
+  margin: 0;
+  color: var(--text-subtle);
+  font-size: 13px;
 }

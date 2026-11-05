@@ -147,3 +147,87 @@ export function groupForTimeline(items: Item[], subteams: FieldOption[]): { grou
   }
   return { groups: none.items.length ? [...groups, none] : groups, undated }
 }
+
+// ------------------------------------------------------------------------------------------ links
+
+/** Heights in px of a row and of a subteam heading. Set on the timeline as CSS variables, so the
+ *  drawing of the links and the layout always agree. */
+export const ROW_H = 36
+export const GROUP_H = 46
+
+/** Where each shown item's row is: the y of its centre, from the top of the rows, plus the total height. */
+export function rowLayout(groups: TimelineGroup[], collapsed: ReadonlySet<string>): { centres: Map<number, number>; height: number } {
+  const centres = new Map<number, number>()
+  let y = 0
+  for (const group of groups) {
+    y += GROUP_H
+    if (collapsed.has(group.key)) continue
+    for (const item of group.items) {
+      centres.set(item.number, y + ROW_H / 2)
+      y += ROW_H
+    }
+  }
+  return { centres, height: y }
+}
+
+/**
+ * An SVG path from the end of one bar (x1, y1) to the start of another (x2, y2), in Jira's style: a
+ * smooth S when there's room, or out to the right, along the gap between the rows and back in when the
+ * second bar starts too early.
+ */
+export function linkPath(x1: number, y1: number, x2: number, y2: number): string {
+  const r = (n: number) => Math.round(n * 10) / 10
+  if (x2 - x1 >= 16) {
+    const bend = Math.min(40, (x2 - x1) / 2)
+    return `M${r(x1)} ${r(y1)}C${r(x1 + bend)} ${r(y1)} ${r(x2 - bend)} ${r(y2)} ${r(x2)} ${r(y2)}`
+  }
+  const gap = y2 > y1 ? y1 + ROW_H / 2 : y1 - ROW_H / 2
+  return (
+    `M${r(x1)} ${r(y1)}C${r(x1 + 14)} ${r(y1)} ${r(x1 + 14)} ${r(gap)} ${r(x1)} ${r(gap)}` +
+    `L${r(x2)} ${r(gap)}C${r(x2 - 14)} ${r(gap)} ${r(x2 - 14)} ${r(y2)} ${r(x2)} ${r(y2)}`
+  )
+}
+
+export interface LinkLine {
+  key: string
+  /** Number of the blocking item (the line starts at the end of its bar) */
+  from: number
+  /** Number of the blocked item (the line ends at the start of its bar) */
+  to: number
+  path: string
+  /** The blocked item starts before the blocking one ends */
+  clash: boolean
+}
+
+/** The links to draw: both items have a bar in an open group. */
+export function timelineLinks(
+  groups: TimelineGroup[],
+  centres: ReadonlyMap<number, number>,
+  range: Range,
+  px: number,
+  clashes: (blocker: Item, blocked: Item) => boolean,
+): LinkLine[] {
+  const shown = new Map<number, { item: Item; bar: Bar; y: number }>()
+  for (const group of groups) {
+    for (const item of group.items) {
+      const y = centres.get(item.number)
+      const bar = barFor(item, range)
+      if (y !== undefined && bar) shown.set(item.number, { item, bar, y })
+    }
+  }
+  const lines: LinkLine[] = []
+  for (const blocked of shown.values()) {
+    for (const number of blocked.item.blocked_by) {
+      const blocker = shown.get(number)
+      if (!blocker) continue
+      lines.push({
+        key: `${number}>${blocked.item.number}`,
+        from: number,
+        to: blocked.item.number,
+        path: linkPath((blocker.bar.end + 1) * px, blocker.y, blocked.bar.start * px, blocked.y),
+        clash: clashes(blocker.item, blocked.item),
+      })
+    }
+  }
+  return lines
+}

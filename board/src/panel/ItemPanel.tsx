@@ -22,6 +22,7 @@ import { Modal } from '../ui/Modal'
 import { BlockingSection } from './BlockingSection'
 import { focusPanel } from './dom'
 import { History } from './History'
+import { LinkedTasks } from './LinkedTasks'
 import { MarkdownEditor } from './MarkdownEditor'
 import { PanelFields } from './PanelFields'
 import { saveTitle } from './saves'
@@ -86,6 +87,7 @@ function PanelContent({ item }: { item: Item }) {
           <h3 className="ip-section-title">Description</h3>
           <MarkdownEditor item={item} />
         </section>
+        <LinkedTasks item={item} />
         <section className="ip-section">
           <h3 className="ip-section-title">History</h3>
           <History item={item} />
