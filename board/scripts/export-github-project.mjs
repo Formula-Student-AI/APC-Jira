@@ -40,7 +40,7 @@ function gql(query, variables = {}) {
       stdio: ['pipe', 'pipe', 'pipe'],
     });
   } catch (error) {
-    throw new Error(`gh api graphql failed: ${error.stderr || error.stdout || error.message}`);
+    throw new Error(`gh api graphql failed: ${error.stderr || error.stdout || error.message}`, { cause: error });
   }
   const json = JSON.parse(stdout);
   if (json.errors?.length) throw new Error(`GraphQL errors: ${JSON.stringify(json.errors)}`);
@@ -168,7 +168,6 @@ const ITEMS_QUERY = `
 `;
 
 const ref = (f) => (f ? { id: f.id, name: f.name, dataType: f.dataType } : null);
-const names = (conn) => (conn?.nodes ?? []).map((n) => n.name);
 
 function normalizeField(f) {
   const base = { id: f.id, name: f.name, dataType: f.dataType, kind: f.__typename };
@@ -294,7 +293,7 @@ const views = p.views.nodes.map((v) => ({
 
 const rawItems = [];
 let after = null;
-let totalCount = 0;
+let totalCount;
 do {
   const page = gql(ITEMS_QUERY, { id: p.id, after }).node.items;
   totalCount = page.totalCount;
