@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { datesClash } from '../../lib/links'
 import type { Item } from '../../types'
-import { DIAMOND_R, GROUP_H, linkPath, linkX, milestoneMarkers, ROW_H, rowLayout, shownBar, timelineLinks, type TimelineGroup } from './timelineMath'
+import { DIAMOND_R, GROUP_H, linkPath, linkX, milestoneMarkers, phaseBands, ROW_H, rowLayout, shownBar, timelineLinks, type TimelineGroup } from './timelineMath'
 
 function item(number: number, start: string | null, due: string | null, blocked_by: number[] = []): Item {
   return {
     id: `id-${number}`, number, title: `Item ${number}`, description: '', status: 'Todo', subteam: 'A', assignees: [],
-    legacy_assignees: [], labels: [], start_date: start, due_date: due, blocked_reason: null, blocked_by, related_to: [], is_milestone: false, extra: {},
+    legacy_assignees: [], labels: [], start_date: start, due_date: due, blocked_reason: null, blocked_by, related_to: [], is_milestone: false, is_phase: false, extra: {},
     position: number, archived: false, github_item_id: null, github_url: null, created_by: null, updated_by: null,
     created_at: '', updated_at: '',
   }
@@ -100,5 +100,36 @@ describe('milestones', () => {
       ['Design freeze', '2026-11-05', 45],
       ['FS UK', '2026-11-20', 195],
     ])
+  })
+})
+
+describe('phases', () => {
+  const phase = (number: number, start: string | null, due: string | null, extra: Partial<Item> = {}) => ({
+    ...item(number, start, due),
+    is_phase: true,
+    ...extra,
+  })
+
+  it('shades each dated phase across its days, in date order', () => {
+    const bands = phaseBands(
+      [
+        phase(21, '2026-11-10', '2026-11-19', { title: 'Manufacturing' }),
+        phase(20, '2026-11-01', '2026-11-09', { title: 'Detailed design' }),
+        phase(22, null, null),
+        phase(23, '2026-11-01', '2026-11-03', { archived: true }),
+        item(24, '2026-11-01', '2026-11-30'),
+      ],
+      range,
+      10,
+    )
+    expect(bands.map((b) => [b.title, b.start, b.end, b.x, b.width])).toEqual([
+      ['Detailed design', '2026-11-01', '2026-11-09', 0, 90],
+      ['Manufacturing', '2026-11-10', '2026-11-19', 90, 100],
+    ])
+  })
+
+  it('keeps bands within the timeline and drops phases outside it', () => {
+    const bands = phaseBands([phase(25, '2026-10-20', '2026-11-02'), phase(26, '2027-03-01', '2027-03-05')], range, 10)
+    expect(bands.map((b) => [b.number, b.x, b.width])).toEqual([[25, 0, 20]])
   })
 })

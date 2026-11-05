@@ -137,6 +137,11 @@ alter table public.items add column if not exists related_to bigint[] not null d
 -- A milestone is a key date (design freeze, competition): the Timeline shows it as a diamond on its due
 -- date, with a line across the whole timeline.
 alter table public.items add column if not exists is_milestone boolean not null default false;
+-- A phase is a period (concept design, manufacturing, testing): the Timeline shades its dates across the
+-- whole timeline, with its name at the top. An item is a task, a milestone or a phase, never two.
+alter table public.items add column if not exists is_phase boolean not null default false;
+alter table public.items drop constraint if exists items_one_kind;
+alter table public.items add constraint items_one_kind check (not (is_milestone and is_phase));
 alter table public.items drop constraint if exists items_limits;
 alter table public.items add constraint items_limits check (
   octet_length(extra::text) <= 8000

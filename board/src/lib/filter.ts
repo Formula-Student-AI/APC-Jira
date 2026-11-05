@@ -8,7 +8,7 @@
 //   status:Todo,"In Progress"  comma = any of these
 //   -status:Done               leading minus = not
 //   no:assignee  has:label     field is empty / not empty
-//   is:blocked  is:milestone  is:archived    archived items are hidden unless the filter says is:archived
+//   is:blocked  is:milestone  is:phase  is:archived    archived items are hidden unless the filter says is:archived
 //
 // Qualifiers and free text are ANDed together. Matching is case-insensitive.
 
@@ -175,6 +175,7 @@ function qualifierMatches(item: Item, q: Qualifier, ctx: FilterContext): boolean
       if (s === 'blocked') return item.status === 'Blocked'
       if (s === 'archived') return item.archived
       if (s === 'milestone' || s === 'milestones') return item.is_milestone
+      if (s === 'phase' || s === 'phases') return item.is_phase
       if (s === 'open' || s === 'active') return !item.archived
       return false
     })

@@ -16,6 +16,7 @@ import { AvatarStack } from '../../ui/Avatar'
 import { BlockedBadge } from '../../ui/BlockedBadge'
 import { OptionChip } from '../../ui/OptionChip'
 import { MilestoneIcon } from '../../ui/MilestoneIcon'
+import { PhaseIcon } from '../../ui/PhaseIcon'
 import { PriorityIcon } from '../../ui/PriorityIcon'
 import { cx } from './boardModel'
 import { justDragged } from './dnd'
@@ -79,6 +80,7 @@ export function CardBody({ item, overlay = false }: CardProps & { overlay?: bool
       <div className="bcard-top">
         <span className="bcard-key">
           {item.is_milestone && <MilestoneIcon size={12} />}
+          {item.is_phase && <PhaseIcon size={12} />}
           <span className="bcard-number">{item.number ? `#${item.number}` : '#…'}</span>
           <PriorityIcon name={item.extra.priority} />
         </span>

@@ -55,6 +55,8 @@ export interface Item {
   related_to: number[]
   /** A key date: a diamond on the Timeline (at its due date), with a line across the whole timeline */
   is_milestone: boolean
+  /** A period (start to due date), shaded across the whole Timeline. Never also a milestone. */
+  is_phase: boolean
   extra: ItemExtra
   /** Order within a board column (ascending) */
   position: number
@@ -83,6 +85,7 @@ export type ItemPatch = Partial<
     | 'blocked_by'
     | 'related_to'
     | 'is_milestone'
+    | 'is_phase'
     | 'extra'
     | 'position'
     | 'archived'

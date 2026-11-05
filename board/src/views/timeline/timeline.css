@@ -560,3 +560,47 @@
 .tl-marker-label .milestone-icon path {
   fill: var(--opt-solid);
 }
+
+/* ------------------------------------------------------------ phases */
+
+/* Across the timeline: the phase's dates, lightly shaded, behind everything else. */
+.tl-band {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-right: 1px solid color-mix(in srgb, var(--opt-solid) 35%, transparent);
+  border-left: 1px solid color-mix(in srgb, var(--opt-solid) 35%, transparent);
+  background: color-mix(in srgb, var(--opt-solid) 8%, transparent);
+}
+/* Its name, a little below the Today and milestone labels. */
+.tl-band-label {
+  position: sticky;
+  top: 80px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: calc(100% - 8px);
+  height: 20px;
+  margin-left: 4px;
+  padding: 0 8px 0 6px;
+  overflow: hidden;
+  border: 1px solid var(--opt-border);
+  border-radius: var(--radius-sm);
+  background: var(--opt-bg);
+  color: var(--opt-fg);
+  font-size: 11px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  pointer-events: auto;
+  cursor: pointer;
+}
+.tl-band-label .phase-icon path,
+.tl-phase .phase-icon path {
+  fill: var(--opt-solid);
+}
+/* In its row: a bar with a coloured top edge instead of the left one. */
+.tl-bar.tl-phase {
+  background: color-mix(in srgb, var(--opt-solid) 20%, var(--surface));
+  box-shadow: inset 0 3px 0 var(--opt-solid);
+}

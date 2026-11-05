@@ -55,6 +55,7 @@ export function labelForChangeKey(key: string): string {
     blocked_by: 'Blocked by',
     related_to: 'Relates to',
     is_milestone: 'Milestone',
+    is_phase: 'Phase',
     archived: 'Archived',
     legacy_assignees: 'Legacy assignees',
     github_url: 'GitHub link',

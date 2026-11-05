@@ -282,3 +282,43 @@ export function milestoneMarkers(items: Iterable<Item>, range: Range, px: number
   }
   return markers.sort((a, b) => a.x - b.x || a.number - b.number)
 }
+
+// ------------------------------------------------------------------------------------------ phases
+
+export interface PhaseBand {
+  id: string
+  number: number
+  title: string
+  subteam: string | null
+  /** 'YYYY-MM-DD' */
+  start: string
+  /** 'YYYY-MM-DD' */
+  end: string
+  /** Left edge and width in px, kept within the timeline */
+  x: number
+  width: number
+}
+
+/** Every dated phase on the board (whatever the view shows), as a band shaded across the timeline. */
+export function phaseBands(items: Iterable<Item>, range: Range, px: number): PhaseBand[] {
+  const bands: PhaseBand[] = []
+  for (const item of items) {
+    if (!item.is_phase || item.archived) continue
+    const bar = barFor(item, range)
+    if (!bar) continue
+    const first = Math.max(0, bar.start)
+    const last = Math.min(range.days - 1, bar.end)
+    if (last < first) continue
+    bands.push({
+      id: item.id,
+      number: item.number,
+      title: item.title,
+      subteam: item.subteam,
+      start: item.start_date ?? item.due_date ?? '',
+      end: item.due_date ?? item.start_date ?? '',
+      x: first * px,
+      width: (last - first + 1) * px,
+    })
+  }
+  return bands.sort((a, b) => a.x - b.x || a.number - b.number)
+}

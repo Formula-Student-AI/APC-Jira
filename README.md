@@ -66,6 +66,10 @@ HyPower-Bristol's BSEP plan. The board itself started empty.
    across the whole Timeline (whatever subteams are shown). Any task can be made a milestone with the
    **Milestone** switch in its panel. Link tasks to a milestone ("blocks") to see in red when they
    would finish too late. `is:milestone` in the filter box lists them.
+   **Phases** (periods such as concept design, manufacturing or testing) work the same way: on the
+   Timeline press **Phase**, give it a name, a start and an end date. Its dates are shaded across
+   the whole Timeline with its name at the top, and it has a bar in its row you can drag or resize.
+   In an item's panel, **Type** switches between Task, Milestone and Phase. `is:phase` lists them.
    **Images** (Attachments in the panel): add them with **+**, drop them on the section, or paste
    one anywhere in the open item. They are shrunk in your browser first (longest side 1600 px, about
    0.2-0.4 MB for a phone photo) and shown as thumbnails; click one to see it full size, download

@@ -241,3 +241,11 @@
 .milestone-icon path {
   fill: var(--milestone, var(--accent));
 }
+
+/* A phase's icon (ui/PhaseIcon.tsx). */
+.phase-icon {
+  flex: none;
+}
+.phase-icon path {
+  fill: var(--phase, var(--accent));
+}

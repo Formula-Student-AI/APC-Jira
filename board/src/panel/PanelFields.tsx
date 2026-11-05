@@ -7,7 +7,9 @@ import { updateExtraField, updateItem, useBoard } from '../store/board'
 import { useFieldOptions, useSubteamLeads } from '../store/hooks'
 import type { Item } from '../types'
 import { Avatar } from '../ui/Avatar'
+import { MilestoneIcon } from '../ui/MilestoneIcon'
 import { OptionDot } from '../ui/OptionChip'
+import { PhaseIcon } from '../ui/PhaseIcon'
 import { PriorityIcon } from '../ui/PriorityIcon'
 import { datesOutOfOrder, datesWhat, dropUnfinished, isWholeDayOrEmpty, planDateChange, shownDate, type DateDrafts, type DateKey } from './dates'
 import { LabelsEditor } from './LabelsEditor'
@@ -34,7 +36,7 @@ export function PanelFields({ item }: { item: Item }) {
         <LabelsEditor item={item} />
       </Row>
       <DateRows item={item} />
-      <MilestoneRow item={item} />
+      <TypeRow item={item} />
     </dl>
   )
 }
@@ -111,24 +113,39 @@ function OptionSelect({ item, field }: { item: Item; field: SelectFieldKey }) {
   )
 }
 
-/** A milestone is a key date: a diamond on the Timeline (at its due date), with a line across it. */
-function MilestoneRow({ item }: { item: Item }) {
+type ItemType = 'task' | 'milestone' | 'phase'
+
+const TYPES: { id: ItemType; label: string; hint: string }[] = [
+  { id: 'task', label: 'Task', hint: 'An ordinary task.' },
+  { id: 'milestone', label: 'Milestone', hint: 'A key date: a diamond on the Timeline at the due date, with a line across it.' },
+  { id: 'phase', label: 'Phase', hint: 'A period: its dates are shaded across the whole Timeline, with its name at the top.' },
+]
+
+/** Task, milestone (a key date) or phase (a period). Milestones and phases stand out on the Timeline. */
+function TypeRow({ item }: { item: Item }) {
+  const current: ItemType = item.is_phase ? 'phase' : item.is_milestone ? 'milestone' : 'task'
+  const pick = (type: ItemType) => {
+    if (type !== current) void updateItem(item.id, { is_milestone: type === 'milestone', is_phase: type === 'phase' }, 'the type')
+  }
   return (
-    <Row label="Milestone" wide>
-      <label className="ip-switch">
-        <input
-          type="checkbox"
-          role="switch"
-          checked={item.is_milestone}
-          onChange={(event) => void updateItem(item.id, { is_milestone: event.target.checked }, 'the milestone setting')}
-        />
-        <span className="ip-switch-track" aria-hidden="true" />
-        <span className="ip-switch-text">
-          {item.is_milestone
-            ? 'A key date: a diamond on the Timeline at the due date, with a line across it'
-            : 'Make this a key date on the Timeline'}
-        </span>
-      </label>
+    <Row label="Type" wide>
+      <div className="ip-type" role="group" aria-label="Type">
+        {TYPES.map((type) => (
+          <button
+            key={type.id}
+            type="button"
+            className="ip-type-option"
+            aria-pressed={current === type.id}
+            title={type.hint}
+            onClick={() => pick(type.id)}
+          >
+            {type.id === 'milestone' && <MilestoneIcon size={11} label="" />}
+            {type.id === 'phase' && <PhaseIcon size={12} label="" />}
+            {type.label}
+          </button>
+        ))}
+      </div>
+      {current !== 'task' && <p className="ip-type-hint">{TYPES.find((type) => type.id === current)?.hint}</p>}
     </Row>
   )
 }
