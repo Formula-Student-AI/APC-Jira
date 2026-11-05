@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest'
-import { datesClash, itemsBlockedBy, linkProblem, withBlocker, wouldLoop } from './links'
+import { datesClash, itemsBlockedBy, linkProblem, linkTypeProblem, relatedNumbers, withNumber, wouldLoop } from './links'
 
 const node = (number: number, blocked_by: number[] = []) => ({ number, blocked_by })
 // 3 waits on 2, 2 waits on 1; 4 is on its own.
 const graph = new Map([node(1), node(2, [1]), node(3, [2]), node(4)].map((n) => [n.number, n]))
 
-describe('withBlocker', () => {
+describe('withNumber', () => {
   it('adds a number once, keeping the list sorted', () => {
-    expect(withBlocker([5, 2], 3)).toEqual([2, 3, 5])
-    expect(withBlocker([2, 3], 3)).toEqual([2, 3])
+    expect(withNumber([5, 2], 3)).toEqual([2, 3, 5])
+    expect(withNumber([2, 3], 3)).toEqual([2, 3])
   })
 })
 
@@ -62,5 +62,40 @@ describe('datesClash', () => {
   it('uses whichever date an item has, and never clashes without dates', () => {
     expect(datesClash(dated('2026-11-10', null), dated(null, '2026-11-05'))).toBe(true)
     expect(datesClash(dated(null, null), dated('2026-11-05', null))).toBe(false)
+  })
+})
+
+describe('relatedNumbers', () => {
+  it('shows a relation on both items, whichever one keeps it', () => {
+    const items = [
+      { number: 1, related_to: [2] },
+      { number: 2, related_to: [] },
+      { number: 3, related_to: [1, 1] },
+    ]
+    expect(relatedNumbers(items, items[0])).toEqual([2, 3])
+    expect(relatedNumbers(items, items[1])).toEqual([1])
+    expect(relatedNumbers(items, items[2])).toEqual([1])
+  })
+})
+
+describe('linkTypeProblem', () => {
+  const linkable = (number: number, blocked_by: number[] = [], related_to: number[] = []) => ({ number, blocked_by, related_to })
+  // 2 waits on 1; 3 relates to 4.
+  const board = new Map([linkable(1), linkable(2, [1]), linkable(3, [], [4]), linkable(4)].map((n) => [n.number, n]))
+
+  it('checks "is blocked by" and "blocks" from the right side', () => {
+    expect(linkTypeProblem(board, board.get(4)!, 'blocked_by', 1)).toBeNull()
+    expect(linkTypeProblem(board, board.get(1)!, 'blocked_by', 2)).toMatch(/loop/)
+    expect(linkTypeProblem(board, board.get(2)!, 'blocks', 1)).toMatch(/loop/) // 1 waiting on 2
+    expect(linkTypeProblem(board, board.get(1)!, 'blocks', 2)).toMatch(/already blocked/)
+    expect(linkTypeProblem(board, board.get(1)!, 'blocks', 4)).toBeNull()
+  })
+
+  it('refuses a second relation between the same two items, from either side', () => {
+    expect(linkTypeProblem(board, board.get(4)!, 'relates', 3)).toMatch(/already relates/)
+    expect(linkTypeProblem(board, board.get(3)!, 'relates', 4)).toMatch(/already relates/)
+    expect(linkTypeProblem(board, board.get(1)!, 'relates', 1)).toMatch(/itself/)
+    expect(linkTypeProblem(board, board.get(1)!, 'relates', 9)).toMatch(/no item #9/)
+    expect(linkTypeProblem(board, board.get(1)!, 'relates', 4)).toBeNull()
   })
 })

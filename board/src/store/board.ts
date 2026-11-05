@@ -6,7 +6,7 @@
 import type { RealtimeChannel, RealtimePostgresChangesPayload } from '@supabase/supabase-js'
 import { create } from 'zustand'
 import { errorMessage } from '../lib/format'
-import { linkProblem, withBlocker } from '../lib/links'
+import { linkTypeProblem, withNumber, type LinkType } from '../lib/links'
 import { sortOptions } from '../lib/options'
 import { supabase } from '../lib/supabase'
 import type { Activity, FieldOption, Item, ItemExtra, ItemPatch, Member, NewItem } from '../types'
@@ -444,6 +444,7 @@ export async function createItem(input: NewItem): Promise<Item | null> {
     due_date: null,
     blocked_reason: null,
     blocked_by: [],
+    related_to: [],
     extra: {},
     position: Date.now() / 1000,
     archived: false,
@@ -596,29 +597,51 @@ export async function addMember(username: string, fullName: string): Promise<boo
 }
 
 // ---------------------------------------------------------------------------
-// Links between items ("is blocked by" / "blocks")
+// Links between items (Jira's "is blocked by", "blocks" and "relates to"; see lib/links.ts)
 // ---------------------------------------------------------------------------
 
-/**
- * Make item `itemId` wait on item number `blocker` (Jira's "is blocked by"). Checked against the
- * latest board first: self-links, repeats and loops are explained instead of saved.
- */
-export function addBlocker(itemId: string, blocker: number): void {
-  const items = get().items
-  const item = items[itemId]
-  if (!item) return
-  const byNumber = new Map(Object.values(items).map((other) => [other.number, other]))
-  const problem = linkProblem(byNumber, item, blocker)
-  if (problem) {
-    pushToast('info', problem)
-    return
-  }
-  void updateItem(itemId, { blocked_by: withBlocker(item.blocked_by, blocker) }, 'the link')
+function byNumberMap(): Map<number, Item> {
+  return new Map(Object.values(get().items).map((other) => [other.number, other]))
 }
 
-/** Remove the link that makes item `itemId` wait on item number `blocker`. */
-export function removeBlocker(itemId: string, blocker: number): void {
+/**
+ * Link item `itemId` to item number `other` with a link of `type`. Checked against the latest board
+ * first: self-links, repeats and loops are explained instead of saved. Returns whether it was saved.
+ */
+export function addLink(itemId: string, type: LinkType, other: number): boolean {
   const item = get().items[itemId]
-  if (!item?.blocked_by.includes(blocker)) return
-  void updateItem(itemId, { blocked_by: item.blocked_by.filter((number) => number !== blocker) }, 'the link')
+  if (!item) return false
+  const byNumber = byNumberMap()
+  const problem = linkTypeProblem(byNumber, item, type, other)
+  if (problem) {
+    pushToast('info', problem)
+    return false
+  }
+  const target = byNumber.get(other)
+  if (type === 'blocked_by') {
+    void updateItem(itemId, { blocked_by: withNumber(item.blocked_by, other) }, 'the link')
+  } else if (type === 'blocks' && target) {
+    void updateItem(target.id, { blocked_by: withNumber(target.blocked_by, item.number) }, 'the link')
+  } else if (type === 'relates') {
+    void updateItem(itemId, { related_to: withNumber(item.related_to, other) }, 'the link')
+  }
+  return true
+}
+
+/** Remove the link of `type` between item `itemId` and item number `other` (a relation from either side). */
+export function removeLink(itemId: string, type: LinkType, other: number): void {
+  const item = get().items[itemId]
+  if (!item) return
+  const target = byNumberMap().get(other)
+  const without = (list: number[], number: number) => list.filter((n) => n !== number)
+  if (type === 'blocked_by' && item.blocked_by.includes(other)) {
+    void updateItem(itemId, { blocked_by: without(item.blocked_by, other) }, 'the link')
+  } else if (type === 'blocks' && target?.blocked_by.includes(item.number)) {
+    void updateItem(target.id, { blocked_by: without(target.blocked_by, item.number) }, 'the link')
+  } else if (type === 'relates') {
+    if (item.related_to.includes(other)) void updateItem(itemId, { related_to: without(item.related_to, other) }, 'the link')
+    if (target?.related_to.includes(item.number)) {
+      void updateItem(target.id, { related_to: without(target.related_to, item.number) }, 'the link')
+    }
+  }
 }

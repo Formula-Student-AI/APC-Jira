@@ -53,6 +53,7 @@ export function labelForChangeKey(key: string): string {
     description: 'Description',
     blocked_reason: 'Blocked reason',
     blocked_by: 'Blocked by',
+    related_to: 'Relates to',
     archived: 'Archived',
     legacy_assignees: 'Legacy assignees',
     github_url: 'GitHub link',

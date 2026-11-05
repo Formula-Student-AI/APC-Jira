@@ -131,6 +131,9 @@ comment on table public.items is 'Board items (tasks). Blocked = status "Blocked
 comment on column public.items.extra is
   'Custom fields, as text: priority (a field_options name). No other keys are accepted.';
 alter sequence public.item_number_seq owned by public.items.number;
+-- Jira's "relates to" links: numbers of items this one relates to. A link is kept on one of the two items
+-- and shown on both. ("blocks" / "is blocked by" are blocked_by.)
+alter table public.items add column if not exists related_to bigint[] not null default '{}';
 alter table public.items drop constraint if exists items_limits;
 alter table public.items add constraint items_limits check (
   octet_length(extra::text) <= 8000
@@ -138,6 +141,7 @@ alter table public.items add constraint items_limits check (
   and cardinality(legacy_assignees) <= 50
   and cardinality(labels) <= 30
   and cardinality(blocked_by) <= 50
+  and cardinality(related_to) <= 50
   and (github_url is null or (char_length(github_url) <= 300 and github_url ~ '^https://github\.com/'))
 );
 -- Realtime then sends complete rows on UPDATE (long descriptions are otherwise left out).
@@ -528,6 +532,9 @@ begin
 
   new.blocked_by := array(
     select distinct b from unnest(new.blocked_by) b where b > 0 and b is distinct from new.number order by 1
+  );
+  new.related_to := array(
+    select distinct r from unnest(new.related_to) r where r > 0 and r is distinct from new.number order by 1
   );
   return new;
 end;

@@ -49,8 +49,10 @@ export interface Item {
   /** 'YYYY-MM-DD' */
   due_date: string | null
   blocked_reason: string | null
-  /** Numbers of the items this one waits on */
+  /** Numbers of the items this one waits on (Jira: "is blocked by") */
   blocked_by: number[]
+  /** Numbers of items this one relates to (Jira: "relates to"); shown on both items */
+  related_to: number[]
   extra: ItemExtra
   /** Order within a board column (ascending) */
   position: number
@@ -77,6 +79,7 @@ export type ItemPatch = Partial<
     | 'due_date'
     | 'blocked_reason'
     | 'blocked_by'
+    | 'related_to'
     | 'extra'
     | 'position'
     | 'archived'

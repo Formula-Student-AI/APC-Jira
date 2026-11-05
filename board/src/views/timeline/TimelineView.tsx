@@ -12,7 +12,7 @@ import { formatDayRange, parseDay, toDay } from '../../lib/format'
 import { datesClash } from '../../lib/links'
 import { colorClass, optionColor } from '../../lib/options'
 import { openItem } from '../../lib/router'
-import { addBlocker, updateItem, useBoard } from '../../store/board'
+import { addLink, updateItem, useBoard } from '../../store/board'
 import { useFieldOptions, useViewItems } from '../../store/hooks'
 import type { Item } from '../../types'
 import { AvatarStack } from '../../ui/Avatar'
@@ -260,8 +260,8 @@ function useLinking(
       const number = taskAt(event.clientX, event.clientY, current.from.number)
       const other = number === null ? undefined : items.find((item) => item.number === number)
       if (!other) return
-      if (current.side === 'end') addBlocker(other.id, current.from.number)
-      else addBlocker(current.from.id, other.number)
+      if (current.side === 'end') addLink(other.id, 'blocked_by', current.from.number)
+      else addLink(current.from.id, 'blocked_by', other.number)
     },
     cancel: stop,
   }

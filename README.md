@@ -54,8 +54,9 @@ HyPower-Bristol's BSEP plan. The board itself started empty.
    at the top). If a save fails, the change is undone and a message explains why. The panel shows
    the item's Status, Priority, Subteam and that subteam's lead(s), Assignees, Labels and dates.
    Priorities are Jira's: Highest, High, Medium, Low and Lowest, each with its Jira icon.
-   **Linked tasks** (Jira's "blocks" / "is blocked by"): in the panel, under **Linked tasks**, add
-   the tasks this one waits on (**Blocked by**) or that wait on it (**Blocks**). Loops are refused.
+   **Linked tasks**, as in Jira: in the panel, **Linked tasks** > **+**, pick the link type
+   (**is blocked by**, **blocks** or **relates to**), search for the task and press **Link**.
+   Links are listed by type on both tasks. Loops of blocking links are refused.
    The Timeline draws every link as a line from the end of the blocking task's bar to the start of
    the blocked one's, in red when the blocked task starts before the blocking one ends. To link on
    the Timeline, hover a bar and drag the round handle at its end onto another task (from its

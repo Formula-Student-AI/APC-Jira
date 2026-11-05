@@ -17,6 +17,7 @@ function item(overrides: Partial<Item> = {}): Item {
     due_date: '2026-11-20',
     blocked_reason: null,
     blocked_by: [],
+    related_to: [],
     extra: { priority: 'High' },
     position: 1,
     archived: false,

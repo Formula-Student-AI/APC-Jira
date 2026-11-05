@@ -534,19 +534,25 @@
 
 /* ------------------------------------------------------------ linked tasks */
 
-.ip-link-group + .ip-link-group {
-  margin-top: 14px;
-}
-.ip-link-head {
+.ip-links-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  min-height: 28px;
-  margin-bottom: 4px;
+  margin-bottom: 8px;
 }
-.ip-link-head .field-label {
+.ip-links-head .ip-section-title {
   margin: 0;
+}
+.ip-link-group + .ip-link-group {
+  margin-top: 12px;
+}
+/* The link type, in Jira's words: "is blocked by", "blocks", "relates to". */
+.ip-link-type {
+  margin: 0 0 6px;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
 }
 .ip-link-list {
   display: flex;
@@ -559,9 +565,9 @@
 .ip-link-row {
   display: flex;
   align-items: center;
-  gap: 8px;
-  min-height: 36px;
-  padding: 2px 6px 2px 12px;
+  gap: 10px;
+  min-height: 40px;
+  padding: 2px 4px 2px 12px;
   border: 1px solid var(--border-muted);
   border-radius: var(--radius-md);
   background: var(--surface);
@@ -576,7 +582,7 @@
   gap: 8px;
   flex: 1;
   min-width: 0;
-  padding: 6px 0;
+  padding: 8px 0;
   border: 0;
   background: none;
   color: var(--text);
@@ -607,8 +613,106 @@
   flex: none;
   color: var(--danger);
 }
+.ip-link-row .priority-icon,
+.ip-link-row .chip-dot {
+  flex: none;
+}
+/* Remove appears on hover, as in Jira (always shown on touch screens). */
+.ip-link-remove {
+  flex: none;
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+.ip-link-row:hover .ip-link-remove,
+.ip-link-row:focus-within .ip-link-remove {
+  opacity: 1;
+}
+@media (hover: none) {
+  .ip-link-remove {
+    opacity: 1;
+  }
+}
 .ip-link-none {
   margin: 0;
   color: var(--text-subtle);
   font-size: 13px;
+}
+
+/* The link form: type, task search, Link / Cancel. */
+.ip-linkform {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid var(--border-muted);
+  border-radius: var(--radius-lg);
+  background: var(--surface-2);
+}
+.ip-linkform-row {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr);
+  align-items: start;
+  gap: 8px;
+}
+.ip-linkform-type,
+.ip-linkform .input {
+  background-color: var(--surface);
+}
+.ip-linkform-search {
+  min-width: 0;
+}
+.ip-linkform-picked {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  padding: 4px 6px 4px 10px;
+  border: 1px solid var(--focus);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.ip-linkform-picked .ip-link-title {
+  flex: 1;
+}
+.ip-linkform-list {
+  max-height: 264px;
+  margin: 4px 0 0;
+  padding: 4px;
+  overflow-y: auto;
+  border-radius: var(--radius-md);
+  background: var(--surface-overlay);
+  box-shadow: var(--shadow);
+  list-style: none;
+}
+.ip-linkform-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.ip-linkform-option .ip-link-title {
+  flex: 1;
+}
+.ip-linkform-option[aria-selected='true'] {
+  background: var(--btn-bg-hover);
+}
+.ip-linkform-empty {
+  padding: 6px 8px;
+  color: var(--text-subtle);
+  font-size: 13px;
+}
+.ip-linkform-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+@media (max-width: 560px) {
+  .ip-linkform-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
