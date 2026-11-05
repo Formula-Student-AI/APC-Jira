@@ -1,0 +1,20 @@
+# Secrets: Supabase keys and tokens live only here
+.env.local
+.env.*.local
+.env
+
+# Exported GitHub data and the login mapping CSV (team data, never committed)
+data/
+
+# Build output and dependencies
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+
+# Editors and OS
+.vscode/*
+!.vscode/extensions.json
+.DS_Store
+Thumbs.db
+*.log
