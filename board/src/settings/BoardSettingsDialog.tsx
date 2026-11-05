@@ -1,36 +1,59 @@
-// Board settings (board admins only): dropdown options and members.
+// Board settings (board admins only): subteam leads, dropdown options and members.
 // The database checks every change too, so this is a convenience, not the security boundary.
 
-import { ArrowDownIcon, ArrowUpIcon, PlusIcon, TrashIcon } from '@primer/octicons-react'
+import { ArrowDownIcon, ArrowUpIcon, PlusIcon, TrashIcon, XIcon } from '@primer/octicons-react'
 import { useId, useState, type FormEvent } from 'react'
 import { USERNAME_PATTERN, normalizeUsername } from '../config'
 import { BLOCKED_STATUS, FIELDS, SELECT_FIELDS, type SelectFieldKey } from '../fields'
 import { colorClass } from '../lib/options'
-import { addMember, addOption, deleteOption, moveOption, renameMember, setBoardAdmin, setMemberActive, updateOption } from '../store/board'
+import { MemberMenu } from '../panel/MemberPicker'
+import { memberName } from '../panel/members'
+import {
+  addMember,
+  addOption,
+  deleteOption,
+  moveOption,
+  renameMember,
+  setBoardAdmin,
+  setMemberActive,
+  updateOption,
+  useBoard,
+} from '../store/board'
 import { useFieldOptions, useMe, useMembersList } from '../store/hooks'
 import type { FieldOption, Member, OptionColor } from '../types'
+import { Avatar } from '../ui/Avatar'
 import { Dropdown } from '../ui/Dropdown'
 import { Modal } from '../ui/Modal'
+import { OptionDot } from '../ui/OptionChip'
 import './settings.css'
 
 const COLORS: OptionColor[] = ['GRAY', 'BLUE', 'GREEN', 'YELLOW', 'ORANGE', 'RED', 'PINK', 'PURPLE']
 
+type Tab = 'leads' | 'options' | 'members'
+
+const TABS: { id: Tab; label: string }[] = [
+  { id: 'leads', label: 'Subteam leads' },
+  { id: 'options', label: 'Dropdown options' },
+  { id: 'members', label: 'Members' },
+]
+
 export function BoardSettingsDialog({ onClose }: { onClose: () => void }) {
-  const [tab, setTab] = useState<'options' | 'members'>('options')
+  const [tab, setTab] = useState<Tab>('leads')
   return (
     <Modal title="Board settings" onClose={onClose} width={760}>
       <p className="muted settings-note">
         Board admin is a permission to manage this board. It has nothing to do with the Admin subteam.
       </p>
       <div className="settings-tabs" role="tablist" aria-label="Settings">
-        <button type="button" role="tab" aria-selected={tab === 'options'} className="settings-tab" onClick={() => setTab('options')}>
-          Dropdown options
-        </button>
-        <button type="button" role="tab" aria-selected={tab === 'members'} className="settings-tab" onClick={() => setTab('members')}>
-          Members
-        </button>
+        {TABS.map(({ id, label }) => (
+          <button key={id} type="button" role="tab" aria-selected={tab === id} className="settings-tab" onClick={() => setTab(id)}>
+            {label}
+          </button>
+        ))}
       </div>
-      {tab === 'options' ? <OptionsTab /> : <MembersTab />}
+      {tab === 'leads' && <LeadsTab />}
+      {tab === 'options' && <OptionsTab />}
+      {tab === 'members' && <MembersTab />}
     </Modal>
   )
 }
@@ -43,6 +66,81 @@ function useBusy(): [boolean, (task: () => Promise<unknown>) => void] {
     void task().finally(() => setBusy(false))
   }
   return [busy, run]
+}
+
+// ---------------------------------------------------------------------------- subteam leads
+
+function LeadsTab() {
+  const subteams = useFieldOptions('subteam')
+  return (
+    <div className="settings-section">
+      <p className="muted settings-help">
+        A subteam's leads are shown on every task in that subteam and in the Blocked view. In the filter box,
+        lead:@me shows the tasks of the subteams you lead.
+      </p>
+      {subteams.length > 0 ? (
+        <ul className="settings-leads">
+          {subteams.map((option) => (
+            <LeadsRow key={option.id} option={option} />
+          ))}
+        </ul>
+      ) : (
+        <p className="muted settings-help">There are no subteams yet. Add them under Dropdown options.</p>
+      )}
+    </div>
+  )
+}
+
+function LeadsRow({ option }: { option: FieldOption }) {
+  const members = useBoard((s) => s.members)
+  const [busy, run] = useBusy()
+  const toggle = (username: string, select: boolean) => {
+    const leads = select ? [...option.leads, username] : option.leads.filter((u) => u !== username)
+    run(() => updateOption(option.id, { leads }))
+  }
+
+  return (
+    <li className="settings-lead-row">
+      <span className="settings-lead-team">
+        <OptionDot field="subteam" name={option.name} />
+        {option.name}
+      </span>
+      <div className="settings-lead-people">
+        {option.leads.length === 0 && <span className="muted">No lead yet</span>}
+        {option.leads.map((username) => {
+          const name = memberName(members, username)
+          return (
+            <span key={username} className="settings-lead">
+              <Avatar username={username} size={20} />
+              <span className="settings-lead-name">{name}</span>
+              <button
+                type="button"
+                className="btn btn-ghost btn-icon btn-sm"
+                aria-label={`Remove ${name} as a ${option.name} lead`}
+                disabled={busy}
+                onClick={() => toggle(username, false)}
+              >
+                <XIcon size={14} />
+              </button>
+            </span>
+          )
+        })}
+      </div>
+      <Dropdown
+        label={
+          <>
+            <PlusIcon /> Add lead
+          </>
+        }
+        ariaLabel={`Choose the ${option.name} leads`}
+        buttonClassName="btn btn-sm"
+        align="right"
+        width={320}
+      >
+        {() => <MemberMenu selected={option.leads} label={`${option.name} leads`} disabled={busy} onToggle={toggle} />}
+      </Dropdown>
+    </li>
+  )
 }
 
 // ---------------------------------------------------------------------------- options

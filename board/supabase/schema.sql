@@ -92,8 +92,13 @@ create table if not exists public.field_options (
   unique (field, name)
 );
 comment on table public.field_options is
-  'Dropdown options per field (status, subteam, priority, ...). Drives board columns and dropdowns.';
+  'Dropdown options per field (status, subteam, priority). Drives board columns and dropdowns.';
 create unique index if not exists field_options_field_lower_name on public.field_options (field, lower(name));
+-- Subteam leads (member usernames), set by board admins. Only used on subteam options.
+alter table public.field_options add column if not exists leads text[] not null default '{}';
+alter table public.field_options drop constraint if exists field_options_leads_limit;
+alter table public.field_options add constraint field_options_leads_limit check (cardinality(leads) <= 10);
+comment on column public.field_options.leads is 'Subteam leads (usernames). Shown on every item in that subteam.';
 
 create sequence if not exists public.item_number_seq as bigint start with 1;
 
@@ -124,7 +129,7 @@ create table if not exists public.items (
 );
 comment on table public.items is 'Board items (tasks). Blocked = status "Blocked".';
 comment on column public.items.extra is
-  'Other fields, all text: priority, domain, difficulty, size, task_force, safety_related (field_options names), work_package, reviewer and team_lead (usernames).';
+  'Custom fields, as text: priority (a field_options name). No other keys are accepted.';
 alter sequence public.item_number_seq owned by public.items.number;
 alter table public.items drop constraint if exists items_limits;
 alter table public.items add constraint items_limits check (
@@ -369,7 +374,6 @@ as $$
 declare
   v_script  boolean := auth.uid() is null;  -- seed/import scripts (secret key) and the SQL editor
   v_member  text := public.current_member();
-  v_row     jsonb;
   v_key     text;
   v_value   jsonb;
   v_text    text;
@@ -480,14 +484,10 @@ begin
     raise exception 'Unknown Subteam: %', new.subteam using errcode = '23503';
   end if;
 
-  -- Custom fields in extra: text only, never named like a real column, options and members checked.
-  v_row := to_jsonb(new);
+  -- Custom fields in extra: only Priority, as text naming one of its options. Empty values are dropped.
   for v_key, v_value in select e.key, e.value from jsonb_each(new.extra) e loop
-    if v_row ? v_key then
-      raise exception 'Use the % column, not extra.%', v_key, v_key using errcode = '22023';
-    end if;
-    if v_key !~ '^[a-z][a-z0-9_]{0,39}$' then
-      raise exception 'Invalid field name: %', v_key using errcode = '22023';
+    if v_key <> all (array['priority']) then
+      raise exception 'Unknown field: %', v_key using errcode = '22023';
     end if;
     if jsonb_typeof(v_value) = 'null' then
       new.extra := new.extra - v_key;
@@ -497,9 +497,6 @@ begin
       raise exception '% must be text', v_key using errcode = '22023';
     end if;
     v_text := btrim(v_value #>> '{}');
-    if v_key in ('reviewer', 'team_lead') then
-      v_text := lower(v_text);
-    end if;
     if v_text = '' then
       new.extra := new.extra - v_key;
       continue;
@@ -509,10 +506,6 @@ begin
     end if;
     new.extra := jsonb_set(new.extra, array[v_key], to_jsonb(v_text));
     continue when tg_op = 'UPDATE' and (old.extra ->> v_key) is not distinct from v_text;
-    if v_key in ('reviewer', 'team_lead')
-       and not exists (select 1 from public.members m where m.username = v_text) then
-      raise exception 'Unknown member: %', v_text using errcode = '23503';
-    end if;
     if exists (select 1 from public.field_options o where o.field = v_key)
        and not exists (select 1 from public.field_options o where o.field = v_key and o.name = v_text) then
       raise exception 'Unknown % option: %', v_key, v_text using errcode = '23503';
@@ -735,6 +728,26 @@ set search_path = ''
 as $$
 begin
   new.name := btrim(new.name);
+  -- Leads only apply to subteams: lowercase, no repeats (order kept), and newly added ones must be members.
+  if new.field <> 'subteam' then
+    new.leads := '{}';
+  else
+    new.leads := array(
+      select s.username from (
+        select lower(btrim(x)) as username, min(n) as n
+        from unnest(coalesce(new.leads, '{}')) with ordinality as u(x, n)
+        where btrim(x) <> ''
+        group by lower(btrim(x))
+      ) s order by s.n
+    );
+    if exists (
+      select 1 from unnest(new.leads) l
+      where not exists (select 1 from public.members m where m.username = l)
+        and (tg_op = 'INSERT' or not (l = any (old.leads)))
+    ) then
+      raise exception 'Subteam leads must be board members' using errcode = '23503';
+    end if;
+  end if;
   if tg_op = 'INSERT' then
     if new.sort_order is null or new.sort_order = 0 then
       new.sort_order := coalesce((select max(o.sort_order) from public.field_options o where o.field = new.field), 0) + 1;
@@ -940,6 +953,36 @@ grant execute on function
   public.is_board_admin(), public.claim_member(text, text), public.whoami(), public.release_member(),
   public.set_my_name(text), public.patch_item_extra(uuid, jsonb), public.patch_item_list(uuid, text, text[], text[])
   to authenticated;
+
+-- -----------------------------------------------------------------------------
+-- Backups: a read-only login for the scheduled backup (GitHub Actions in the private
+-- Formula-Student-AI/APC-Jira-backups repo). It can read the board tables and change nothing.
+-- Its password is never in this file: it is set separately and kept only in that repo's Actions secret.
+-- -----------------------------------------------------------------------------
+
+do $$
+begin
+  if not exists (select 1 from pg_roles where rolname = 'backup_reader') then
+    create role backup_reader with login noinherit connection limit 2;
+  end if;
+end;
+$$;
+alter role backup_reader set default_transaction_read_only = on;
+alter role backup_reader set statement_timeout = '60s';
+grant usage on schema public to backup_reader;
+grant select on table public.board_settings, public.members, public.field_options, public.items, public.activity
+  to backup_reader;
+
+do $$
+declare
+  t text;
+begin
+  foreach t in array array['board_settings', 'members', 'field_options', 'items', 'activity'] loop
+    execute format('drop policy if exists backup_read on public.%I', t);
+    execute format('create policy backup_read on public.%I for select to backup_reader using (true)', t);
+  end loop;
+end;
+$$;
 
 -- -----------------------------------------------------------------------------
 -- Realtime: broadcast row changes on these tables to signed-in members

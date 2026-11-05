@@ -1,26 +1,26 @@
-// A Jira-style card: number, title, subteam and other chips, labels, dates and assignees.
+// A Jira-style card: number and priority, title, subteam (its leads in the tooltip), labels, dates and assignees.
 // SortableCard is the draggable card on the board; CardBody is also shown in the drag overlay.
 
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { CalendarIcon } from '@primer/octicons-react'
 import { memo, type KeyboardEvent } from 'react'
-import { FIELDS, isBlocked, type FieldKey } from '../../fields'
+import { isBlocked } from '../../fields'
 import { useToday } from '../../lib/clock'
 import { formatDayRange, isOverdue } from '../../lib/format'
+import { subteamLeads } from '../../lib/options'
 import { openItem } from '../../lib/router'
 import { useBoard } from '../../store/board'
-import type { Item, Member } from '../../types'
-import { Avatar, AvatarStack } from '../../ui/Avatar'
+import type { Item } from '../../types'
+import { AvatarStack } from '../../ui/Avatar'
 import { BlockedBadge } from '../../ui/BlockedBadge'
 import { OptionChip } from '../../ui/OptionChip'
+import { PriorityIcon } from '../../ui/PriorityIcon'
 import { cx } from './boardModel'
 import { justDragged } from './dnd'
 
 interface CardProps {
   item: Item
-  /** Extra fields from the view config (e.g. priority, size, team_lead) */
-  fields: FieldKey[]
 }
 
 function open(item: Item): void {
@@ -29,7 +29,7 @@ function open(item: Item): void {
 }
 
 /** A card in a board cell: drag to move, click or Enter to open. */
-export const SortableCard = memo(function SortableCard({ item, fields }: CardProps) {
+export const SortableCard = memo(function SortableCard({ item }: CardProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: item.id,
     disabled: item.number === 0,
@@ -54,33 +54,41 @@ export const SortableCard = memo(function SortableCard({ item, fields }: CardPro
       onKeyDown={onKeyDown}
       onClick={() => open(item)}
     >
-      <CardBody item={item} fields={fields} />
+      <CardBody item={item} />
     </div>
   )
 })
 
 /** The card's content. `overlay` styles it as the card being carried. */
-export function CardBody({ item, fields, overlay = false }: CardProps & { overlay?: boolean }) {
+export function CardBody({ item, overlay = false }: CardProps & { overlay?: boolean }) {
   const today = useToday()
-  const members = useBoard((s) => s.members)
+  // One string, so the card only re-renders when the lead names themselves change.
+  const leads = useBoard((s) =>
+    subteamLeads(s.options, item.subteam)
+      .map((username) => s.members[username]?.full_name ?? username)
+      .join(', '),
+  )
   const dates = formatDayRange(item.start_date, item.due_date)
   const overdue = isOverdue(item.due_date, item.status, today)
-  const shownFields = fields.filter((key) => FIELDS[key].source === 'extra' && item.extra[key])
-  const hasChips = !!item.subteam || shownFields.length > 0 || item.labels.length > 0
+  const hasChips = !!item.subteam || item.labels.length > 0
 
   return (
     <div className={cx('bcard-body', overlay && 'bcard-overlay')}>
       <div className="bcard-top">
-        <span className="bcard-number">{item.number ? `#${item.number}` : '#…'}</span>
+        <span className="bcard-key">
+          <span className="bcard-number">{item.number ? `#${item.number}` : '#…'}</span>
+          <PriorityIcon name={item.extra.priority} />
+        </span>
         {isBlocked(item) && <BlockedBadge reason={item.blocked_reason} />}
       </div>
       <p className="bcard-title">{item.title}</p>
       {hasChips && (
         <div className="bcard-chips">
-          <OptionChip field="subteam" name={item.subteam} title={`Subteam: ${item.subteam}`} />
-          {shownFields.map((key) => (
-            <CardField key={key} field={key} value={item.extra[key] as string} members={members} />
-          ))}
+          <OptionChip
+            field="subteam"
+            name={item.subteam}
+            title={leads ? `Subteam: ${item.subteam} · Lead: ${leads}` : `Subteam: ${item.subteam}`}
+          />
           {item.labels.map((label) => (
             <span key={label} className="chip chip-plain" title={`Label: ${label}`}>
               {label}
@@ -102,24 +110,5 @@ export function CardBody({ item, fields, overlay = false }: CardProps & { overla
         </div>
       )}
     </div>
-  )
-}
-
-function CardField({ field, value, members }: { field: FieldKey; value: string; members: Record<string, Member> }) {
-  const def = FIELDS[field]
-  if (def.kind === 'single_select') return <OptionChip field={field} name={value} title={`${def.label}: ${value}`} />
-  if (def.kind === 'member') {
-    const name = members[value]?.full_name ?? value
-    return (
-      <span className="bcard-member" title={`${def.label}: ${name}`}>
-        <Avatar username={value} size={16} />
-        {name.split(' ')[0]}
-      </span>
-    )
-  }
-  return (
-    <span className="bcard-text" title={`${def.label}: ${value}`}>
-      {value}
-    </span>
   )
 }

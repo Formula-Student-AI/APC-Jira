@@ -1,17 +1,18 @@
-// The item's fields as label/value rows: Status, Subteam, Assignees, Labels, dates and custom fields.
+// The item's fields as label/value rows: Status, Priority, Subteam and its leads, Assignees, Labels and dates.
 
 import { XIcon } from '@primer/octicons-react'
 import { useState, type ReactNode } from 'react'
-import { CUSTOM_FIELDS, FIELDS, type CustomFieldKey, type SelectFieldKey } from '../fields'
-import { updateExtraField, updateItem } from '../store/board'
-import { useFieldOptions } from '../store/hooks'
+import { FIELDS, type SelectFieldKey } from '../fields'
+import { updateExtraField, updateItem, useBoard } from '../store/board'
+import { useFieldOptions, useSubteamLeads } from '../store/hooks'
 import type { Item } from '../types'
+import { Avatar } from '../ui/Avatar'
 import { OptionDot } from '../ui/OptionChip'
+import { PriorityIcon } from '../ui/PriorityIcon'
 import { datesOutOfOrder, datesWhat, dropUnfinished, isWholeDayOrEmpty, planDateChange, shownDate, type DateDrafts, type DateKey } from './dates'
 import { LabelsEditor } from './LabelsEditor'
-import { AssigneesPicker, MemberSelect } from './MemberPicker'
-import { saveExtraText } from './saves'
-import { useDraft } from './useDebouncedSave'
+import { AssigneesPicker } from './MemberPicker'
+import { memberName } from './members'
 
 export function PanelFields({ item }: { item: Item }) {
   return (
@@ -19,9 +20,13 @@ export function PanelFields({ item }: { item: Item }) {
       <Row label="Status">
         <OptionSelect item={item} field="status" />
       </Row>
+      <Row label="Priority">
+        <OptionSelect item={item} field="priority" />
+      </Row>
       <Row label="Subteam">
         <OptionSelect item={item} field="subteam" />
       </Row>
+      <SubteamLeadRow subteam={item.subteam} />
       <Row label="Assignees" wide>
         <AssigneesPicker item={item} />
       </Row>
@@ -29,11 +34,6 @@ export function PanelFields({ item }: { item: Item }) {
         <LabelsEditor item={item} />
       </Row>
       <DateRows item={item} />
-      {CUSTOM_FIELDS.map((key) => (
-        <Row key={key} label={FIELDS[key].label}>
-          <CustomField item={item} field={key} />
-        </Row>
-      ))}
     </dl>
   )
 }
@@ -47,11 +47,28 @@ function Row({ label, wide = false, children }: { label: string; wide?: boolean;
   )
 }
 
-function CustomField({ item, field }: { item: Item; field: CustomFieldKey }) {
-  const kind = FIELDS[field].kind
-  if (kind === 'single_select') return <OptionSelect item={item} field={field as SelectFieldKey} />
-  if (kind === 'member') return <MemberSelect item={item} field={field} />
-  return <ExtraText item={item} field={field} />
+/** Who leads the item's subteam. Board admins choose the leads in Board settings, so it is read-only here. */
+function SubteamLeadRow({ subteam }: { subteam: string | null }) {
+  const leads = useSubteamLeads(subteam)
+  const members = useBoard((s) => s.members)
+  return (
+    <Row label={leads.length > 1 ? 'Subteam leads' : 'Subteam lead'}>
+      {leads.length > 0 ? (
+        <ul className="ip-leads">
+          {leads.map((username) => (
+            <li key={username} className="ip-lead">
+              <Avatar username={username} size={20} />
+              <span className="ip-people-names">{memberName(members, username)}</span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="ip-none" title={subteam ? 'Board admins choose subteam leads in Board settings' : undefined}>
+          {subteam ? 'No lead yet' : '—'}
+        </p>
+      )}
+    </Row>
+  )
 }
 
 function currentValue(item: Item, field: SelectFieldKey): string {
@@ -79,9 +96,9 @@ function OptionSelect({ item, field }: { item: Item; field: SelectFieldKey }) {
 
   return (
     <div className="ip-select">
-      <OptionDot field={field} name={value || null} />
+      {field === 'priority' ? <PriorityIcon name={value} /> : <OptionDot field={field} name={value || null} />}
       <select className="select" value={value} aria-label={label} onChange={(event) => change(event.target.value)}>
-        {field !== 'status' && <option value="">{field === 'subteam' ? 'No subteam' : '—'}</option>}
+        {field !== 'status' && <option value="">{field === 'subteam' ? 'No subteam' : 'No priority'}</option>}
         {options.map((option) => (
           <option key={option.id} value={option.name} title={option.description ?? undefined}>
             {option.name}
@@ -90,29 +107,6 @@ function OptionSelect({ item, field }: { item: Item; field: SelectFieldKey }) {
         {value && !options.some((option) => option.name === value) && <option value={value}>{value}</option>}
       </select>
     </div>
-  )
-}
-
-/** A free-text custom field (Work package), saved as you type. */
-function ExtraText({ item, field }: { item: Item; field: CustomFieldKey }) {
-  const label = FIELDS[field].label
-  const draft = useDraft(item.extra[field] ?? '', (value) => saveExtraText(item.id, field, value, `the ${label.toLowerCase()}`), 600)
-  return (
-    <input
-      className="input"
-      value={draft.value}
-      maxLength={500}
-      placeholder="—"
-      aria-label={label}
-      onChange={(event) => draft.change(event.target.value)}
-      onBlur={draft.commit}
-      onKeyDown={(event) => {
-        if (event.key === 'Enter') {
-          event.preventDefault()
-          draft.commit()
-        }
-      }}
-    />
   )
 }
 

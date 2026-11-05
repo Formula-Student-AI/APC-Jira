@@ -1,0 +1,2 @@
+# Unix line endings everywhere: backup.sh runs with bash on GitHub's Linux runners.
+* text=auto eol=lf

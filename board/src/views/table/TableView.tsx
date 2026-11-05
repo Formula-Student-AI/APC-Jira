@@ -8,10 +8,11 @@ import { FIELDS, fieldValue, isBlocked } from '../../fields'
 import { useToday } from '../../lib/clock'
 import { openItem, useRoute } from '../../lib/router'
 import { useBoard } from '../../store/board'
-import { useViewItems } from '../../store/hooks'
+import { useSubteamLeads, useViewItems } from '../../store/hooks'
 import type { Item, Member } from '../../types'
-import { Avatar, AvatarStack } from '../../ui/Avatar'
+import { AvatarStack } from '../../ui/Avatar'
 import { OptionChip } from '../../ui/OptionChip'
+import { PriorityIcon } from '../../ui/PriorityIcon'
 import type { TableViewConfig } from '../config'
 import { columnsWidth, countText, firstName, formatCellDay, isBlockedView, tableColumns, type TableColumn } from './columns'
 import './table.css'
@@ -190,36 +191,28 @@ function TableCell({ item, column, members, today }: TableCellProps) {
     if (reason) return <td title={reason}>{reason}</td>
     return <td className="tview-none">{isBlocked(item) ? 'No reason given' : ''}</td>
   }
+  if (key === 'subteam_lead') return <LeadsCell subteam={item.subteam} members={members} />
 
   const value = fieldValue(item, key)
   const text = typeof value === 'string' && value !== '' ? value : null
   const list = Array.isArray(value) ? value : []
 
+  if (key === 'priority') {
+    return (
+      <td title={text ?? undefined}>
+        {text && (
+          <span className="tview-cell">
+            <PriorityIcon name={text} />
+            <span className="tview-ellipsis">{text}</span>
+          </span>
+        )}
+      </td>
+    )
+  }
+
   switch (FIELDS[key].kind) {
-    case 'members': {
-      if (list.length === 0) return <td />
-      const names = list.map((username) => members[username]?.full_name ?? username)
-      return (
-        <td title={names.join(', ')}>
-          <span className="tview-cell">
-            <AvatarStack usernames={list} />
-            <span className="tview-ellipsis">{names.map(firstName).join(', ')}</span>
-          </span>
-        </td>
-      )
-    }
-    case 'member': {
-      if (!text) return <td />
-      const name = members[text]?.full_name ?? text
-      return (
-        <td title={`${name} (${text})`}>
-          <span className="tview-cell">
-            <Avatar username={text} />
-            <span className="tview-ellipsis">{name}</span>
-          </span>
-        </td>
-      )
-    }
+    case 'members':
+      return <PeopleCell usernames={list} members={members} />
     case 'single_select':
       return (
         <td>
@@ -240,7 +233,25 @@ function TableCell({ item, column, members, today }: TableCellProps) {
       )
     case 'date':
       return <td>{formatCellDay(text, today)}</td>
-    case 'text':
-      return <td title={text ?? undefined}>{text}</td>
   }
+}
+
+/** Avatars and first names, with the full names in the tooltip. */
+function PeopleCell({ usernames, members }: { usernames: string[]; members: Members }) {
+  if (usernames.length === 0) return <td />
+  const names = usernames.map((username) => members[username]?.full_name ?? username)
+  return (
+    <td title={names.join(', ')}>
+      <span className="tview-cell">
+        <AvatarStack usernames={usernames} />
+        <span className="tview-ellipsis">{names.map(firstName).join(', ')}</span>
+      </span>
+    </td>
+  )
+}
+
+/** The leads of the item's subteam (chosen in Board settings). */
+function LeadsCell({ subteam, members }: { subteam: string | null; members: Members }) {
+  const leads = useSubteamLeads(subteam)
+  return <PeopleCell usernames={leads} members={members} />
 }

@@ -1,0 +1,43 @@
+# Every 3 days: export the Bristol FSAI Board (Supabase) into backups/<date>/ and commit it.
+# Connects as backup_reader, a read-only database login, using the BACKUP_DATABASE_URL secret.
+# That login can read the board's tables and cannot change anything.
+name: Backup
+
+on:
+  schedule:
+    - cron: '23 4 */3 * *' # 04:23 UTC on the 1st, 4th, 7th, ... of each month
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install the PostgreSQL client if missing
+        run: command -v psql || (sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client)
+
+      - name: Export the board
+        run: bash backup.sh
+        env:
+          BACKUP_DATABASE_URL: ${{ secrets.BACKUP_DATABASE_URL }}
+
+      - name: Commit the backup
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A backups
+          if git diff --cached --quiet; then
+            echo 'Nothing changed.'
+          else
+            git commit -q -m "Backup $(date -u +%F)"
+            git push -q
+          fi

@@ -248,15 +248,17 @@ function onMemberChange(payload: RealtimePostgresChangesPayload<Member>): void {
   if (member.username === currentUsername()) void refreshSession()
 }
 
+function putOption(option: FieldOption): void {
+  set((s) => ({ options: sortOptions([...s.options.filter((o) => o.id !== option.id), option]) }))
+}
+
 function onOptionChange(payload: RealtimePostgresChangesPayload<FieldOption>): void {
-  set((s) => {
-    if (payload.eventType === 'DELETE') {
-      const id = (payload.old as Partial<FieldOption>).id
-      return { options: s.options.filter((o) => o.id !== id) }
-    }
-    const option = payload.new as FieldOption
-    return { options: sortOptions([...s.options.filter((o) => o.id !== option.id), option]) }
-  })
+  if (payload.eventType === 'DELETE') {
+    const id = (payload.old as Partial<FieldOption>).id
+    set((s) => ({ options: s.options.filter((o) => o.id !== id) }))
+    return
+  }
+  putOption(payload.new as FieldOption)
 }
 
 function onActivityInsert(payload: RealtimePostgresChangesPayload<Activity>): void {
@@ -506,7 +508,7 @@ export async function deleteItem(id: string): Promise<boolean> {
 // Changes arrive back through realtime, so the options list updates for everyone.
 // ---------------------------------------------------------------------------
 
-export type OptionPatch = Partial<Pick<FieldOption, 'name' | 'color' | 'description' | 'sort_order'>>
+export type OptionPatch = Partial<Pick<FieldOption, 'name' | 'color' | 'description' | 'sort_order' | 'leads'>>
 
 /** Rename, recolour, describe or reorder an option. Renaming updates every item that uses it. */
 export async function updateOption(id: string, patch: OptionPatch): Promise<boolean> {
@@ -515,6 +517,9 @@ export async function updateOption(id: string, patch: OptionPatch): Promise<bool
     pushToast('error', `Couldn't save the option: ${error?.message ?? 'only board admins can change options'}`)
     return false
   }
+  // Show the saved row straight away (realtime brings the same row a moment later), so a quick
+  // second change, such as adding another subteam lead, starts from this one.
+  putOption(data[0] as FieldOption)
   return true
 }
 

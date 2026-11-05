@@ -8,11 +8,14 @@
   display: flex;
   gap: 4px;
   margin-bottom: 16px;
+  overflow-x: auto;
   border-bottom: 1px solid var(--border-muted);
 }
 .settings-tab {
+  flex: none;
   height: 36px;
   padding: 0 12px;
+  white-space: nowrap;
   border: 0;
   border-bottom: 2px solid transparent;
   background: transparent;
@@ -142,8 +145,63 @@
   opacity: 0.6;
 }
 
+.settings-leads {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.settings-lead-row {
+  display: grid;
+  grid-template-columns: 160px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 8px 0;
+  border-top: 1px solid var(--border-muted);
+}
+.settings-lead-row:first-child {
+  border-top: 0;
+}
+.settings-lead-team {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-weight: 600;
+}
+.settings-lead-people {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.settings-lead {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 1px 1px 1px 4px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+.settings-lead-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 @media (max-width: 560px) {
   .settings-add-member {
     grid-template-columns: minmax(0, 1fr);
+  }
+  .settings-lead-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .settings-lead-people {
+    grid-column: 1 / -1;
+    grid-row: 2;
   }
 }

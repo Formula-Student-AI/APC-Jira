@@ -210,7 +210,7 @@ export function BoardView({ view, query }: { view: BoardViewConfig; query: strin
             })}
           </div>
         </div>
-        <DragOverlay>{dragged ? <CardBody item={dragged} fields={view.cardFields} overlay /> : null}</DragOverlay>
+        <DragOverlay>{dragged ? <CardBody item={dragged} overlay /> : null}</DragOverlay>
       </DndContext>
     </div>
   )
@@ -266,7 +266,7 @@ const BoardCell = memo(
       <div ref={setNodeRef} className={cx('bview-cell', isOver && 'bview-cell-over')}>
         <SortableContext id={id} items={items.map((item) => item.id)} strategy={verticalListSortingStrategy}>
           {items.map((item) => (
-            <SortableCard key={item.id} item={item} fields={view.cardFields} />
+            <SortableCard key={item.id} item={item} />
           ))}
         </SortableContext>
         <AddItem cell={id} items={items} view={view} query={query} />

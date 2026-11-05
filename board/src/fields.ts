@@ -3,7 +3,7 @@
 
 import type { Item } from './types'
 
-export type FieldKind = 'single_select' | 'text' | 'member' | 'members' | 'labels' | 'date'
+export type FieldKind = 'single_select' | 'members' | 'labels' | 'date'
 
 export interface FieldDef {
   key: FieldKey
@@ -14,16 +14,7 @@ export interface FieldDef {
 }
 
 export type ColumnFieldKey = 'status' | 'subteam' | 'assignees' | 'labels' | 'start_date' | 'due_date'
-export type CustomFieldKey =
-  | 'priority'
-  | 'domain'
-  | 'difficulty'
-  | 'size'
-  | 'task_force'
-  | 'safety_related'
-  | 'work_package'
-  | 'reviewer'
-  | 'team_lead'
+export type CustomFieldKey = 'priority'
 export type FieldKey = ColumnFieldKey | CustomFieldKey
 
 export const FIELDS: Record<FieldKey, FieldDef> = {
@@ -34,31 +25,10 @@ export const FIELDS: Record<FieldKey, FieldDef> = {
   start_date: { key: 'start_date', label: 'Start date', kind: 'date', source: 'column' },
   due_date: { key: 'due_date', label: 'Due date', kind: 'date', source: 'column' },
   priority: { key: 'priority', label: 'Priority', kind: 'single_select', source: 'extra' },
-  domain: { key: 'domain', label: 'Domain', kind: 'single_select', source: 'extra' },
-  difficulty: { key: 'difficulty', label: 'Difficulty level', kind: 'single_select', source: 'extra' },
-  size: { key: 'size', label: 'Size', kind: 'single_select', source: 'extra' },
-  task_force: { key: 'task_force', label: 'Task force', kind: 'single_select', source: 'extra' },
-  safety_related: { key: 'safety_related', label: 'Safety related', kind: 'single_select', source: 'extra' },
-  work_package: { key: 'work_package', label: 'Work package', kind: 'text', source: 'extra' },
-  reviewer: { key: 'reviewer', label: 'Reviewer', kind: 'member', source: 'extra' },
-  team_lead: { key: 'team_lead', label: 'Team lead', kind: 'member', source: 'extra' },
 }
 
-/** Custom fields in the order the item panel shows them. */
-export const CUSTOM_FIELDS: CustomFieldKey[] = [
-  'priority',
-  'size',
-  'difficulty',
-  'domain',
-  'task_force',
-  'safety_related',
-  'work_package',
-  'reviewer',
-  'team_lead',
-]
-
 /** Field keys whose options come from field_options. */
-export const SELECT_FIELDS = ['status', 'subteam', 'priority', 'domain', 'difficulty', 'size', 'task_force', 'safety_related'] as const
+export const SELECT_FIELDS = ['status', 'subteam', 'priority'] as const
 export type SelectFieldKey = (typeof SELECT_FIELDS)[number]
 
 export const BLOCKED_STATUS = 'Blocked'
@@ -75,7 +45,7 @@ export function isBlocked(item: Item): boolean {
   return item.status === BLOCKED_STATUS
 }
 
-/** Human label for an activity change key (column names and custom field keys). */
+/** Human label for an activity change key (column names, custom fields, and fields removed since). */
 export function labelForChangeKey(key: string): string {
   if (key in FIELDS) return FIELDS[key as FieldKey].label
   const special: Record<string, string> = {
@@ -87,6 +57,14 @@ export function labelForChangeKey(key: string): string {
     legacy_assignees: 'Legacy assignees',
     github_url: 'GitHub link',
     github_item_id: 'GitHub item',
+    domain: 'Domain',
+    difficulty: 'Difficulty level',
+    size: 'Size',
+    task_force: 'Task force',
+    safety_related: 'Safety related',
+    work_package: 'Work package',
+    reviewer: 'Reviewer',
+    team_lead: 'Team lead',
   }
   return special[key] ?? key.replace(/_/g, ' ')
 }

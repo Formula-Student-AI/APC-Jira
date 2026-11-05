@@ -1,17 +1,20 @@
 // Turns an activity entry into short sentences for the History list.
 
-import { FIELDS, labelForChangeKey, type FieldKey } from '../fields'
+import { labelForChangeKey } from '../fields'
 import { formatDay } from '../lib/format'
 import type { Activity, Member } from '../types'
 
 const MAX = 60
+
+/** Change keys whose values are usernames (Reviewer and Team lead were item fields until November 2026). */
+const MEMBER_KEYS = new Set(['assignees', 'reviewer', 'team_lead'])
 
 function short(text: string): string {
   return text.length > MAX ? `${text.slice(0, MAX - 1)}…` : text
 }
 
 function isMemberKey(key: string): boolean {
-  return key in FIELDS && (FIELDS[key as FieldKey].kind === 'member' || FIELDS[key as FieldKey].kind === 'members')
+  return MEMBER_KEYS.has(key)
 }
 
 function show(key: string, value: unknown, members: Record<string, Member>): string {

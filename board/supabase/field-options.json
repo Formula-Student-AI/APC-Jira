@@ -1,5 +1,5 @@
 {
-  "$comment": "Dropdown options seeded into field_options by scripts/seed-and-import.mjs. Array order is the sort order. Colours: GRAY, BLUE, GREEN, YELLOW, ORANGE, RED, PINK, PURPLE. Subteams are Bristol FSAI's; the other fields copy the GitHub project BSEP_Plan_26/27.",
+  "$comment": "Dropdown options seeded into field_options by scripts/seed-and-import.mjs. Array order is the sort order. Colours: GRAY, BLUE, GREEN, YELLOW, ORANGE, RED, PINK, PURPLE. Subteams and priorities (Jira levels) are Bristol FSAI's; statuses copy the GitHub project BSEP_Plan_26/27.",
   "status": [
     {
       "name": "Todo",
@@ -61,153 +61,28 @@
   ],
   "priority": [
     {
-      "name": "Critical path",
+      "name": "Highest",
       "color": "RED",
       "description": null
     },
     {
-      "name": "Normal",
-      "color": "YELLOW",
+      "name": "High",
+      "color": "RED",
       "description": null
     },
     {
-      "name": "Stretch",
-      "color": "GREEN",
-      "description": null
-    }
-  ],
-  "domain": [
-    {
-      "name": "Mechanical design (CAD)",
-      "color": "GRAY",
-      "description": null
-    },
-    {
-      "name": "Drawings",
-      "color": "GRAY",
-      "description": null
-    },
-    {
-      "name": "Documentation",
-      "color": "GRAY",
-      "description": null
-    },
-    {
-      "name": "Systems (requirements, interfaces, budgets)",
-      "color": "GRAY",
-      "description": null
-    },
-    {
-      "name": "Structures",
-      "color": "GRAY",
-      "description": null
-    },
-    {
-      "name": "Fluids",
-      "color": "GRAY",
-      "description": null
-    },
-    {
-      "name": "Modelling and control",
-      "color": "GRAY",
-      "description": null
-    },
-    {
-      "name": "Avionics and electronics",
-      "color": "GRAY",
-      "description": null
-    },
-    {
-      "name": "Manufacturing",
-      "color": "GRAY",
-      "description": null
-    },
-    {
-      "name": "Test and operations",
-      "color": "GRAY",
-      "description": null
-    },
-    {
-      "name": "Thermal and combustion",
-      "color": "GRAY",
-      "description": null
-    }
-  ],
-  "difficulty": [
-    {
-      "name": "D1",
-      "color": "GREEN",
-      "description": "Starter – Fully defined, inputs given, a worked example exists"
-    },
-    {
-      "name": "D2",
-      "color": "YELLOW",
-      "description": "Core – Defined output, some engineering judgement"
-    },
-    {
-      "name": "D3",
+      "name": "Medium",
       "color": "ORANGE",
-      "description": "Advanced – Open-ended; needs domain judgement or iteration"
+      "description": null
     },
     {
-      "name": "D4",
-      "color": "RED",
-      "description": "Critical – Safety-critical, pressure or flight hardware, or cross-subsystem integration"
-    }
-  ],
-  "size": [
-    {
-      "name": "XS",
-      "color": "GRAY",
-      "description": "Trivial — <2 hours"
-    },
-    {
-      "name": "S",
-      "color": "GREEN",
-      "description": "Small — 2 to 5 hours"
-    },
-    {
-      "name": "M",
-      "color": "YELLOW",
-      "description": "Medium — 5 to 10 hours"
-    },
-    {
-      "name": "L",
-      "color": "ORANGE",
-      "description": "Large — 10 to 20 hours"
-    },
-    {
-      "name": "XL",
-      "color": "RED",
-      "description": "Extra-large — a lot of effort >20 hours"
-    }
-  ],
-  "task_force": [
-    {
-      "name": "1 person",
+      "name": "Low",
       "color": "BLUE",
       "description": null
     },
     {
-      "name": "2 people",
-      "color": "PURPLE",
-      "description": null
-    },
-    {
-      "name": "3 people",
-      "color": "YELLOW",
-      "description": null
-    }
-  ],
-  "safety_related": [
-    {
-      "name": "Yes",
-      "color": "RED",
-      "description": null
-    },
-    {
-      "name": "No",
-      "color": "GREEN",
+      "name": "Lowest",
+      "color": "BLUE",
       "description": null
     }
   ]

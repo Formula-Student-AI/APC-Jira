@@ -6,10 +6,10 @@ const view: TableViewConfig = { id: 'blocked', name: 'Blocked', layout: 'table',
 
 describe('tableColumns', () => {
   it('labels columns from the field definitions', () => {
-    const columns = tableColumns(['assignees', 'difficulty', 'team_lead', 'blocked_reason'])
-    expect(columns.map((c) => c.label)).toEqual(['Assignees', 'Difficulty level', 'Team lead', 'Blocked reason'])
+    const columns = tableColumns(['assignees', 'subteam', 'subteam_lead', 'priority', 'blocked_reason'])
+    expect(columns.map((c) => c.label)).toEqual(['Assignees', 'Subteam', 'Subteam lead', 'Priority', 'Blocked reason'])
     expect(columns.filter((c) => c.grow).map((c) => c.key)).toEqual(['blocked_reason'])
-    expect(columnsWidth(columns)).toBe(128 + 132 + 168 + 280)
+    expect(columnsWidth(columns)).toBe(128 + 160 + 168 + 112 + 280)
   })
 })
 

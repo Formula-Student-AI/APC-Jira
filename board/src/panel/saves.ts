@@ -1,7 +1,7 @@
 // Saves for the panel's typed fields. Each compares with what the board shows at that moment, so an
 // unchanged value is never sent, and nothing is sent for an item that has gone.
 
-import { updateExtraField, updateItem, useBoard } from '../store/board'
+import { updateItem, useBoard } from '../store/board'
 
 function current(id: string) {
   return useBoard.getState().items[id]
@@ -26,12 +26,4 @@ export function saveBlockedReason(id: string, value: string): void {
   const item = current(id)
   if (!item || reason === (item.blocked_reason || null)) return
   void updateItem(id, { blocked_reason: reason }, 'the blocked reason')
-}
-
-/** A free-text custom field such as Work package. */
-export function saveExtraText(id: string, key: string, value: string, what: string): void {
-  const text = value.trim()
-  const item = current(id)
-  if (!item || text === (item.extra[key] ?? '')) return
-  void updateExtraField(id, key, text || null, what)
 }

@@ -28,6 +28,8 @@ export function Dropdown({ label, ariaLabel, buttonClassName = 'btn', align = 'l
     }
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
+        // Close only this menu: not the dialog or panel it sits in.
+        event.preventDefault()
         event.stopPropagation()
         setOpen(false)
         buttonRef.current?.focus()

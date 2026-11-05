@@ -18,8 +18,6 @@ export interface BoardViewConfig extends ViewBase {
   columnField: 'status' | 'subteam'
   /** Optional horizontal groups (GitHub "Group by"). Dragging between swimlanes changes it. */
   swimlaneField: 'status' | 'subteam' | null
-  /** Extra fields shown on cards, besides number, title, assignees, subteam, dates, labels and blocked badge. */
-  cardFields: FieldKey[]
 }
 
 export interface TimelineViewConfig extends ViewBase {
@@ -32,8 +30,8 @@ export interface TimelineViewConfig extends ViewBase {
 
 export interface TableViewConfig extends ViewBase {
   layout: 'table'
-  /** Columns after # and Title. */
-  columns: (FieldKey | 'blocked_reason')[]
+  /** Columns after # and Title. subteam_lead = the leads of the item's subteam (Board settings). */
+  columns: (FieldKey | 'subteam_lead' | 'blocked_reason')[]
 }
 
 export type ViewConfig = BoardViewConfig | TimelineViewConfig | TableViewConfig
@@ -47,7 +45,6 @@ export const VIEWS: ViewConfig[] = [
     filter: 'assignee:@me',
     columnField: 'status',
     swimlaneField: null,
-    cardFields: ['difficulty', 'size'],
   },
   {
     // GitHub "Kanban": board, columns = Status, swimlanes = Subsystems (now Subteam)
@@ -57,7 +54,6 @@ export const VIEWS: ViewConfig[] = [
     filter: '',
     columnField: 'status',
     swimlaneField: 'subteam',
-    cardFields: ['priority', 'domain', 'difficulty', 'size', 'task_force', 'team_lead'],
   },
   {
     // GitHub "Timeline": roadmap sorted by Subsystems (now Subteam)
@@ -76,7 +72,6 @@ export const VIEWS: ViewConfig[] = [
     filter: '',
     columnField: 'subteam',
     swimlaneField: 'status',
-    cardFields: ['priority', 'difficulty', 'size', 'task_force', 'work_package', 'team_lead'],
   },
   {
     // GitHub "Blocked": table, filter status:Blocked
@@ -84,7 +79,7 @@ export const VIEWS: ViewConfig[] = [
     name: 'Blocked',
     layout: 'table',
     filter: 'status:Blocked',
-    columns: ['assignees', 'status', 'subteam', 'difficulty', 'size', 'team_lead', 'blocked_reason'],
+    columns: ['assignees', 'status', 'subteam', 'subteam_lead', 'priority', 'blocked_reason'],
   },
 ]
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { Item, Member } from '../types'
+import type { FieldOption, Item, Member } from '../types'
 import { combineFilters, defaultsFromFilter, matchesFilter, parseFilter, tokenize, type FilterContext } from './filter'
 
 function item(overrides: Partial<Item> = {}): Item {
@@ -17,7 +17,7 @@ function item(overrides: Partial<Item> = {}): Item {
     due_date: '2026-11-20',
     blocked_reason: null,
     blocked_by: [],
-    extra: { priority: 'Normal', size: 'M', work_package: 'WBS 1.2.3', team_lead: 'ab12345' },
+    extra: { priority: 'High' },
     position: 1,
     archived: false,
     github_item_id: null,
@@ -30,28 +30,36 @@ function item(overrides: Partial<Item> = {}): Item {
   }
 }
 
-const members: Record<string, Member> = {
-  xy12345: {
-    username: 'xy12345',
-    full_name: 'Sam Example',
-    email: 'xy12345@bristol.ac.uk',
-    github_login: null,
-    is_board_admin: true,
-    active: true,
-    created_at: '2026-11-01T10:00:00Z',
-  },
-  ab12345: {
-    username: 'ab12345',
-    full_name: 'Alex Example',
-    email: 'ab12345@bristol.ac.uk',
+function member(username: string, full_name: string): Member {
+  return {
+    username,
+    full_name,
+    email: `${username}@bristol.ac.uk`,
     github_login: null,
     is_board_admin: false,
     active: true,
     created_at: '2026-11-01T10:00:00Z',
-  },
+  }
 }
 
-const ctx: FilterContext = { me: 'xy12345', members }
+function option(field: string, name: string, leads: string[] = []): FieldOption {
+  return { id: `${field}:${name}`, field, name, color: 'GRAY', description: null, sort_order: 1, leads, created_at: '' }
+}
+
+const members: Record<string, Member> = {
+  xy12345: member('xy12345', 'Sam Example'),
+  ab12345: member('ab12345', 'Alex Example'),
+}
+
+const options: FieldOption[] = [
+  option('status', 'In Progress'),
+  option('subteam', 'Braking System', ['ab12345']),
+  option('subteam', 'Mechanical'),
+  option('priority', 'Highest'),
+  option('priority', 'High'),
+]
+
+const ctx: FilterContext = { me: 'xy12345', members, options }
 const match = (filter: string, it: Item = item(), context: FilterContext = ctx) =>
   matchesFilter(it, parseFilter(filter), context)
 
@@ -75,19 +83,20 @@ describe('parseFilter', () => {
     ])
   })
 
-  it('maps aliases and custom fields to field keys', () => {
-    expect(parseFilter('label:x difficulty-level:D2 task-force:"1 person" lead:ab12345 subsystem:Admin')).toEqual([
+  it('maps aliases to field keys', () => {
+    expect(parseFilter('label:x priority:High lead:@me team-lead:ab12345 subsystem:Admin')).toEqual([
       { kind: 'qualifier', key: 'labels', values: ['x'], negate: false },
-      { kind: 'qualifier', key: 'difficulty', values: ['D2'], negate: false },
-      { kind: 'qualifier', key: 'task_force', values: ['1 person'], negate: false },
-      { kind: 'qualifier', key: 'team_lead', values: ['ab12345'], negate: false },
+      { kind: 'qualifier', key: 'priority', values: ['High'], negate: false },
+      { kind: 'qualifier', key: 'lead', values: ['@me'], negate: false },
+      { kind: 'qualifier', key: 'lead', values: ['ab12345'], negate: false },
       { kind: 'qualifier', key: 'subteam', values: ['Admin'], negate: false },
     ])
   })
 
-  it('treats unknown qualifiers and empty values as free text', () => {
-    expect(parseFilter('foo:bar status: https://example.com')).toEqual([
+  it('treats unknown qualifiers (including removed fields) and empty values as free text', () => {
+    expect(parseFilter('foo:bar size:M status: https://example.com')).toEqual([
       { kind: 'text', value: 'foo:bar', negate: false },
+      { kind: 'text', value: 'size:M', negate: false },
       { kind: 'text', value: 'status:', negate: false },
       { kind: 'text', value: 'https://example.com', negate: false },
     ])
@@ -133,12 +142,20 @@ describe('matchesFilter', () => {
     expect(match('status:Todo label:nope')).toBe(false)
   })
 
-  it('matches labels and custom fields', () => {
+  it('matches labels and priority', () => {
     expect(match('label:URGENT')).toBe(true)
-    expect(match('priority:normal size:M')).toBe(true)
-    expect(match('priority:Stretch')).toBe(false)
-    expect(match('work-package:1.2')).toBe(true)
-    expect(match('team-lead:alex')).toBe(true)
+    expect(match('priority:high')).toBe(true)
+    expect(match('priority:Lowest')).toBe(false)
+  })
+
+  it('matches lead: against the leads of the item’s subteam', () => {
+    expect(match('lead:ab12345')).toBe(true)
+    expect(match('lead:alex')).toBe(true)
+    expect(match('lead:@me')).toBe(false)
+    expect(match('lead:@me', item(), { ...ctx, me: 'ab12345' })).toBe(true)
+    expect(match('lead:ab12345', item({ subteam: 'Mechanical' }))).toBe(false)
+    expect(match('lead:ab12345', item({ subteam: null }))).toBe(false)
+    expect(match('lead:ab12345', item(), { me: null, members })).toBe(false)
   })
 
   it('supports no: and has:', () => {
@@ -147,7 +164,9 @@ describe('matchesFilter', () => {
     expect(match('has:label')).toBe(true)
     expect(match('no:subteam', item({ subteam: null }))).toBe(true)
     expect(match('has:priority')).toBe(true)
-    expect(match('no:reviewer')).toBe(true)
+    expect(match('no:priority', item({ extra: {} }))).toBe(true)
+    expect(match('has:lead')).toBe(true)
+    expect(match('no:lead', item({ subteam: 'Mechanical' }))).toBe(true)
   })
 
   it('supports is:blocked and is:archived', () => {
@@ -174,27 +193,24 @@ describe('matchesFilter', () => {
 })
 
 describe('defaultsFromFilter', () => {
-  const options = [
-    { id: '1', field: 'status', name: 'In Progress', color: 'YELLOW', description: null, sort_order: 2, created_at: '' },
-    { id: '2', field: 'subteam', name: 'Braking System', color: 'PURPLE', description: null, sort_order: 4, created_at: '' },
-    { id: '3', field: 'priority', name: 'Critical path', color: 'RED', description: null, sort_order: 1, created_at: '' },
-  ] as const
-  const full = { ...ctx, options: [...options] }
+  const full = { ...ctx, options }
 
   it('turns plain qualifiers into new-item values with canonical option names', () => {
     expect(
-      defaultsFromFilter('assignee:@me status:"in progress" subteam:"braking system" label:x priority:"critical PATH"', full),
+      defaultsFromFilter('assignee:@me status:"in progress" subteam:"braking system" label:x priority:HIGHEST', full),
     ).toEqual({
       assignees: ['xy12345'],
       status: 'In Progress',
       subteam: 'Braking System',
       labels: ['x'],
-      extra: { priority: 'Critical path' },
+      extra: { priority: 'Highest' },
     })
   })
 
-  it('ignores negated, multi-value, unknown and free-text parts', () => {
-    expect(defaultsFromFilter('-status:"In Progress" subteam:A,B status:Nope assignee:nobody brake no:label', full)).toEqual({})
+  it('ignores negated, multi-value, unknown, lead and free-text parts', () => {
+    expect(
+      defaultsFromFilter('-status:"In Progress" subteam:A,B status:Nope assignee:nobody lead:@me brake no:label', full),
+    ).toEqual({})
   })
 
   it('needs a signed-in member for @me', () => {

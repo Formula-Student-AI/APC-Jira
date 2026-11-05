@@ -1,10 +1,9 @@
-// Member pickers: several people (Assignees) or one (Reviewer, Team lead), searchable.
+// Member pickers: the item's assignees, and the searchable member list (also used for subteam leads).
 
-import { CheckIcon, XIcon } from '@primer/octicons-react'
+import { CheckIcon } from '@primer/octicons-react'
 import { useState } from 'react'
-import { FIELDS, type CustomFieldKey } from '../fields'
 import { useAuth } from '../store/auth'
-import { updateExtraField, updateItemList, useBoard } from '../store/board'
+import { updateItemList, useBoard } from '../store/board'
 import { useMembersList } from '../store/hooks'
 import type { Item } from '../types'
 import { Avatar, AvatarStack } from '../ui/Avatar'
@@ -16,9 +15,11 @@ interface MenuProps {
   selected: string[]
   label: string
   onToggle: (username: string, select: boolean) => void
+  disabled?: boolean
 }
 
-function MemberMenu({ selected, label, onToggle }: MenuProps) {
+/** Search box and a list of active members (plus any selected retired ones) to tick and untick. */
+export function MemberMenu({ selected, label, onToggle, disabled = false }: MenuProps) {
   const active = useMembersList()
   const members = useBoard((s) => s.members)
   const [query, setQuery] = useState('')
@@ -41,6 +42,7 @@ function MemberMenu({ selected, label, onToggle }: MenuProps) {
             type="button"
             className="menu-item"
             aria-pressed={row.selected}
+            disabled={disabled}
             onClick={() => onToggle(row.username, !row.selected)}
           >
             <span className="ip-check">{row.selected && <CheckIcon size={14} />}</span>
@@ -87,50 +89,6 @@ export function AssigneesPicker({ item }: { item: Item }) {
       {me && !item.assignees.includes(me) && (
         <button type="button" className="ip-link-button" onClick={() => toggle(me, true)}>
           Assign me
-        </button>
-      )}
-    </div>
-  )
-}
-
-/** One member stored in a custom field (Reviewer, Team lead). */
-export function MemberSelect({ item, field }: { item: Item; field: CustomFieldKey }) {
-  const members = useBoard((s) => s.members)
-  const value = item.extra[field] ?? null
-  const label = FIELDS[field].label
-  const set = (username: string | null) => void updateExtraField(item.id, field, username, `the ${label.toLowerCase()}`)
-
-  return (
-    <div className="ip-picker">
-      <Dropdown
-        label={
-          value ? (
-            <span className="ip-people">
-              <Avatar username={value} size={20} />
-              <span className="ip-people-names">{memberName(members, value)}</span>
-            </span>
-          ) : (
-            <span className="muted">—</span>
-          )
-        }
-        ariaLabel={`${label}: ${value ? memberName(members, value) : 'none'}. Change`}
-        buttonClassName="ip-picker-button"
-        width={320}
-      >
-        {(close) => (
-          <MemberMenu
-            selected={value ? [value] : []}
-            label={label}
-            onToggle={(username, select) => {
-              set(select ? username : null)
-              close()
-            }}
-          />
-        )}
-      </Dropdown>
-      {value && (
-        <button type="button" className="btn btn-ghost btn-icon btn-sm" aria-label={`Clear ${label}`} onClick={() => set(null)}>
-          <XIcon size={14} />
         </button>
       )}
     </div>

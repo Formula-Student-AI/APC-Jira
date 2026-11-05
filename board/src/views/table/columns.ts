@@ -1,7 +1,7 @@
 // Columns and small helpers for the table view.
 
 import { format } from 'date-fns'
-import { BLOCKED_STATUS, FIELDS, type FieldKind } from '../../fields'
+import { BLOCKED_STATUS, FIELDS, type FieldKey, type FieldKind } from '../../fields'
 import { parseFilter } from '../../lib/filter'
 import { parseDay } from '../../lib/format'
 import type { TableViewConfig } from '../config'
@@ -19,29 +19,23 @@ export interface TableColumn {
 /** Default width per kind of field: room for the header label and a typical value. */
 const KIND_WIDTHS: Record<FieldKind, number> = {
   single_select: 128,
-  text: 200,
-  member: 168,
   members: 128,
   labels: 192,
   date: 104,
 }
 
-/** Columns that need more or less room than their kind's default. */
-const KEY_WIDTHS: Partial<Record<TableColumnKey, number>> = {
+/** Fields that need more or less room than their kind's default. */
+const KEY_WIDTHS: Partial<Record<FieldKey, number>> = {
   subteam: 160,
-  difficulty: 132,
-  domain: 136,
-  task_force: 136,
-  priority: 104,
-  size: 80,
+  priority: 112,
 }
 
 export function tableColumns(keys: TableColumnKey[]): TableColumn[] {
-  return keys.map((key) =>
-    key === 'blocked_reason'
-      ? { key, label: 'Blocked reason', width: 280, grow: true }
-      : { key, label: FIELDS[key].label, width: KEY_WIDTHS[key] ?? KIND_WIDTHS[FIELDS[key].kind], grow: false },
-  )
+  return keys.map((key) => {
+    if (key === 'blocked_reason') return { key, label: 'Blocked reason', width: 280, grow: true }
+    if (key === 'subteam_lead') return { key, label: 'Subteam lead', width: 168, grow: false }
+    return { key, label: FIELDS[key].label, width: KEY_WIDTHS[key] ?? KIND_WIDTHS[FIELDS[key].kind], grow: false }
+  })
 }
 
 /** Sum of the columns' widths (their minimums, for growing ones). */

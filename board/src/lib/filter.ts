@@ -4,7 +4,7 @@
 //   "brake pads"               a phrase;  #12 or 12 also matches item number 12
 //   assignee:xy12345           assignee:@me means the logged-in member
 //   status:Todo  subteam:"Braking System"  label:urgent
-//   priority:Normal  size:M  difficulty:D2  domain:Drawings  reviewer:@me  team-lead:xy12345 ...
+//   priority:High              lead:@me = items in the subteams you lead (Board settings > Subteam leads)
 //   status:Todo,"In Progress"  comma = any of these
 //   -status:Done               leading minus = not
 //   no:assignee  has:label     field is empty / not empty
@@ -14,6 +14,7 @@
 
 import { FIELDS, type FieldKey } from '../fields'
 import type { FieldOption, Item, Member } from '../types'
+import { subteamLeads } from './options'
 
 export interface TextTerm {
   kind: 'text'
@@ -21,10 +22,12 @@ export interface TextTerm {
   negate: boolean
 }
 
+/** A field key (see fields.ts), 'lead' (the item's subteam leads), or 'no' / 'has' / 'is' */
+export type QualifierKey = FieldKey | 'lead' | 'no' | 'has' | 'is'
+
 export interface Qualifier {
   kind: 'qualifier'
-  /** A field key (see fields.ts), or 'no' / 'has' / 'is' */
-  key: FieldKey | 'no' | 'has' | 'is'
+  key: QualifierKey
   values: string[]
   negate: boolean
 }
@@ -35,9 +38,11 @@ export interface FilterContext {
   /** Username of the logged-in member (for @me) */
   me: string | null
   members: Record<string, Member>
+  /** Dropdown options; the subteam options carry the subteam leads used by lead: */
+  options?: FieldOption[]
 }
 
-const KEY_ALIASES: Record<string, FieldKey | 'no' | 'has' | 'is'> = {
+const KEY_ALIASES: Record<string, QualifierKey> = {
   assignee: 'assignees',
   assignees: 'assignees',
   status: 'status',
@@ -53,25 +58,16 @@ const KEY_ALIASES: Record<string, FieldKey | 'no' | 'has' | 'is'> = {
   due: 'due_date',
   due_date: 'due_date',
   priority: 'priority',
-  domain: 'domain',
-  difficulty: 'difficulty',
-  difficulty_level: 'difficulty',
-  size: 'size',
-  task_force: 'task_force',
-  taskforce: 'task_force',
-  safety: 'safety_related',
-  safety_related: 'safety_related',
-  work_package: 'work_package',
-  wp: 'work_package',
-  reviewer: 'reviewer',
-  team_lead: 'team_lead',
-  lead: 'team_lead',
+  lead: 'lead',
+  leads: 'lead',
+  team_lead: 'lead',
+  subteam_lead: 'lead',
   no: 'no',
   has: 'has',
   is: 'is',
 }
 
-function normalizeKey(raw: string): FieldKey | 'no' | 'has' | 'is' | null {
+function normalizeKey(raw: string): QualifierKey | null {
   const key = raw.trim().toLowerCase().replace(/[\s-]+/g, '_')
   return KEY_ALIASES[key] ?? null
 }
@@ -186,9 +182,14 @@ function qualifierMatches(item: Item, q: Qualifier, ctx: FilterContext): boolean
     return q.values.some((v) => {
       const key = normalizeKey(v)
       if (!key || key === 'no' || key === 'has' || key === 'is') return false
-      const empty = isEmptyValue(fieldRaw(item, key))
+      const value = key === 'lead' ? subteamLeads(ctx.options ?? [], item.subteam) : fieldRaw(item, key)
+      const empty = isEmptyValue(value)
       return q.key === 'no' ? empty : !empty
     })
+  }
+  if (q.key === 'lead') {
+    const leads = subteamLeads(ctx.options ?? [], item.subteam)
+    return q.values.some((v) => leads.some((u) => memberMatches(u, v, ctx)))
   }
 
   const def = FIELDS[q.key]
@@ -198,17 +199,9 @@ function qualifierMatches(item: Item, q: Qualifier, ctx: FilterContext): boolean
       const list = (raw as string[] | undefined) ?? []
       return q.values.some((v) => list.some((u) => memberMatches(u, v, ctx)))
     }
-    case 'member': {
-      const username = raw as string | undefined
-      return !!username && q.values.some((v) => memberMatches(username, v, ctx))
-    }
     case 'labels': {
       const list = ((raw as string[] | undefined) ?? []).map(lower)
       return q.values.some((v) => list.includes(lower(v)))
-    }
-    case 'text': {
-      const text = lower(String(raw ?? ''))
-      return !!text && q.values.some((v) => text.includes(lower(v)))
     }
     case 'single_select':
     case 'date': {
@@ -255,7 +248,7 @@ export function defaultsFromFilter(
     if (token.kind !== 'qualifier' || token.negate || token.values.length !== 1) continue
     const value = token.values[0]
     const key = token.key
-    if (key === 'no' || key === 'has' || key === 'is') continue
+    if (key === 'no' || key === 'has' || key === 'is' || key === 'lead') continue
     if (key === 'status' || key === 'subteam') {
       const name = canonicalOption(ctx.options, key, value)
       if (name) out[key] = name
@@ -267,14 +260,9 @@ export function defaultsFromFilter(
       if (username) out.assignees = [...new Set([...(out.assignees ?? []), username])]
     } else if (def.kind === 'labels') {
       out.labels = [...new Set([...(out.labels ?? []), value])]
-    } else if (def.source === 'extra') {
-      const resolved =
-        def.kind === 'single_select'
-          ? canonicalOption(ctx.options, key, value)
-          : def.kind === 'member'
-            ? memberFor(value)
-            : value
-      if (resolved) out.extra = { ...out.extra, [key]: resolved }
+    } else if (def.source === 'extra' && def.kind === 'single_select') {
+      const name = canonicalOption(ctx.options, key, value)
+      if (name) out.extra = { ...out.extra, [key]: name }
     }
   }
   return out

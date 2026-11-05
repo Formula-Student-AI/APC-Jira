@@ -203,6 +203,11 @@
   gap: 8px;
   min-height: 20px;
 }
+.bcard-key {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
 .bcard-number {
   color: var(--text-muted);
   font-family: var(--mono);
@@ -224,25 +229,6 @@
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
-}
-.bcard-member,
-.bcard-text {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  max-width: 100%;
-  height: 20px;
-  padding: 0 6px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  color: var(--text-muted);
-  font-size: 12px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.bcard-member .avatar {
-  margin-left: -4px;
 }
 
 .bcard-footer {

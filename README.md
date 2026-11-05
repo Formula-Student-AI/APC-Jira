@@ -17,7 +17,7 @@ HyPower-Bristol's BSEP plan. The board itself started empty.
 - [Setting up a copy](#setting-up-a-copy)
 - [Environment variables](#environment-variables)
 - [Deploying (GitHub Pages)](#deploying-github-pages)
-- [Subteams and other dropdown options](#subteams-and-other-dropdown-options)
+- [Subteams, subteam leads and dropdown options](#subteams-subteam-leads-and-dropdown-options)
 - [Board admins](#board-admins)
 - [How login works, and its limits](#how-login-works-and-its-limits)
 - [Re-running the seed or the GitHub export](#re-running-the-seed-or-the-github-export)
@@ -45,7 +45,9 @@ HyPower-Bristol's BSEP plan. The board itself started empty.
    On a phone, press and hold a card to pick it up. On the Timeline, drag a bar to move it, or
    drag its ends to change the start or due date.
 4. Click a card or row to open it in the side panel. Every change saves as you go ("Saved" appears
-   at the top). If a save fails, the change is undone and a message explains why.
+   at the top). If a save fails, the change is undone and a message explains why. The panel shows
+   the item's Status, Priority, Subteam and that subteam's lead(s), Assignees, Labels and dates.
+   Priorities are Jira's: Highest, High, Medium, Low and Lowest, each with its Jira icon.
 5. Use **+ Add item** at the bottom of a column, or **+ New item** in the header. A new item gets
    whatever the current view implies, so it shows up where you are. For example, on Self Kanban it
    is assigned to you.
@@ -60,7 +62,8 @@ HyPower-Bristol's BSEP plan. The board itself started empty.
 | `status:"In Progress"` | quotes for values with spaces |
 | `subteam:"Braking System"` | one subteam |
 | `label:urgent` | has this label |
-| `priority:"Critical path"` | any dropdown field works: `size:M`, `difficulty:D2`, `domain:Drawings` … |
+| `priority:High,Highest` | High or Highest priority |
+| `lead:@me` | items in the subteams you lead (`lead:xy12345` for someone else's) |
 | `-status:Done` | a minus means *not* |
 | `status:Todo,Blocked` | a comma means *either* |
 | `no:assignee` / `has:label` | field is empty / not empty |
@@ -73,6 +76,7 @@ The filter is part of the address (`?q=…`), so you can share a filtered view a
 | Path | What it is |
 | --- | --- |
 | `board/` | The app, its database schema (`board/supabase/`) and scripts (`board/scripts/`) |
+| `board/backup-repo/` | The files of the private backups repository (scripts only, no data); see [Backups](#backups) |
 | `.github/workflows/deploy.yml` | Builds `board/` and publishes it to GitHub Pages on every push to `main` |
 
 This repository is public, so GitHub Pages works on the free plan. It holds no secrets: secrets
@@ -135,14 +139,20 @@ gh api -X POST repos/<owner>/<repo>/pages -f build_type=workflow
 GitHub Pages from a **private** repository needs a paid plan, such as GitHub Pro (free with the
 GitHub Student Developer Pack). Public repositories, like this one, can use Pages on any plan.
 
-## Subteams and other dropdown options
+## Subteams, subteam leads and dropdown options
 
 The subteams are **Mechanical, Powertrain, Electrical, Braking System and Admin**, in that order.
 "Admin" is a subteam like the others. It is not the [board admin](#board-admins) permission.
 
-Every dropdown (Status, Subteam, Priority, Domain, Difficulty level, Size, Task force, Safety
-related) gets its options from the `field_options` table. A board admin changes them in the app:
-**user menu > Board settings > Dropdown options**. There you can:
+**Subteam leads.** A board admin chooses each subteam's leads (one or more members) in
+**user menu > Board settings > Subteam leads**. Every item then shows its subteam's leads: in the
+side panel, in the Blocked table and in the subteam chip's tooltip on cards. When someone becomes
+or stops being a lead, every item of that subteam follows. `lead:@me` in the filter box shows the
+items of the subteams you lead.
+
+The three dropdowns (Status, Subteam and Priority) get their options from the `field_options`
+table. A board admin changes them in the app: **user menu > Board settings > Dropdown options**.
+There you can:
 
 - **Add** an option. It goes at the end; move it with the arrows.
 - **Rename** an option. Every item that uses it is updated automatically.
@@ -155,8 +165,8 @@ Without the app, the same can be done in Supabase > **Table Editor** > `field_op
 
 ## Board admins
 
-A board admin can manage the dropdown options, add, rename and retire members, make other people
-board admins, and delete items permanently. Everyone else archives instead of deleting. **Board
+A board admin can choose subteam leads, manage the dropdown options, add, rename and retire members,
+make other people board admins, and delete items permanently. Everyone else archives instead of deleting. **Board
 admin is a permission. It has nothing to do with the Admin subteam.**
 
 To make someone a board admin, use any of these:
@@ -224,16 +234,43 @@ switch it on:
 
 ## Backups
 
-Supabase's free plan doesn't give you downloadable backups, so export regularly, especially before
-big changes:
+Supabase's free plan has no downloadable backups, so the board backs itself up **every 3 days**
+(04:23 UTC on the 1st, 4th, 7th, … of each month) into the **private** repository
+`Formula-Student-AI/APC-Jira-backups`. Each backup is a folder `backups/<date>/` with the items,
+their history, members, dropdown options (with subteam leads) and settings as JSON. The newest 30
+stay in the folder; older ones remain in that repository's git history.
 
-- **Quick:** Supabase > Table Editor > for each of `items`, `members`, `field_options` and
-  `activity`: **Export > Export table as CSV**.
-- **Complete:** a full dump with the database connection string (Supabase > **Connect**, which
-  needs the database password):
-  `npx supabase db dump --db-url "postgresql://…" -f backup.sql` (add `--data-only` for just the data).
+The backup logs in as `backup_reader`, a **read-only** database login defined in `schema.sql`. It
+can read the board's tables and change nothing, so the backup never holds a key that could alter
+the board. Its password exists only as that repository's `BACKUP_DATABASE_URL` Actions secret.
 
-The `activity` table also keeps a full copy of every permanently deleted item.
+**One-time setup** (needs `gh` logged in as an org admin, and the access token in `.env.local`):
+
+```sh
+cd board
+npm run db:apply                       # creates backup_reader (if not done yet)
+node scripts/setup-backups.mjs         # creates the private repo, sets the password and secret, runs the first backup
+```
+
+`node scripts/setup-backups.mjs --password` gives `backup_reader` a new password (and updates the
+secret) if it might have leaked. To back up immediately: backups repo > Actions > Backup > Run workflow.
+If a scheduled backup fails, GitHub emails whoever last changed its workflow.
+
+**Restoring.** `board/scripts/restore-backup.mjs` puts back what is **missing** (for example an item
+deleted by mistake, or everything after a total loss). It never changes or deletes existing rows.
+Without `--yes` it only shows what it would do:
+
+```sh
+cd board
+node scripts/restore-backup.mjs ../../APC-Jira-backups/backups/2026-11-05             # everything missing
+node scripts/restore-backup.mjs ../../APC-Jira-backups/backups/2026-11-05 --items 12  # only item #12
+node scripts/restore-backup.mjs ../../APC-Jira-backups/backups/2026-11-05 --items 12 --yes
+```
+
+A restored item keeps its number unless another item has taken it, in which case it gets a new
+one. To undo an *edit* rather than a deletion, look up the old values in the item's History or in
+the backup's `items.json`. The `activity` table also keeps a full copy of every permanently deleted
+item.
 
 ## Free-tier limits
 
@@ -247,7 +284,8 @@ These were the limits at the time of writing (November 2026); check the
   limit on concurrent connections and monthly messages that a society board won't come near.
 - Without custom SMTP, Supabase sends very few emails (see email codes above).
 - **GitHub:** Pages from a private repository needs GitHub Pro. Actions minutes for private
-  repositories are limited (each deploy takes about a minute).
+  repositories are limited (2,000 a month on the free plan). The private backups use about
+  10 minutes a month; deploys run in this public repository and don't count.
 
 ## Moving to another organisation
 
@@ -262,6 +300,8 @@ These were the limits at the time of writing (November 2026); check the
    publishable key is meant to be public.
 5. In Supabase > Authentication > URL Configuration, update the **Site URL** to the new address.
    This matters only for email codes.
+6. Move or recreate the private backups repository too. Its name is set at the top of
+   `board/scripts/setup-backups.mjs`; change it there and re-run the script.
 
 ## Development
 

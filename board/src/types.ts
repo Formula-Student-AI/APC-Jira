@@ -16,12 +16,14 @@ export interface Member {
 
 export interface FieldOption {
   id: string
-  /** Field key: status, subteam, priority, domain, difficulty, size, task_force, safety_related */
+  /** Field key: status, subteam or priority */
   field: string
   name: string
   color: OptionColor
   description: string | null
   sort_order: number
+  /** Subteam leads (usernames); only used on subteam options */
+  leads: string[]
   created_at: string
 }
 

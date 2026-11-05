@@ -138,8 +138,38 @@
   left: 10px;
   pointer-events: none;
 }
+.ip-select .priority-icon {
+  position: absolute;
+  left: 7px;
+  pointer-events: none;
+}
 .ip-select .select {
   padding-left: 28px;
+}
+
+.ip-leads {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  min-height: 32px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ip-lead {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  max-width: 100%;
+}
+.ip-none {
+  display: flex;
+  align-items: center;
+  min-height: 32px;
+  margin: 0;
+  color: var(--text-muted);
 }
 
 .ip-date {
