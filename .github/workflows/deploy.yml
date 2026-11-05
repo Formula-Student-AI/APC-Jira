@@ -44,17 +44,20 @@ jobs:
           npm run lint
           npm test
 
+      # Before the build: it gives the site's address, which link previews (WhatsApp, Teams) need.
+      - id: pages
+        uses: actions/configure-pages@v6
+
       - name: Build
         run: npm run build
         env:
           # The site is served from https://<owner>.github.io/<repo>/
           BASE_PATH: /${{ github.event.repository.name }}/
+          VITE_SITE_URL: ${{ steps.pages.outputs.base_url }}/
           VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
           VITE_USERNAME_PATTERN: ${{ vars.VITE_USERNAME_PATTERN }}
           VITE_AUTH_MODE: ${{ vars.VITE_AUTH_MODE }}
-
-      - uses: actions/configure-pages@v6
 
       - uses: actions/upload-pages-artifact@v5
         with:
