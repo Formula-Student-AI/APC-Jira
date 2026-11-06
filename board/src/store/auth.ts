@@ -18,11 +18,22 @@ export interface AuthState {
    * username only gets them only when the board owner allows it (board_settings.trust_mode_admins).
    */
   adminActive: boolean
+  /**
+   * May this session use board-admin and subteam-lead powers at all (a verified sign-in, or the board
+   * owner allows username-only ones)? Subteam leads look after their subteam's domains only when it is.
+   */
+  sessionTrusted: boolean
   /** Problem reaching Supabase during start-up (shown on the login screen) */
   error: string | null
 }
 
-export const useAuth = create<AuthState>(() => ({ phase: 'checking', member: null, adminActive: false, error: null }))
+export const useAuth = create<AuthState>(() => ({
+  phase: 'checking',
+  member: null,
+  adminActive: false,
+  sessionTrusted: false,
+  error: null,
+}))
 
 const set = useAuth.setState
 
@@ -33,13 +44,20 @@ export function currentUsername(): string | null {
 interface SessionInfo {
   member: Member
   board_admin_active: boolean
+  session_trusted?: boolean
 }
 
 function signedIn(info: SessionInfo): Partial<AuthState> {
-  return { phase: 'signed_in', member: info.member, adminActive: info.board_admin_active, error: null }
+  return {
+    phase: 'signed_in',
+    member: info.member,
+    adminActive: info.board_admin_active,
+    sessionTrusted: info.session_trusted ?? info.board_admin_active,
+    error: null,
+  }
 }
 
-const signedOut: Partial<AuthState> = { phase: 'signed_out', member: null, adminActive: false }
+const signedOut: Partial<AuthState> = { phase: 'signed_out', member: null, adminActive: false, sessionTrusted: false }
 
 export class LoginError extends Error {}
 

@@ -836,3 +836,37 @@
   color: var(--text-subtle);
   font-size: 12px;
 }
+
+/* ------------------------------------------------------------ domain (one of the subteam's domains) */
+
+.ip-domain {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.ip-domain > .ip-select,
+.ip-domain > .ip-none {
+  flex: 1;
+  min-width: 0;
+}
+/* "+": add a domain to the item's subteam (leads and board admins). */
+.ip-domain-form {
+  display: grid;
+  gap: 6px;
+  padding: 6px;
+}
+.ip-domain-form .field-label {
+  margin: 0;
+}
+.ip-domain-form-row {
+  display: flex;
+  gap: 6px;
+}
+.ip-domain-form-row .input {
+  flex: 1;
+  min-width: 0;
+}
+.ip-domain-form-note {
+  margin: 0;
+  font-size: 12px;
+}

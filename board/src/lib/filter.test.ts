@@ -10,6 +10,7 @@ function item(overrides: Partial<Item> = {}): Item {
     description: 'Check the **pedal ratio** with the driver.',
     status: 'Todo',
     subteam: 'Braking System',
+    domain: null,
     assignees: ['xy12345'],
     legacy_assignees: [],
     labels: ['urgent'],
@@ -46,7 +47,7 @@ function member(username: string, full_name: string): Member {
 }
 
 function option(field: string, name: string, leads: string[] = []): FieldOption {
-  return { id: `${field}:${name}`, field, name, color: 'GRAY', description: null, sort_order: 1, leads, created_at: '' }
+  return { id: `${field}:${name}`, field, name, color: 'GRAY', description: null, sort_order: 1, leads, parent_id: null, created_at: '' }
 }
 
 const members: Record<string, Member> = {
@@ -170,6 +171,23 @@ describe('matchesFilter', () => {
     expect(match('no:priority', item({ extra: {} }))).toBe(true)
     expect(match('has:lead')).toBe(true)
     expect(match('no:lead', item({ subteam: 'Mechanical' }))).toBe(true)
+  })
+
+  it('matches domain:, whichever subteam the domain belongs to', () => {
+    const lv = item({ domain: 'LV systems' })
+    expect(match('domain:"LV systems"', lv)).toBe(true)
+    expect(match('domain:"lv SYSTEMS"', lv)).toBe(true)
+    expect(match('domains:Accumulator,"LV systems"', lv)).toBe(true)
+    expect(match('domain:Accumulator', lv)).toBe(false)
+    expect(match('-domain:"LV systems"', lv)).toBe(false)
+    expect(match('domain:"LV systems"')).toBe(false)
+    expect(match('no:domain')).toBe(true)
+    expect(match('has:domain', lv)).toBe(true)
+    expect(match('subteam:"Braking System" domain:"LV systems"', lv)).toBe(true)
+  })
+
+  it('ignores domain: when choosing a new item’s values', () => {
+    expect(defaultsFromFilter('domain:"LV systems"', ctx as FilterContext & { options: FieldOption[] })).toEqual({})
   })
 
   it('supports is:milestone and is:phase', () => {

@@ -45,6 +45,13 @@
   width: auto;
   min-width: 200px;
 }
+/* Subteam domains, when you look after just one subteam: its name instead of a picker. */
+.settings-domain-team {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+}
 .settings-help {
   margin: 0;
   font-size: 13px;

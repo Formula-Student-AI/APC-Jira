@@ -15,7 +15,7 @@ Keep it private and don't copy the backups anywhere public.
 | `items.json` | The tasks, including archived ones |
 | `activity.json` | The history of every task |
 | `members.json` | Members, board admins and retired members |
-| `field_options.json` | Statuses, subteams (with their leads) and priorities |
+| `field_options.json` | Statuses, subteams (with their leads), priorities and each subteam's domains |
 | `board_settings.json` | Login mode and the other board settings |
 | `manifest.json` | When the snapshot was taken and how many rows each file has |
 

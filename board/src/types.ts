@@ -16,7 +16,7 @@ export interface Member {
 
 export interface FieldOption {
   id: string
-  /** Field key: status, subteam or priority */
+  /** Field key: status, subteam, priority or domain */
   field: string
   name: string
   color: OptionColor
@@ -24,6 +24,8 @@ export interface FieldOption {
   sort_order: number
   /** Subteam leads (usernames); only used on subteam options */
   leads: string[]
+  /** Domains only: the id of the subteam option the domain belongs to (null for every other option) */
+  parent_id: string | null
   created_at: string
 }
 
@@ -40,6 +42,8 @@ export interface Item {
   description: string
   status: string
   subteam: string | null
+  /** One of the subteam's domains (cleared by the database when the item moves to a subteam without it) */
+  domain: string | null
   /** Member usernames */
   assignees: string[]
   legacy_assignees: string[]
@@ -77,6 +81,7 @@ export type ItemPatch = Partial<
     | 'description'
     | 'status'
     | 'subteam'
+    | 'domain'
     | 'assignees'
     | 'labels'
     | 'start_date'

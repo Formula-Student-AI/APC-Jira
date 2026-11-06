@@ -4,6 +4,7 @@
 //   "brake pads"               a phrase;  #12 or 12 also matches item number 12
 //   assignee:xy12345           assignee:@me means the logged-in member
 //   status:Todo  subteam:"Braking System"  label:urgent
+//   domain:"LV systems"        one of a subteam's domains (several subteams may have one of that name)
 //   priority:High              lead:@me = items in the subteams you lead (Board settings > Subteam leads)
 //   status:Todo,"In Progress"  comma = any of these
 //   -status:Done               leading minus = not
@@ -51,6 +52,8 @@ const KEY_ALIASES: Record<string, QualifierKey> = {
   team: 'subteam',
   subsystem: 'subteam',
   subsystems: 'subteam',
+  domain: 'domain',
+  domains: 'domain',
   label: 'labels',
   labels: 'labels',
   start: 'start_date',

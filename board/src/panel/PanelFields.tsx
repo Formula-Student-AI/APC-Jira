@@ -1,17 +1,21 @@
-// The item's fields as label/value rows: Status, Priority, Subteam and its leads, Assignees, Labels and dates.
+// The item's fields as label/value rows: Status, Priority, Subteam, Domain, the subteam's leads, Assignees,
+// Labels and dates.
 
-import { XIcon } from '@primer/octicons-react'
-import { useState, type ReactNode } from 'react'
+import { PlusIcon, XIcon } from '@primer/octicons-react'
+import { useId, useState, type FormEvent, type ReactNode } from 'react'
 import { FIELDS, type SelectFieldKey } from '../fields'
-import { updateExtraField, updateItem, useBoard } from '../store/board'
-import { useFieldOptions, useSubteamLeads } from '../store/hooks'
-import type { Item } from '../types'
+import { colorClass, nextDomainColor, subteamChange, subteamOption } from '../lib/options'
+import { addOption, updateExtraField, updateItem, useBoard } from '../store/board'
+import { useCanManageDomains, useDomains, useFieldOptions, useSubteamLeads } from '../store/hooks'
+import type { FieldOption, Item } from '../types'
 import { Avatar } from '../ui/Avatar'
+import { Dropdown } from '../ui/Dropdown'
 import { MilestoneIcon } from '../ui/MilestoneIcon'
 import { OptionDot } from '../ui/OptionChip'
 import { PhaseIcon } from '../ui/PhaseIcon'
 import { PriorityIcon } from '../ui/PriorityIcon'
 import { datesOutOfOrder, datesWhat, dropUnfinished, isWholeDayOrEmpty, planDateChange, shownDate, type DateDrafts, type DateKey } from './dates'
+import { closeMenu } from './dom'
 import { LabelsEditor } from './LabelsEditor'
 import { AssigneesPicker } from './MemberPicker'
 import { memberName } from './members'
@@ -28,6 +32,7 @@ export function PanelFields({ item }: { item: Item }) {
       <Row label="Subteam">
         <OptionSelect item={item} field="subteam" />
       </Row>
+      <DomainRow item={item} />
       <SubteamLeadRow subteam={item.subteam} />
       <Row label="Assignees" wide>
         <AssigneesPicker item={item} />
@@ -55,7 +60,7 @@ function SubteamLeadRow({ subteam }: { subteam: string | null }) {
   const leads = useSubteamLeads(subteam)
   const members = useBoard((s) => s.members)
   return (
-    <Row label={leads.length > 1 ? 'Subteam leads' : 'Subteam lead'}>
+    <Row label={leads.length > 1 ? 'Subteam leads' : 'Subteam lead'} wide>
       {leads.length > 0 ? (
         <ul className="ip-leads">
           {leads.map((username) => (
@@ -83,6 +88,7 @@ function currentValue(item: Item, field: SelectFieldKey): string {
 /** A dropdown field whose choices come from field_options. */
 function OptionSelect({ item, field }: { item: Item; field: SelectFieldKey }) {
   const options = useFieldOptions(field)
+  const allOptions = useBoard((s) => s.options)
   const label = FIELDS[field].label
   const value = currentValue(item, field)
 
@@ -91,7 +97,8 @@ function OptionSelect({ item, field }: { item: Item; field: SelectFieldKey }) {
     if (field === 'status') {
       if (next) void updateItem(item.id, { status: next }, 'the status')
     } else if (field === 'subteam') {
-      void updateItem(item.id, { subteam: next || null }, 'the subteam')
+      // The domain goes too, unless the new subteam has one of that name (the database does the same).
+      void updateItem(item.id, subteamChange(allOptions, item, next || null), 'the subteam')
     } else {
       void updateExtraField(item.id, field, next || null, `the ${label.toLowerCase()}`)
     }
@@ -110,6 +117,127 @@ function OptionSelect({ item, field }: { item: Item; field: SelectFieldKey }) {
         {value && !options.some((option) => option.name === value) && <option value={value}>{value}</option>}
       </select>
     </div>
+  )
+}
+
+/**
+ * The item's domain: one of its subteam's domains. The subteam's leads and board admins can add a domain
+ * here with "+", and manage them in Subteam domains (leads) or Board settings > Domains (board admins).
+ */
+function DomainRow({ item }: { item: Item }) {
+  const domains = useDomains(item.subteam)
+  const canManage = useCanManageDomains(item.subteam)
+  const value = item.domain ?? ''
+  const current = domains.find((domain) => domain.name === value)
+
+  const change = (next: string) => {
+    if (next !== value) void updateItem(item.id, { domain: next || null }, 'the domain')
+  }
+
+  let control: ReactNode
+  if (!item.subteam) {
+    control = <p className="ip-none">Pick a subteam first</p>
+  } else if (domains.length === 0 && !value) {
+    control = (
+      <p className="ip-none" title={canManage ? 'Add one with +' : `The ${item.subteam} leads can add domains`}>
+        No domains yet
+      </p>
+    )
+  } else {
+    control = (
+      <div className="ip-select">
+        <span className={`chip-dot ${colorClass(current?.color ?? 'GRAY')}`} aria-hidden="true" />
+        <select className="select" value={value} aria-label="Domain" onChange={(event) => change(event.target.value)}>
+          <option value="">No domain</option>
+          {domains.map((domain) => (
+            <option key={domain.id} value={domain.name} title={domain.description ?? undefined}>
+              {domain.name}
+            </option>
+          ))}
+          {value && !current && <option value={value}>{value}</option>}
+        </select>
+      </div>
+    )
+  }
+
+  return (
+    <Row label="Domain">
+      <div className="ip-domain">
+        {control}
+        {canManage && item.subteam && <AddDomain item={item} subteam={item.subteam} domains={domains} />}
+      </div>
+    </Row>
+  )
+}
+
+/** "+" beside the Domain: add a domain to the item's subteam, and give it to this item. */
+function AddDomain({ item, subteam, domains }: { item: Item; subteam: string; domains: FieldOption[] }) {
+  return (
+    <Dropdown
+      label={<PlusIcon />}
+      ariaLabel={`Add a domain to ${subteam}`}
+      buttonClassName="btn btn-ghost btn-icon btn-sm"
+      align="right"
+      width={280}
+    >
+      {(close) => <AddDomainForm item={item} subteam={subteam} domains={domains} onDone={close} />}
+    </Dropdown>
+  )
+}
+
+interface AddDomainFormProps {
+  item: Item
+  subteam: string
+  domains: FieldOption[]
+  onDone: () => void
+}
+
+function AddDomainForm({ item, subteam, domains, onDone }: AddDomainFormProps) {
+  const options = useBoard((s) => s.options)
+  const [name, setName] = useState('')
+  const [busy, setBusy] = useState(false)
+  const inputId = useId()
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const form = event.currentTarget
+    const text = name.trim()
+    const parent = subteamOption(options, subteam)
+    if (!text || busy || !parent) return
+    // A domain that already has this name (in any case) is picked rather than added twice.
+    const existing = domains.find((domain) => domain.name.toLowerCase() === text.toLowerCase())
+    setBusy(true)
+    const domain = existing ?? (await addOption('domain', text, nextDomainColor(domains), parent.id))
+    setBusy(false)
+    if (!domain) return
+    if (domain.name !== item.domain) void updateItem(item.id, { domain: domain.name }, 'the domain')
+    // Close, and give focus back to "+" (not the page, where Escape would close the whole panel).
+    closeMenu(onDone, form)
+  }
+
+  return (
+    <form className="ip-domain-form" onSubmit={(event) => void submit(event)}>
+      <label className="field-label" htmlFor={inputId}>
+        New {subteam} domain
+      </label>
+      <div className="ip-domain-form-row">
+        <input
+          id={inputId}
+          className="input"
+          autoFocus
+          maxLength={60}
+          value={name}
+          placeholder="e.g. LV systems"
+          autoComplete="off"
+          onChange={(event) => setName(event.target.value)}
+        />
+        <button type="submit" className="btn btn-primary btn-sm" disabled={busy || !name.trim()}>
+          {busy && <span className="spinner" aria-hidden="true" />}
+          Add
+        </button>
+      </div>
+      <p className="muted ip-domain-form-note">It joins {subteam}'s domains and is set on this task.</p>
+    </form>
   )
 }
 

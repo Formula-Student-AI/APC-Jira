@@ -1,40 +1,31 @@
-// Board settings (board admins only): subteam leads, dropdown options and members.
+// Board settings (board admins only): subteam leads, each subteam's domains, dropdown options and members.
 // The database checks every change too, so this is a convenience, not the security boundary.
 
-import { ArrowDownIcon, ArrowUpIcon, PlusIcon, TrashIcon, XIcon } from '@primer/octicons-react'
+import { PlusIcon, XIcon } from '@primer/octicons-react'
 import { useId, useState, type FormEvent } from 'react'
 import { USERNAME_PATTERN, normalizeUsername } from '../config'
-import { BLOCKED_STATUS, FIELDS, SELECT_FIELDS, type SelectFieldKey } from '../fields'
+import { FIELDS, SELECT_FIELDS, type SelectFieldKey } from '../fields'
 import { formatBytes } from '../lib/images'
-import { colorClass } from '../lib/options'
 import { MemberMenu } from '../panel/MemberPicker'
 import { MAX_TOTAL_BYTES } from '../store/attachments'
 import { memberName } from '../panel/members'
-import {
-  addMember,
-  addOption,
-  deleteOption,
-  moveOption,
-  renameMember,
-  setBoardAdmin,
-  setMemberActive,
-  updateOption,
-  useBoard,
-} from '../store/board'
+import { addMember, renameMember, setBoardAdmin, setMemberActive, updateOption, useBoard } from '../store/board'
 import { useFieldOptions, useMe, useMembersList } from '../store/hooks'
-import type { FieldOption, Member, OptionColor } from '../types'
+import type { FieldOption, Member } from '../types'
 import { Avatar } from '../ui/Avatar'
 import { Dropdown } from '../ui/Dropdown'
 import { Modal } from '../ui/Modal'
 import { OptionDot } from '../ui/OptionChip'
+import { DomainsEditor } from './DomainsEditor'
+import { AddOptionForm, OptionRow } from './OptionEditor'
+import { useBusy } from './useBusy'
 import './settings.css'
 
-const COLORS: OptionColor[] = ['GRAY', 'BLUE', 'GREEN', 'YELLOW', 'ORANGE', 'RED', 'PINK', 'PURPLE']
-
-type Tab = 'leads' | 'options' | 'members'
+type Tab = 'leads' | 'domains' | 'options' | 'members'
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'leads', label: 'Subteam leads' },
+  { id: 'domains', label: 'Domains' },
   { id: 'options', label: 'Dropdown options' },
   { id: 'members', label: 'Members' },
 ]
@@ -55,6 +46,7 @@ export function BoardSettingsDialog({ onClose }: { onClose: () => void }) {
         ))}
       </div>
       {tab === 'leads' && <LeadsTab />}
+      {tab === 'domains' && <DomainsEditor />}
       {tab === 'options' && <OptionsTab />}
       {tab === 'members' && <MembersTab />}
     </Modal>
@@ -88,16 +80,6 @@ function StorageUse() {
   )
 }
 
-/** Runs one save at a time for a row and reports whether one is in progress. */
-function useBusy(): [boolean, (task: () => Promise<unknown>) => void] {
-  const [busy, setBusy] = useState(false)
-  const run = (task: () => Promise<unknown>) => {
-    setBusy(true)
-    void task().finally(() => setBusy(false))
-  }
-  return [busy, run]
-}
-
 // ---------------------------------------------------------------------------- subteam leads
 
 function LeadsTab() {
@@ -105,8 +87,8 @@ function LeadsTab() {
   return (
     <div className="settings-section">
       <p className="muted settings-help">
-        A subteam's leads are shown on every task in that subteam and in the Blocked view. In the filter box,
-        lead:@me shows the tasks of the subteams you lead.
+        A subteam's leads are shown on every task in that subteam and in the Blocked view, and they look after
+        the subteam's domains. In the filter box, lead:@me shows the tasks of the subteams you lead.
       </p>
       {subteams.length > 0 ? (
         <ul className="settings-leads">
@@ -203,126 +185,8 @@ function OptionsTab() {
           <OptionRow key={`${option.id}:${option.name}`} option={option} first={index === 0} last={index === options.length - 1} />
         ))}
       </ul>
-      <AddOptionForm key={field} field={field} />
+      <AddOptionForm key={field} field={field} noun={`${FIELDS[field].label.toLowerCase()} option`} />
     </div>
-  )
-}
-
-function OptionRow({ option, first, last }: { option: FieldOption; first: boolean; last: boolean }) {
-  const [name, setName] = useState(option.name)
-  const [confirming, setConfirming] = useState(false)
-  const [busy, run] = useBusy()
-  const locked = option.field === 'status' && option.name === BLOCKED_STATUS
-
-  const commitName = () => {
-    const next = name.trim()
-    if (!next) setName(option.name)
-    else if (next !== option.name) run(() => updateOption(option.id, { name: next }))
-  }
-
-  return (
-    <li className="settings-option">
-      <ColorPicker value={option.color} onChange={(color) => run(() => updateOption(option.id, { color }))} />
-      <input
-        className="input settings-option-name"
-        value={name}
-        maxLength={60}
-        disabled={busy || locked}
-        aria-label={`Name of ${option.name}`}
-        onChange={(event) => setName(event.target.value)}
-        onBlur={commitName}
-        onKeyDown={(event) => {
-          if (event.key === 'Enter') {
-            event.preventDefault()
-            commitName()
-          }
-        }}
-      />
-      <div className="settings-option-actions">
-        <button type="button" className="btn btn-ghost btn-icon btn-sm" aria-label={`Move ${option.name} up`} disabled={first || busy} onClick={() => run(() => moveOption(option.id, -1))}>
-          <ArrowUpIcon />
-        </button>
-        <button type="button" className="btn btn-ghost btn-icon btn-sm" aria-label={`Move ${option.name} down`} disabled={last || busy} onClick={() => run(() => moveOption(option.id, 1))}>
-          <ArrowDownIcon />
-        </button>
-        {confirming ? (
-          <>
-            <button type="button" className="btn btn-danger btn-sm" disabled={busy} onClick={() => run(() => deleteOption(option.id).finally(() => setConfirming(false)))}>
-              Delete
-            </button>
-            <button type="button" className="btn btn-ghost btn-sm" onClick={() => setConfirming(false)}>
-              Keep
-            </button>
-          </>
-        ) : (
-          <button type="button" className="btn btn-ghost btn-icon btn-sm" aria-label={`Delete ${option.name}`} disabled={busy || locked} onClick={() => setConfirming(true)}>
-            <TrashIcon />
-          </button>
-        )}
-      </div>
-      {locked && <span className="muted settings-locked">Used by the Blocked view</span>}
-    </li>
-  )
-}
-
-function ColorPicker({ value, onChange }: { value: OptionColor; onChange: (color: OptionColor) => void }) {
-  return (
-    <Dropdown
-      label={<span className={`chip-dot settings-swatch ${colorClass(value)}`} />}
-      ariaLabel={`Colour: ${value.toLowerCase()}. Change`}
-      buttonClassName="btn btn-ghost btn-icon btn-sm"
-      width={188}
-    >
-      {(close) => (
-        <div className="settings-palette">
-          {COLORS.map((color) => (
-            <button
-              key={color}
-              type="button"
-              className={`settings-color ${colorClass(color)}`}
-              aria-label={color.toLowerCase()}
-              aria-pressed={color === value}
-              onClick={() => {
-                onChange(color)
-                close()
-              }}
-            />
-          ))}
-        </div>
-      )}
-    </Dropdown>
-  )
-}
-
-function AddOptionForm({ field }: { field: SelectFieldKey }) {
-  const [name, setName] = useState('')
-  const [color, setColor] = useState<OptionColor>('GRAY')
-  const [busy, run] = useBusy()
-
-  const submit = (event: FormEvent) => {
-    event.preventDefault()
-    const text = name.trim()
-    if (!text) return
-    run(async () => {
-      if (await addOption(field, text, color)) setName('')
-    })
-  }
-
-  return (
-    <form className="settings-add" onSubmit={submit}>
-      <ColorPicker value={color} onChange={setColor} />
-      <input
-        className="input"
-        value={name}
-        maxLength={60}
-        placeholder={`New ${FIELDS[field].label.toLowerCase()} option`}
-        aria-label={`New ${FIELDS[field].label} option`}
-        onChange={(event) => setName(event.target.value)}
-      />
-      <button type="submit" className="btn btn-sm" disabled={busy || !name.trim()}>
-        <PlusIcon /> Add
-      </button>
-    </form>
   )
 }
 

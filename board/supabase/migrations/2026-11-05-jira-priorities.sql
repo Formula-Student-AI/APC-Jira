@@ -2,6 +2,8 @@
 --   * Priority uses Jira's levels: Highest, High, Medium, Low, Lowest.
 --   * The fields Size, Difficulty level, Domain, Task force, Safety related, Work package, Reviewer
 --     and Team lead are removed (subteam leads replace Team lead, see field_options.leads).
+-- Already applied to the live board; kept for reference. Re-running it is harmless: since 6 November
+-- "domain" options are each subteam's domains (they have a parent subteam), and this leaves them alone.
 -- Apply with: node scripts/apply-schema.mjs supabase/migrations/2026-11-05-jira-priorities.sql
 
 begin;
@@ -21,7 +23,8 @@ set extra = extra - array['domain', 'difficulty', 'size', 'task_force', 'safety_
 where extra ?| array['domain', 'difficulty', 'size', 'task_force', 'safety_related', 'work_package', 'reviewer', 'team_lead'];
 
 -- Options: the removed fields and the old priorities go; Jira's priorities come in.
-delete from public.field_options where field in ('domain', 'difficulty', 'size', 'task_force', 'safety_related');
+delete from public.field_options
+where field in ('domain', 'difficulty', 'size', 'task_force', 'safety_related') and parent_id is null;
 delete from public.field_options where field = 'priority' and name in ('Critical path', 'Normal', 'Stretch');
 insert into public.field_options (field, name, color, sort_order) values
   ('priority', 'Highest', 'RED', 1),
@@ -29,6 +32,6 @@ insert into public.field_options (field, name, color, sort_order) values
   ('priority', 'Medium', 'ORANGE', 3),
   ('priority', 'Low', 'BLUE', 4),
   ('priority', 'Lowest', 'BLUE', 5)
-on conflict (field, name) do nothing;
+on conflict (field, parent_id, name) do nothing;
 
 commit;

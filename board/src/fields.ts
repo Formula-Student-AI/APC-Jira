@@ -1,5 +1,6 @@
 // Field definitions: what each field is called, where it is stored and how it is edited.
-// Dropdown options themselves live in the field_options table (managed by board admins).
+// Dropdown options themselves live in the field_options table (managed by board admins; each subteam's
+// domains also by that subteam's leads).
 
 import type { Item } from './types'
 
@@ -13,13 +14,15 @@ export interface FieldDef {
   source: 'column' | 'extra'
 }
 
-export type ColumnFieldKey = 'status' | 'subteam' | 'assignees' | 'labels' | 'start_date' | 'due_date'
+export type ColumnFieldKey = 'status' | 'subteam' | 'domain' | 'assignees' | 'labels' | 'start_date' | 'due_date'
 export type CustomFieldKey = 'priority'
 export type FieldKey = ColumnFieldKey | CustomFieldKey
 
 export const FIELDS: Record<FieldKey, FieldDef> = {
   status: { key: 'status', label: 'Status', kind: 'single_select', source: 'column' },
   subteam: { key: 'subteam', label: 'Subteam', kind: 'single_select', source: 'column' },
+  // Each subteam has its own domains (field_options with field 'domain' and the subteam as parent).
+  domain: { key: 'domain', label: 'Domain', kind: 'single_select', source: 'column' },
   assignees: { key: 'assignees', label: 'Assignees', kind: 'members', source: 'column' },
   labels: { key: 'labels', label: 'Labels', kind: 'labels', source: 'column' },
   start_date: { key: 'start_date', label: 'Start date', kind: 'date', source: 'column' },
@@ -27,7 +30,7 @@ export const FIELDS: Record<FieldKey, FieldDef> = {
   priority: { key: 'priority', label: 'Priority', kind: 'single_select', source: 'extra' },
 }
 
-/** Field keys whose options come from field_options. */
+/** Fields whose options board admins manage in Board settings > Dropdown options (domains have their own tab). */
 export const SELECT_FIELDS = ['status', 'subteam', 'priority'] as const
 export type SelectFieldKey = (typeof SELECT_FIELDS)[number]
 
@@ -60,7 +63,6 @@ export function labelForChangeKey(key: string): string {
     legacy_assignees: 'Legacy assignees',
     github_url: 'GitHub link',
     github_item_id: 'GitHub item',
-    domain: 'Domain',
     difficulty: 'Difficulty level',
     size: 'Size',
     task_force: 'Task force',

@@ -484,6 +484,7 @@ export async function createItem(input: NewItem): Promise<Item | null> {
     description: '',
     status: firstStatus(),
     subteam: null,
+    domain: null,
     assignees: [],
     legacy_assignees: [],
     labels: [],
@@ -565,17 +566,23 @@ export async function deleteItem(id: string): Promise<boolean> {
 }
 
 // ---------------------------------------------------------------------------
-// Board admin: dropdown options and board admins (the database refuses these for everyone else).
-// Changes arrive back through realtime, so the options list updates for everyone.
+// Dropdown options and board admins. Board admins manage every option; a subteam's leads manage its
+// domains. The database refuses everything else. Changes arrive back through realtime, so the options
+// list updates for everyone.
 // ---------------------------------------------------------------------------
 
 export type OptionPatch = Partial<Pick<FieldOption, 'name' | 'color' | 'description' | 'sort_order' | 'leads'>>
+
+/** Options listed together: the same field (and, for domains, the same subteam). */
+function siblingsOf(field: string, parentId: string | null): FieldOption[] {
+  return get().options.filter((o) => o.field === field && (o.parent_id ?? null) === parentId)
+}
 
 /** Rename, recolour, describe or reorder an option. Renaming updates every item that uses it. */
 export async function updateOption(id: string, patch: OptionPatch): Promise<boolean> {
   const { data, error } = await supabase.from('field_options').update(patch).eq('id', id).select()
   if (error || !data?.length) {
-    pushToast('error', `Couldn't save the option: ${error?.message ?? 'only board admins can change options'}`)
+    pushToast('error', `Couldn't save the option: ${error?.message ?? "you're not allowed to change it, or it no longer exists"}`)
     return false
   }
   // Show the saved row straight away (realtime brings the same row a moment later), so a quick
@@ -584,33 +591,47 @@ export async function updateOption(id: string, patch: OptionPatch): Promise<bool
   return true
 }
 
-/** Add an option at the end of its field. */
-export async function addOption(field: string, name: string, color: FieldOption['color'] = 'GRAY'): Promise<boolean> {
-  const siblings = get().options.filter((o) => o.field === field)
+/**
+ * Add an option at the end of its field (a domain: at the end of its subteam's domains, `parentId` being
+ * the subteam option's id). Returns the saved option, or null if it couldn't be added.
+ */
+export async function addOption(
+  field: string,
+  name: string,
+  color: FieldOption['color'] = 'GRAY',
+  parentId: string | null = null,
+): Promise<FieldOption | null> {
+  const siblings = siblingsOf(field, parentId)
   const sort_order = siblings.length ? Math.max(...siblings.map((o) => o.sort_order)) + 1 : 1
-  const { error } = await supabase.from('field_options').insert({ field, name: name.trim(), color, sort_order })
-  if (error) {
-    pushToast('error', `Couldn't add "${name}": ${error.message}`)
-    return false
+  const { data, error } = await supabase
+    .from('field_options')
+    .insert({ field, name: name.trim(), color, sort_order, parent_id: parentId })
+    .select()
+    .single()
+  if (error || !data) {
+    pushToast('error', `Couldn't add "${name.trim()}": ${error?.message ?? 'unknown error'}`)
+    return null
   }
-  return true
+  putOption(data as FieldOption)
+  return data as FieldOption
 }
 
 /** Delete an option. The database refuses while items still use it. */
 export async function deleteOption(id: string): Promise<boolean> {
   const { data, error } = await supabase.from('field_options').delete().eq('id', id).select('id')
   if (error || !data?.length) {
-    pushToast('error', `Couldn't delete the option: ${error?.message ?? 'only board admins can delete options'}`)
+    pushToast('error', `Couldn't delete the option: ${error?.message ?? "you're not allowed to delete it, or it no longer exists"}`)
     return false
   }
+  set((s) => ({ options: s.options.filter((o) => o.id !== id) }))
   return true
 }
 
-/** Move an option one place up (-1) or down (+1) within its field. */
+/** Move an option one place up (-1) or down (+1) within its field (a domain: within its subteam). */
 export async function moveOption(id: string, direction: -1 | 1): Promise<void> {
   const option = get().options.find((o) => o.id === id)
   if (!option) return
-  const siblings = get().options.filter((o) => o.field === option.field)
+  const siblings = siblingsOf(option.field, option.parent_id ?? null)
   const other = siblings[siblings.findIndex((o) => o.id === id) + direction]
   if (!other) return
   const [mine, theirs] =

@@ -47,6 +47,7 @@ async function rest(method, path, { body, prefer } = {}) {
 const seed = JSON.parse(readFileSync(join(BOARD_DIR, 'supabase', 'field-options.json'), 'utf8'));
 const fields = Object.keys(seed).filter((key) => !key.startsWith('$'));
 
+// (Subteam domains are not seeded: each subteam's leads add their own in the app.)
 const existing = await rest('GET', 'field_options?select=field,name');
 const countByField = new Map();
 for (const row of existing) countByField.set(row.field, (countByField.get(row.field) ?? 0) + 1);
@@ -67,13 +68,13 @@ for (const field of fields) {
     sort_order: index + 1,
   }));
   if (have === 0) {
-    const inserted = await rest('POST', 'field_options?on_conflict=field,name', {
+    const inserted = await rest('POST', 'field_options?on_conflict=field,parent_id,name', {
       body: rows,
       prefer: 'resolution=ignore-duplicates,return=representation',
     });
     report.inserted.push(`${field}: ${inserted.map((r) => r.name).join(', ')}`);
   } else {
-    await rest('POST', 'field_options?on_conflict=field,name', {
+    await rest('POST', 'field_options?on_conflict=field,parent_id,name', {
       body: rows,
       prefer: 'resolution=merge-duplicates,return=minimal',
     });

@@ -19,7 +19,7 @@ HyPower-Bristol's BSEP plan. The board itself started empty.
 - [Setting up a copy](#setting-up-a-copy)
 - [Environment variables](#environment-variables)
 - [Deploying (GitHub Pages)](#deploying-github-pages)
-- [Subteams, subteam leads and dropdown options](#subteams-subteam-leads-and-dropdown-options)
+- [Subteams, subteam leads, domains and dropdown options](#subteams-subteam-leads-domains-and-dropdown-options)
 - [Board admins](#board-admins)
 - [How login works, and its limits](#how-login-works-and-its-limits)
 - [Re-running the seed or the GitHub export](#re-running-the-seed-or-the-github-export)
@@ -52,8 +52,11 @@ HyPower-Bristol's BSEP plan. The board itself started empty.
    drag its ends to change the start or due date.
 4. Click a card or row to open it in the side panel. Every change saves as you go ("Saved" appears
    at the top). If a save fails, the change is undone and a message explains why. The panel shows
-   the item's Status, Priority, Subteam and that subteam's lead(s), Assignees, Labels and dates.
-   Priorities are Jira's: Highest, High, Medium, Low and Lowest, each with its Jira icon.
+   the item's Status, Priority, Subteam, Domain and that subteam's lead(s), Assignees, Labels and
+   dates. Priorities are Jira's: Highest, High, Medium, Low and Lowest, each with its Jira icon.
+   **Domain** is one of the subteam's own domains (for example LV systems or Accumulator for
+   Electrical; see [Subteam domains](#subteam-domains)). A subteam's leads can add one straight from
+   the panel with the **+** next to Domain.
    **Linked tasks**, as in Jira: in the panel, **Linked tasks** > **+**, pick the link type
    (**is blocked by**, **blocks** or **relates to**), search for the task and press **Link**.
    Links are listed by type on both tasks. Loops of blocking links are refused.
@@ -90,6 +93,7 @@ HyPower-Bristol's BSEP plan. The board itself started empty.
 | `assignee:@me` | assigned to you |
 | `status:"In Progress"` | quotes for values with spaces |
 | `subteam:"Braking System"` | one subteam |
+| `domain:"LV systems"` | one domain (in any subteam that has it; add `subteam:` for one) |
 | `label:urgent` | has this label |
 | `priority:High,Highest` | High or Highest priority |
 | `lead:@me` | items in the subteams you lead (`lead:xy12345` for someone else's) |
@@ -168,7 +172,7 @@ gh api -X POST repos/<owner>/<repo>/pages -f build_type=workflow
 GitHub Pages from a **private** repository needs a paid plan, such as GitHub Pro (free with the
 GitHub Student Developer Pack). Public repositories, like this one, can use Pages on any plan.
 
-## Subteams, subteam leads and dropdown options
+## Subteams, subteam leads, domains and dropdown options
 
 The subteams are **Mechanical, Powertrain, Electrical, Braking System and Admin**, in that order.
 "Admin" is a subteam like the others. It is not the [board admin](#board-admins) permission.
@@ -177,10 +181,30 @@ The subteams are **Mechanical, Powertrain, Electrical, Braking System and Admin*
 **user menu > Board settings > Subteam leads**. Every item then shows its subteam's leads: in the
 side panel, in the Blocked table and in the subteam chip's tooltip on cards. When someone becomes
 or stops being a lead, every item of that subteam follows. `lead:@me` in the filter box shows the
-items of the subteams you lead.
+items of the subteams you lead. Leads also look after their subteam's domains (below).
 
-The three dropdowns (Status, Subteam and Priority) get their options from the `field_options`
-table. A board admin changes them in the app: **user menu > Board settings > Dropdown options**.
+### Subteam domains
+
+Each subteam has its own list of **domains**, for example LV systems, Accumulator and Software for
+Electrical. A task can have one of its subteam's domains: **Domain** in the task's panel.
+
+- **Who can change them:** the subteam's leads and the board admins. Leads use **user menu >
+  Subteam domains**; board admins use **Board settings > Domains**, which has every subteam. There
+  they can add, rename, recolour, reorder and delete domains, as for the other dropdowns below.
+- **Quick add:** in a task's panel, a lead (or board admin) can press **+** next to Domain, type a
+  name and press **Add**. The domain joins the subteam's list and is set on that task.
+- Renaming a domain updates its tasks. A domain still used by a task (archived ones count) can't be
+  deleted. Two subteams can each have a domain of the same name. A subteam can have up to 50 domains.
+- A task moved to another subteam loses its domain, unless that subteam has one with the same name.
+- Like board-admin powers, a lead's powers need a verified sign-in, or the board owner's permission
+  for username-only sign-ins (`board_settings.trust_mode_admins`).
+
+The database enforces all of this (Row Level Security and triggers in `schema.sql`), not just the app.
+
+### Dropdown options
+
+The Status, Subteam and Priority dropdowns get their options from the `field_options` table (as do
+the domains). A board admin changes them in the app: **user menu > Board settings > Dropdown options**.
 There you can:
 
 - **Add** an option. It goes at the end; move it with the arrows.
@@ -194,7 +218,7 @@ Without the app, the same can be done in Supabase > **Table Editor** > `field_op
 
 ## Board admins
 
-A board admin can choose subteam leads, manage the dropdown options, add, rename and retire members,
+A board admin can choose subteam leads, manage the dropdown options and every subteam's domains, add, rename and retire members,
 make other people board admins, and delete items permanently. Everyone else archives instead of deleting. **Board
 admin is a permission. It has nothing to do with the Admin subteam.**
 
@@ -207,12 +231,14 @@ To make someone a board admin, use any of these:
 The board always keeps at least one board admin.
 
 **Important:** with username-only login (trust mode), anyone can sign in as any username,
-including a board admin's. The setting `board_settings.trust_mode_admins` decides what happens then:
+including a board admin's or a subteam lead's. The setting `board_settings.trust_mode_admins`
+decides what happens then:
 
-- `false` (the schema's default): board-admin powers only work from a verified (email-code)
-  sign-in. In trust mode, board admins do admin work in the Supabase dashboard instead.
-- `true`: board-admin powers also work from a username-only sign-in. Only choose this if you
-  accept that anyone who signs in with an admin's username gets those powers.
+- `false` (the schema's default): board-admin powers, and subteam leads' powers over their
+  subteam's domains, only work from a verified (email-code) sign-in. In trust mode, board admins
+  do admin work in the Supabase dashboard instead.
+- `true`: those powers also work from a username-only sign-in. Only choose this if you accept
+  that anyone who signs in with an admin's or a lead's username gets their powers.
 
 Change it in the SQL Editor:
 
@@ -236,7 +262,7 @@ Limits you should know about:
   the board.
 - The history on each item (and the `activity` table) shows who changed what, and when, under the
   name each person signed in as.
-- Whether a username-only sign-in as a board admin gets board-admin powers depends on a setting (see [Board admins](#board-admins)).
+- Whether a username-only sign-in as a board admin or a subteam lead gets their powers depends on a setting (see [Board admins](#board-admins)).
 
 **Email codes (built in, switched off).** In `email_code` mode, people get a 6-digit code at
 `username@bristol.ac.uk`. Only a session that has verified that address counts as that member. To
@@ -266,7 +292,7 @@ switch it on:
 Supabase's free plan has no downloadable backups, so the board backs itself up **every 3 days**
 (04:23 UTC on the 1st, 4th, 7th, … of each month) into the **private** repository
 `Formula-Student-AI/APC-Jira-backups`. Each backup is a folder `backups/<date>/` with the items,
-their history, members, dropdown options (with subteam leads) and settings as JSON. The newest 30
+their history, members, dropdown options (with subteam leads and domains) and settings as JSON. The newest 30
 stay in the folder; older ones remain in that repository's git history.
 
 The backup logs in as `backup_reader`, a **read-only** database login defined in `schema.sql`. It
@@ -297,7 +323,9 @@ node scripts/restore-backup.mjs ../../APC-Jira-backups/backups/2026-11-05 --item
 ```
 
 A restored item keeps its number unless another item has taken it, in which case it gets a new
-one. To undo an *edit* rather than a deletion, look up the old values in the item's History or in
+one. If its domain was renamed since the backup, it gets the new name; if its subteam no longer has
+that domain, it comes back without one (the script says so). To undo an *edit* rather than a
+deletion, look up the old values in the item's History or in
 the backup's `items.json`. The `activity` table also keeps a full copy of every permanently deleted
 item.
 
@@ -353,7 +381,7 @@ From `board/`:
 
 Code layout: `src/store/` (data, live updates, login), `src/lib/` (filter, routing, dates),
 `src/views/` (the board, timeline and table views and their config), `src/panel/` (the item side
-panel), `src/layout/` (header, toasts), `src/settings/` (board settings) and `src/ui/` (shared
+panel), `src/layout/` (header, toasts), `src/settings/` (board settings, subteam domains) and `src/ui/` (shared
 pieces). Security lives in the database (`board/supabase/schema.sql`): Row Level Security and
 triggers decide who may do what and record every change.
 

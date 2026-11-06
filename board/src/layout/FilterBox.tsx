@@ -8,6 +8,7 @@ const EXAMPLES: { text: string; meaning: string }[] = [
   { text: 'assignee:@me', meaning: 'assigned to you' },
   { text: 'status:"In Progress"', meaning: 'quotes for values with spaces' },
   { text: 'subteam:"Braking System"', meaning: 'one subteam' },
+  { text: 'domain:"LV systems"', meaning: "one of a subteam's domains" },
   { text: 'label:urgent', meaning: 'has a label' },
   { text: 'priority:High,Highest', meaning: 'one or more priorities' },
   { text: 'lead:@me', meaning: 'tasks in the subteams you lead' },

@@ -11,9 +11,10 @@
 --   "email_code" mode) and links that session to a member with claim_member(). Every write is then
 --   attributed to that member by triggers, never by anything the browser sends.
 -- * Only sessions linked to a member can read or change the board.
--- * Board-admin powers (hard delete, dropdown options, members) need a verified-email session, unless
---   board_settings.trust_mode_admins is switched on. In trust mode anyone can sign in as any username,
---   so turning that on means anyone can use the admins' powers too.
+-- * Board-admin powers (hard delete, dropdown options, members), and subteam leads' powers over their
+--   subteam's domains, need a verified-email session, unless board_settings.trust_mode_admins is switched
+--   on. In trust mode anyone can sign in as any username, so turning that on means anyone can use the
+--   admins' and leads' powers too.
 -- =============================================================================
 
 begin;
@@ -36,7 +37,7 @@ create table if not exists public.board_settings (
   -- 'trust': username only. 'email_code': only sessions that verified username@bristol.ac.uk count.
   -- Keep in sync with VITE_AUTH_MODE in the app.
   auth_mode         text not null default 'trust' check (auth_mode in ('trust', 'email_code')),
-  -- Let board admins use their powers from an anonymous (username-only) session.
+  -- Let board admins (and subteam leads) use their powers from an anonymous (username-only) session.
   trust_mode_admins boolean not null default false,
   -- Safety net against mass sign-ups.
   member_limit      integer not null default 300 check (member_limit between 1 and 100000),
@@ -88,17 +89,32 @@ create table if not exists public.field_options (
               check (color in ('GRAY', 'BLUE', 'GREEN', 'YELLOW', 'ORANGE', 'RED', 'PINK', 'PURPLE')),
   description text,
   sort_order  double precision not null default 0,
-  created_at  timestamptz not null default now(),
-  unique (field, name)
+  created_at  timestamptz not null default now()
 );
 comment on table public.field_options is
-  'Dropdown options per field (status, subteam, priority). Drives board columns and dropdowns.';
-create unique index if not exists field_options_field_lower_name on public.field_options (field, lower(name));
+  'Dropdown options per field (status, subteam, priority, and each subteam''s domains). Drives board columns and dropdowns.';
 -- Subteam leads (member usernames), set by board admins. Only used on subteam options.
 alter table public.field_options add column if not exists leads text[] not null default '{}';
 alter table public.field_options drop constraint if exists field_options_leads_limit;
 alter table public.field_options add constraint field_options_leads_limit check (cardinality(leads) <= 10);
 comment on column public.field_options.leads is 'Subteam leads (usernames). Shown on every item in that subteam.';
+-- Domains: each subteam has its own list (e.g. Electrical: "LV systems", "Accumulator"), looked after by
+-- its leads. A domain option points at its subteam's option; no other option has a parent.
+alter table public.field_options add column if not exists parent_id uuid references public.field_options (id) on delete cascade;
+alter table public.field_options drop constraint if exists field_options_parent;
+alter table public.field_options add constraint field_options_parent check ((field = 'domain') = (parent_id is not null));
+comment on column public.field_options.parent_id is 'Domains only: the subteam option the domain belongs to.';
+-- Leads can write options too (their subteam's domains), so descriptions are kept short.
+alter table public.field_options drop constraint if exists field_options_description_limit;
+alter table public.field_options add constraint field_options_description_limit
+  check (description is null or char_length(description) <= 500);
+-- Names are unique within a field (within a subteam, for domains), whatever their case.
+alter table public.field_options drop constraint if exists field_options_field_name_key;
+alter table public.field_options drop constraint if exists field_options_unique_name;
+alter table public.field_options add constraint field_options_unique_name unique nulls not distinct (field, parent_id, name);
+drop index if exists public.field_options_field_lower_name;
+create unique index if not exists field_options_unique_lower_name
+  on public.field_options (field, parent_id, lower(name)) nulls not distinct;
 
 create sequence if not exists public.item_number_seq as bigint start with 1;
 
@@ -142,6 +158,10 @@ alter table public.items add column if not exists is_milestone boolean not null 
 alter table public.items add column if not exists is_phase boolean not null default false;
 alter table public.items drop constraint if exists items_one_kind;
 alter table public.items add constraint items_one_kind check (not (is_milestone and is_phase));
+-- The item's domain: one of its subteam's domains (a field_options name where field = 'domain').
+alter table public.items add column if not exists domain text;
+comment on column public.items.domain is
+  'One of the subteam''s domains. Cleared when the item moves to a subteam without a domain of that name.';
 alter table public.items drop constraint if exists items_limits;
 alter table public.items add constraint items_limits check (
   octet_length(extra::text) <= 8000
@@ -189,7 +209,9 @@ security definer
 set search_path = ''
 as $$ select coalesce((select b.auth_mode from public.board_settings b where b.id), 'trust') $$;
 
--- The member linked to the caller's session, or null. In email_code mode anonymous sessions don't count.
+-- The member linked to the caller's session, or null. An anonymous session counts only in "trust" mode.
+-- An email session counts only as the member whose address it signed in with: claim_member() checks that
+-- when linking, and this keeps it true if an anonymous session later adds an address of its own.
 create or replace function public.current_member()
 returns text
 language sql
@@ -200,11 +222,32 @@ as $$
   select s.username
   from public.member_sessions s
   where s.auth_user_id = auth.uid()
-    and (not public.session_is_anonymous() or public.board_auth_mode() = 'trust')
+    and case
+          when public.session_is_anonymous() then public.board_auth_mode() = 'trust'
+          else lower(coalesce(auth.jwt() ->> 'email', '')) = s.username || '@bristol.ac.uk'
+        end
 $$;
 
--- Board-admin powers: the member is a board admin AND the session verified their email
--- (or board_settings.trust_mode_admins allows anonymous sessions).
+-- May this session use board-admin and subteam-lead powers? Yes if the board owner allows username-only
+-- sessions to (board_settings.trust_mode_admins), or if the session confirmed the university address of
+-- the member it is linked to. (Not just "isn't anonymous": an anonymous session that claimed someone in
+-- trust mode could later add and confirm an address of its own.)
+create or replace function public.session_trusted()
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select coalesce((select b.trust_mode_admins from public.board_settings b where b.id), false)
+      or coalesce(
+           not public.session_is_anonymous()
+           and lower(coalesce(auth.jwt() ->> 'email', '')) = public.current_member() || '@bristol.ac.uk'
+           and exists (select 1 from auth.users u where u.id = auth.uid() and u.email_confirmed_at is not null),
+           false)
+$$;
+
+-- Board-admin powers: the member is an active board admin AND the session is trusted.
 create or replace function public.is_board_admin()
 returns boolean
 language sql
@@ -213,17 +256,32 @@ security definer
 set search_path = ''
 as $$
   select coalesce((
-    select m.is_board_admin
-       and m.active
-       and (not public.session_is_anonymous()
-            or coalesce((select b.trust_mode_admins from public.board_settings b where b.id), false))
+    select m.is_board_admin and m.active and public.session_trusted()
     from public.members m
     where m.username = public.current_member()
   ), false)
 $$;
 
+-- Subteam-lead powers (looking after that subteam's domains): the member is an active lead of the
+-- subteam (p_subteam is its option id) AND the session is trusted, as for board admins.
+create or replace function public.leads_subteam(p_subteam uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select coalesce((
+    select m.active and public.session_trusted()
+    from public.members m
+    join public.field_options o on o.id = p_subteam and o.field = 'subteam' and m.username = any (o.leads)
+    where m.username = public.current_member()
+  ), false)
+$$;
+
 -- Log in as a member. Links the caller's session to the member, creating the member the first time
--- (that needs a full name). Returns {status: 'ok', member, board_admin_active} or {status: 'needs_name'}.
+-- (that needs a full name). Returns {status: 'ok', member, board_admin_active, session_trusted} or
+-- {status: 'needs_name'}.
 create or replace function public.claim_member(p_username text, p_full_name text default null)
 returns jsonb
 language plpgsql
@@ -281,11 +339,13 @@ begin
   values (v_uid, v_username)
   on conflict (auth_user_id) do update set username = excluded.username, last_seen = now();
 
-  return jsonb_build_object('status', 'ok', 'member', to_jsonb(v_member), 'board_admin_active', public.is_board_admin());
+  return jsonb_build_object('status', 'ok', 'member', to_jsonb(v_member), 'board_admin_active', public.is_board_admin(),
+                            'session_trusted', public.session_trusted());
 end;
 $$;
 
--- The member linked to this session as {member, board_admin_active} (and bump last_seen), or null.
+-- The member linked to this session as {member, board_admin_active, session_trusted} (and bump
+-- last_seen), or null.
 create or replace function public.whoami()
 returns jsonb
 language plpgsql
@@ -301,7 +361,8 @@ begin
     return null;
   end if;
   update public.member_sessions set last_seen = now() where auth_user_id = auth.uid();
-  return jsonb_build_object('member', to_jsonb(v_member), 'board_admin_active', public.is_board_admin());
+  return jsonb_build_object('member', to_jsonb(v_member), 'board_admin_active', public.is_board_admin(),
+                            'session_trusted', public.session_trusted());
 end;
 $$;
 
@@ -440,6 +501,7 @@ begin
   end if;
   new.status := nullif(btrim(new.status), '');
   new.subteam := nullif(btrim(new.subteam), '');
+  new.domain := nullif(btrim(new.domain), '');
   new.blocked_reason := nullif(btrim(new.blocked_reason), '');
   new.labels := array(
     select s.label from (
@@ -494,6 +556,24 @@ begin
      and (tg_op = 'INSERT' or new.subteam is distinct from old.subteam)
      and not exists (select 1 from public.field_options o where o.field = 'subteam' and o.name = new.subteam) then
     raise exception 'Unknown Subteam: %', new.subteam using errcode = '23503';
+  end if;
+
+  -- Domain: empty, or one of the item's subteam's domains. An item moved to another subteam keeps its
+  -- domain only if that subteam has one of the same name; otherwise the domain is cleared.
+  if new.domain is not null
+     and (tg_op = 'INSERT' or new.domain is distinct from old.domain or new.subteam is distinct from old.subteam)
+     and not exists (
+       select 1
+       from public.field_options d
+       join public.field_options s on s.id = d.parent_id
+       where d.field = 'domain' and d.name = new.domain and s.field = 'subteam' and s.name = new.subteam
+     ) then
+    if tg_op = 'UPDATE' and new.domain is not distinct from old.domain then
+      new.domain := null;
+    else
+      raise exception 'Unknown domain for %: %', coalesce(new.subteam, 'an item with no subteam'), new.domain
+        using errcode = '23503';
+    end if;
   end if;
 
   -- Custom fields in extra: only Priority, as text naming one of its options. Empty values are dropped.
@@ -730,7 +810,8 @@ end;
 $$;
 
 -- -----------------------------------------------------------------------------
--- Field options: tidy names, protect Blocked, renames update items, options in use can't be deleted
+-- Field options: tidy names, protect Blocked, domains stay with their subteam, renames update items,
+-- options in use can't be deleted
 -- -----------------------------------------------------------------------------
 
 drop trigger if exists field_options_before_update on public.field_options;
@@ -764,13 +845,28 @@ begin
     end if;
   end if;
   if tg_op = 'INSERT' then
+    -- A domain belongs to a subteam.
+    if new.field = 'domain'
+       and not exists (select 1 from public.field_options s where s.id = new.parent_id and s.field = 'subteam') then
+      raise exception 'A domain must belong to a subteam' using errcode = '23503';
+    end if;
+    -- A safety net: a subteam's list of domains stays a short dropdown.
+    if new.field = 'domain'
+       and (select count(*) from public.field_options o where o.field = 'domain' and o.parent_id = new.parent_id) >= 50 then
+      raise exception 'A subteam can have at most 50 domains' using errcode = '54000';
+    end if;
+    -- New options go last (among their subteam's domains, for a domain).
     if new.sort_order is null or new.sort_order = 0 then
-      new.sort_order := coalesce((select max(o.sort_order) from public.field_options o where o.field = new.field), 0) + 1;
+      new.sort_order := coalesce((select max(o.sort_order) from public.field_options o
+                                  where o.field = new.field and o.parent_id is not distinct from new.parent_id), 0) + 1;
     end if;
     return new;
   end if;
   if new.field is distinct from old.field then
     raise exception 'An option cannot move to another field' using errcode = '22023';
+  end if;
+  if new.parent_id is distinct from old.parent_id then
+    raise exception 'A domain cannot move to another subteam' using errcode = '22023';
   end if;
   if new.name is distinct from old.name then
     if old.field = 'status' and old.name = 'Blocked' then
@@ -794,6 +890,11 @@ begin
       update public.items set status = new.name where status = old.name;
     elsif old.field = 'subteam' then
       update public.items set subteam = new.name where subteam = old.name;
+    elsif old.field = 'domain' then
+      -- Only that subteam's items: another subteam may have a domain of the same name.
+      update public.items i set domain = new.name
+      where i.domain = old.name
+        and i.subteam = (select s.name from public.field_options s where s.id = old.parent_id);
     else
       update public.items
       set extra = jsonb_set(extra, array[old.field], to_jsonb(new.name))
@@ -825,6 +926,12 @@ begin
     select count(*), count(*) filter (where archived) into v_count, v_archived from public.items where status = old.name;
   elsif old.field = 'subteam' then
     select count(*), count(*) filter (where archived) into v_count, v_archived from public.items where subteam = old.name;
+  elsif old.field = 'domain' then
+    -- (When a subteam with no items is deleted, its domains go with it: none of them can be in use.)
+    select count(*), count(*) filter (where i.archived) into v_count, v_archived
+    from public.items i
+    where i.domain = old.name
+      and i.subteam = (select s.name from public.field_options s where s.id = old.parent_id);
   else
     select count(*), count(*) filter (where archived) into v_count, v_archived
     from public.items where extra ->> old.field = old.name;
@@ -855,7 +962,8 @@ create trigger field_options_before_delete
 -- -----------------------------------------------------------------------------
 -- Row Level Security
 --   Only sessions linked to a member can read or change the board. Board-admin powers (hard delete,
---   options, members) go through is_board_admin().
+--   options, members) go through is_board_admin(). Subteam leads may also look after their subteam's
+--   domains (leads_subteam()).
 -- -----------------------------------------------------------------------------
 
 alter table public.board_settings       enable row level security;
@@ -897,19 +1005,25 @@ drop policy if exists options_read on public.field_options;
 create policy options_read on public.field_options
   for select to authenticated using ((select public.current_member()) is not null);
 
+-- Board admins manage every option; a subteam's leads manage that subteam's domains.
 drop policy if exists options_insert_by_board_admin on public.field_options;
-create policy options_insert_by_board_admin on public.field_options
-  for insert to authenticated with check ((select public.is_board_admin()));
+drop policy if exists options_insert on public.field_options;
+create policy options_insert on public.field_options
+  for insert to authenticated
+  with check ((select public.is_board_admin()) or (field = 'domain' and public.leads_subteam(parent_id)));
 
 drop policy if exists options_update_by_board_admin on public.field_options;
-create policy options_update_by_board_admin on public.field_options
+drop policy if exists options_update on public.field_options;
+create policy options_update on public.field_options
   for update to authenticated
-  using ((select public.is_board_admin()))
-  with check ((select public.is_board_admin()));
+  using ((select public.is_board_admin()) or (field = 'domain' and public.leads_subteam(parent_id)))
+  with check ((select public.is_board_admin()) or (field = 'domain' and public.leads_subteam(parent_id)));
 
 drop policy if exists options_delete_by_board_admin on public.field_options;
-create policy options_delete_by_board_admin on public.field_options
-  for delete to authenticated using ((select public.is_board_admin()));
+drop policy if exists options_delete on public.field_options;
+create policy options_delete on public.field_options
+  for delete to authenticated
+  using ((select public.is_board_admin()) or (field = 'domain' and public.leads_subteam(parent_id)));
 
 drop policy if exists items_read on public.items;
 create policy items_read on public.items
@@ -960,12 +1074,14 @@ $$;
 
 revoke execute on function
   public.username_pattern(), public.session_is_anonymous(), public.board_auth_mode(), public.current_member(),
-  public.is_board_admin(), public.claim_member(text, text), public.whoami(), public.release_member(),
+  public.session_trusted(), public.is_board_admin(), public.leads_subteam(uuid),
+  public.claim_member(text, text), public.whoami(), public.release_member(),
   public.set_my_name(text), public.patch_item_extra(uuid, jsonb), public.patch_item_list(uuid, text, text[], text[])
   from public, anon;
 grant execute on function
   public.username_pattern(), public.session_is_anonymous(), public.board_auth_mode(), public.current_member(),
-  public.is_board_admin(), public.claim_member(text, text), public.whoami(), public.release_member(),
+  public.session_trusted(), public.is_board_admin(), public.leads_subteam(uuid),
+  public.claim_member(text, text), public.whoami(), public.release_member(),
   public.set_my_name(text), public.patch_item_extra(uuid, jsonb), public.patch_item_list(uuid, text, text[], text[])
   to authenticated;
 

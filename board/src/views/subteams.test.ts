@@ -12,6 +12,7 @@ const option = (name: string, sort_order: number): FieldOption => ({
   color: 'GRAY',
   description: null,
   sort_order,
+  parent_id: null,
   leads: [],
   created_at: '',
 })

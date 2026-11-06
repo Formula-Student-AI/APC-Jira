@@ -1,7 +1,7 @@
 // React hooks over the stores. Selectors return stable references (no new arrays per render).
 import { useMemo } from 'react'
 import { combineFilters, matchesFilter, parseFilter } from '../lib/filter'
-import { optionsFor, subteamLeads } from '../lib/options'
+import { canManageDomains, domainsOf, optionsFor, subteamLeads } from '../lib/options'
 import { byPosition } from '../lib/position'
 import type { FieldOption, Item, Member } from '../types'
 import { useAuth } from './auth'
@@ -31,6 +31,30 @@ export function useFieldOptions(field: string): FieldOption[] {
 export function useSubteamLeads(subteam: string | null | undefined): string[] {
   const options = useBoard((s) => s.options)
   return useMemo(() => subteamLeads(options, subteam), [options, subteam])
+}
+
+/** A subteam's domains in order (none when there's no subteam). */
+export function useDomains(subteam: string | null | undefined): FieldOption[] {
+  const options = useBoard((s) => s.options)
+  return useMemo(() => domainsOf(options, subteam), [options, subteam])
+}
+
+/** The subteams whose domains you may manage: every one for a board admin, otherwise the ones you lead. */
+export function useDomainSubteams(): FieldOption[] {
+  const subteams = useFieldOptions('subteam')
+  const me = useAuth((s) => s.member)
+  const adminActive = useAuth((s) => s.adminActive)
+  const sessionTrusted = useAuth((s) => s.sessionTrusted)
+  return useMemo(
+    () => subteams.filter((subteam) => canManageDomains(subteam, me, { adminActive, sessionTrusted })),
+    [subteams, me, adminActive, sessionTrusted],
+  )
+}
+
+/** May you add domains to this subteam (and rename, reorder or delete them)? */
+export function useCanManageDomains(subteam: string | null | undefined): boolean {
+  const managed = useDomainSubteams()
+  return !!subteam && managed.some((option) => option.name === subteam)
 }
 
 /** Members sorted by full name. Retired members are left out unless `includeRetired`. */
