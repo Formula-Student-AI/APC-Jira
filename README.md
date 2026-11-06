@@ -73,6 +73,16 @@ HyPower-Bristol's BSEP plan. The board itself started empty.
    Timeline press **Phase**, give it a name, a start and an end date. Its dates are shaded across
    the whole Timeline with its name at the top, and it has a bar in its row you can drag or resize.
    In an item's panel, **Type** switches between Task, Milestone and Phase. `is:phase` lists them.
+   **Subtasks** (the steps of a bigger task, as in Jira): in the task's panel press **+** next to
+   **Subtasks**, type a step and press Enter. The box stays open for the next step. Each subtask is a
+   task of its own (status, assignees, dates), starting in the parent's subteam and domain; tick its
+   box when it's done. The parent shows a progress bar, cards show "2/5" on the parent and the parent's
+   number on each subtask. On the Timeline a subtask sits indented under its parent when both are in
+   the same list (the same subteam with dates, or both under No dates); elsewhere it shows "↳ #12",
+   its parent's number. Steps stay in the order they were added. To make an
+   existing task a subtask, move one to another task, or make one a separate task again, use the
+   **⋯** menu in its panel. One level only: a subtask can't have subtasks, and milestones and phases
+   can't be subtasks.
    **Images** (Attachments in the panel): add them with **+**, drop them on the section, or paste
    one anywhere in the open item. They are shrunk in your browser first (longest side 1600 px, about
    0.2-0.4 MB for a phone photo) and shown as thumbnails; click one to see it full size, download
@@ -101,6 +111,7 @@ HyPower-Bristol's BSEP plan. The board itself started empty.
 | `status:Todo,Blocked` | a comma means *either* |
 | `no:assignee` / `has:label` | field is empty / not empty |
 | `is:blocked` / `is:archived` | blocked items / archived items |
+| `is:subtask` / `parent:12` | subtasks / the subtasks of #12 (`-is:subtask` hides subtasks) |
 
 The filter is part of the address (`?q=…`), so you can share a filtered view as a link.
 
@@ -212,7 +223,9 @@ There you can:
 - **Recolour** or **reorder** options. The order is the order of board columns.
 - **Delete** an option, but only while no item uses it (archived items count too).
 
-The **Blocked** status can't be renamed or deleted, because the Blocked view depends on it.
+The **Blocked** and **Done** statuses can't be renamed or deleted (they can be recoloured and
+moved): the Blocked view depends on Blocked, and Done marks finished tasks (ticked subtasks, and
+due dates that no longer count as overdue).
 
 Without the app, the same can be done in Supabase > **Table Editor** > `field_options`.
 
@@ -324,7 +337,9 @@ node scripts/restore-backup.mjs ../../APC-Jira-backups/backups/2026-11-05 --item
 
 A restored item keeps its number unless another item has taken it, in which case it gets a new
 one. If its domain was renamed since the backup, it gets the new name; if its subteam no longer has
-that domain, it comes back without one (the script says so). To undo an *edit* rather than a
+that domain, it comes back without one (the script says so). A subtask whose parent task is gone
+comes back as a separate task. A deleted parent's subtasks stay on the board as separate tasks, and
+restoring the parent doesn't put them back under it: use **⋯ > Make a subtask of…** on each. To undo an *edit* rather than a
 deletion, look up the old values in the item's History or in
 the backup's `items.json`. The `activity` table also keeps a full copy of every permanently deleted
 item.

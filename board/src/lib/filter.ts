@@ -9,7 +9,8 @@
 //   status:Todo,"In Progress"  comma = any of these
 //   -status:Done               leading minus = not
 //   no:assignee  has:label     field is empty / not empty
-//   is:blocked  is:milestone  is:phase  is:archived    archived items are hidden unless the filter says is:archived
+//   is:blocked  is:milestone  is:phase  is:subtask  is:archived    archived items are hidden unless the filter says is:archived
+//   parent:12                  the subtasks of item 12 (no:parent / has:parent: not / only subtasks)
 //
 // Qualifiers and free text are ANDed together. Matching is case-insensitive.
 
@@ -23,8 +24,8 @@ export interface TextTerm {
   negate: boolean
 }
 
-/** A field key (see fields.ts), 'lead' (the item's subteam leads), or 'no' / 'has' / 'is' */
-export type QualifierKey = FieldKey | 'lead' | 'no' | 'has' | 'is'
+/** A field key (see fields.ts), 'lead' (the item's subteam leads), 'parent' (a subtask's parent), or 'no' / 'has' / 'is' */
+export type QualifierKey = FieldKey | 'lead' | 'parent' | 'no' | 'has' | 'is'
 
 export interface Qualifier {
   kind: 'qualifier'
@@ -41,6 +42,8 @@ export interface FilterContext {
   members: Record<string, Member>
   /** Dropdown options; the subteam options carry the subteam leads used by lead: */
   options?: FieldOption[]
+  /** All items by id, for parent: (a subtask stores its parent's id; the filter names its number) */
+  items?: Record<string, Item>
 }
 
 const KEY_ALIASES: Record<string, QualifierKey> = {
@@ -65,6 +68,7 @@ const KEY_ALIASES: Record<string, QualifierKey> = {
   leads: 'lead',
   team_lead: 'lead',
   subteam_lead: 'lead',
+  parent: 'parent',
   no: 'no',
   has: 'has',
   is: 'is',
@@ -179,6 +183,7 @@ function qualifierMatches(item: Item, q: Qualifier, ctx: FilterContext): boolean
       if (s === 'archived') return item.archived
       if (s === 'milestone' || s === 'milestones') return item.is_milestone
       if (s === 'phase' || s === 'phases') return item.is_phase
+      if (s === 'subtask' || s === 'subtasks') return !!item.parent_id
       if (s === 'open' || s === 'active') return !item.archived
       return false
     })
@@ -187,7 +192,8 @@ function qualifierMatches(item: Item, q: Qualifier, ctx: FilterContext): boolean
     return q.values.some((v) => {
       const key = normalizeKey(v)
       if (!key || key === 'no' || key === 'has' || key === 'is') return false
-      const value = key === 'lead' ? subteamLeads(ctx.options ?? [], item.subteam) : fieldRaw(item, key)
+      const value =
+        key === 'lead' ? subteamLeads(ctx.options ?? [], item.subteam) : key === 'parent' ? item.parent_id : fieldRaw(item, key)
       const empty = isEmptyValue(value)
       return q.key === 'no' ? empty : !empty
     })
@@ -195,6 +201,10 @@ function qualifierMatches(item: Item, q: Qualifier, ctx: FilterContext): boolean
   if (q.key === 'lead') {
     const leads = subteamLeads(ctx.options ?? [], item.subteam)
     return q.values.some((v) => leads.some((u) => memberMatches(u, v, ctx)))
+  }
+  if (q.key === 'parent') {
+    const parent = item.parent_id ? ctx.items?.[item.parent_id] : undefined
+    return !!parent && q.values.some((v) => String(parent.number) === v.replace(/^#/, ''))
   }
 
   const def = FIELDS[q.key]
@@ -253,7 +263,7 @@ export function defaultsFromFilter(
     if (token.kind !== 'qualifier' || token.negate || token.values.length !== 1) continue
     const value = token.values[0]
     const key = token.key
-    if (key === 'no' || key === 'has' || key === 'is' || key === 'lead') continue
+    if (key === 'no' || key === 'has' || key === 'is' || key === 'lead' || key === 'parent') continue
     if (key === 'status' || key === 'subteam') {
       const name = canonicalOption(ctx.options, key, value)
       if (name) out[key] = name

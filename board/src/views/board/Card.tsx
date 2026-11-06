@@ -1,14 +1,16 @@
 // A Jira-style card: number and priority, title, subteam (its leads in the tooltip), labels, dates and assignees.
+// A subtask shows its parent above the title; a task with subtasks shows how many are done.
 // SortableCard is the draggable card on the board; CardBody is also shown in the drag overlay.
 
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { CalendarIcon, PaperclipIcon } from '@primer/octicons-react'
+import { CalendarIcon, PaperclipIcon, TasklistIcon } from '@primer/octicons-react'
 import { memo, type KeyboardEvent } from 'react'
 import { isBlocked } from '../../fields'
 import { useToday } from '../../lib/clock'
 import { formatDayRange, isOverdue } from '../../lib/format'
 import { subteamLeads } from '../../lib/options'
+import { progressOf, subtasksOf } from '../../lib/subtasks'
 import { openItem } from '../../lib/router'
 import { useBoard } from '../../store/board'
 import type { Item } from '../../types'
@@ -71,6 +73,15 @@ export function CardBody({ item, overlay = false }: CardProps & { overlay?: bool
       .join(', '),
   )
   const attachments = useBoard((s) => s.attachments[item.id]?.length ?? 0)
+  // Strings, so the card only re-renders when what it shows changes.
+  const parent = useBoard((s) => {
+    const found = item.parent_id ? s.items[item.parent_id] : undefined
+    return found ? `#${found.number} ${found.title}` : ''
+  })
+  const subtasks = useBoard((s) => {
+    const { done, total } = progressOf(subtasksOf(s.items, item.id))
+    return total ? `${done}/${total}` : ''
+  })
   const dates = formatDayRange(item.start_date, item.due_date)
   const overdue = isOverdue(item.due_date, item.status, today)
   const hasChips = !!item.subteam || item.labels.length > 0
@@ -86,6 +97,13 @@ export function CardBody({ item, overlay = false }: CardProps & { overlay?: bool
         </span>
         {isBlocked(item) && <BlockedBadge reason={item.blocked_reason} />}
       </div>
+      {parent && (
+        <p className="bcard-parent" title={`Subtask of ${parent}`}>
+          <span aria-hidden="true">↳ </span>
+          <span className="sr-only">Subtask of </span>
+          {parent}
+        </p>
+      )}
       <p className="bcard-title">{item.title}</p>
       {hasChips && (
         <div className="bcard-chips">
@@ -101,13 +119,19 @@ export function CardBody({ item, overlay = false }: CardProps & { overlay?: bool
           ))}
         </div>
       )}
-      {(dates || item.assignees.length > 0 || attachments > 0) && (
+      {(dates || item.assignees.length > 0 || attachments > 0 || subtasks) && (
         <div className="bcard-footer">
           <span className="bcard-meta">
             {dates && (
               <span className={cx('bcard-dates', overdue && 'bcard-overdue')} title={overdue ? 'Overdue' : 'Dates'}>
                 <CalendarIcon size={12} />
                 {dates}
+              </span>
+            )}
+            {subtasks && (
+              <span className="bcard-subtasks" title={`Subtasks done: ${subtasks}`}>
+                <TasklistIcon size={12} />
+                {subtasks}
               </span>
             )}
             {attachments > 0 && (

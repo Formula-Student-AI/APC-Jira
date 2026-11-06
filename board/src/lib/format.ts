@@ -1,4 +1,5 @@
 import { differenceInCalendarDays, format, formatDistanceToNowStrict, isValid, parseISO } from 'date-fns'
+import { DONE_STATUS } from '../fields'
 
 /** "Test Alpha" -> "TA", "Sam" -> "SA" */
 export function initials(name: string): string {
@@ -39,7 +40,7 @@ export function formatDayRange(start: string | null, due: string | null): string
 export function isOverdue(due: string | null, status: string, today: string): boolean {
   const dueDate = parseDay(due)
   const todayDate = parseDay(today)
-  if (!dueDate || !todayDate || status === 'Done') return false
+  if (!dueDate || !todayDate || status === DONE_STATUS) return false
   return differenceInCalendarDays(dueDate, todayDate) < 0
 }
 

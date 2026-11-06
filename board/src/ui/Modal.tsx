@@ -24,6 +24,9 @@ export function Modal({ title, onClose, children, footer, width = 480 }: ModalPr
     const dialog = ref.current
     if (!dialog) return
     if (!dialog.open) dialog.showModal()
+    // React's autoFocus runs before the dialog opens, when nothing in it can take focus; showModal() then
+    // focuses the first button (Close). So the box to type in is marked data-autofocus and focused here.
+    dialog.querySelector<HTMLElement>('[data-autofocus]')?.focus()
     const onCancel = (event: Event) => {
       event.preventDefault()
       onCloseRef.current()

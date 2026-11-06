@@ -61,6 +61,8 @@ export interface Item {
   is_milestone: boolean
   /** A period (start to due date), shaded across the whole Timeline. Never also a milestone. */
   is_phase: boolean
+  /** Subtasks: the id of the item this one is a step of. One level only, and only tasks are subtasks. */
+  parent_id: string | null
   extra: ItemExtra
   /** Order within a board column (ascending) */
   position: number
@@ -91,6 +93,7 @@ export type ItemPatch = Partial<
     | 'related_to'
     | 'is_milestone'
     | 'is_phase'
+    | 'parent_id'
     | 'extra'
     | 'position'
     | 'archived'

@@ -3,6 +3,7 @@ import { useMemo } from 'react'
 import { combineFilters, matchesFilter, parseFilter } from '../lib/filter'
 import { canManageDomains, domainsOf, optionsFor, subteamLeads } from '../lib/options'
 import { byPosition } from '../lib/position'
+import { subtasksOf } from '../lib/subtasks'
 import type { FieldOption, Item, Member } from '../types'
 import { useAuth } from './auth'
 import { useBoard, type SaveState } from './board'
@@ -69,6 +70,15 @@ export function useMembersList(includeRetired = false): Member[] {
   )
 }
 
+export function useItemById(id: string | null | undefined): Item | null {
+  return useBoard((s) => (id ? (s.items[id] ?? null) : null))
+}
+
+/** An item's subtasks (archived ones included), in the order added. */
+export function useSubtasks(itemId: string): readonly Item[] {
+  return useBoard((s) => subtasksOf(s.items, itemId))
+}
+
 export function useItemByNumber(number: number | null): Item | null {
   const items = useBoard((s) => s.items)
   return useMemo(() => (number ? (Object.values(items).find((i) => i.number === number) ?? null) : null), [items, number])
@@ -89,7 +99,7 @@ export function useViewItems(viewFilter: string, query: string): Item[] {
   const me = useAuth((s) => s.member?.username ?? null)
   return useMemo(() => {
     const tokens = parseFilter(combineFilters(viewFilter, query))
-    const ctx = { me, members, options }
+    const ctx = { me, members, options, items }
     return Object.values(items)
       .filter((item) => matchesFilter(item, tokens, ctx))
       .sort(byPosition)

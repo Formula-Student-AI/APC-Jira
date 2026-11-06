@@ -7,9 +7,10 @@
 //     members        usernames that are gone (with their name, board-admin and active flags)
 //     field_options  options that are gone (matched by id, or by field + name; a domain by its subteam's
 //                    name + its name), with subteam leads. A domain joins the live subteam of that name.
-//     items          tasks that are gone, with their old number (or a new one if it is taken). A task
-//                    whose domain was renamed since gets its new name; one whose domain no longer
-//                    exists comes back without it.
+//     items          tasks that are gone, with their old number (or a new one if it is taken), parents
+//                    before their subtasks. A task whose domain was renamed since gets its new name; one
+//                    whose domain no longer exists comes back without it, and a subtask whose parent
+//                    task is gone comes back as a separate task.
 //     activity       history, only for tasks that have no history at all (after a total loss;
 //                    a deleted task keeps its history, so it is not needed then)
 //   --items 12,15    only those tasks (and their history if it is missing). Nothing else.
@@ -181,6 +182,8 @@ items = items.map((i) => {
   notes.push(`#${i.number} ${i.title}: its domain "${i.domain}" is called "${now.name}" now, so it gets that`);
   return { ...i, domain: now.name };
 });
+// Parent tasks before their subtasks (a subtask points at its parent, so the parent must be there first).
+items = items.sort((a, b) => Number(!!a.parent_id) - Number(!!b.parent_id));
 // A taken number means another task has it now: the restored task gets the next free number instead.
 const renumbered = items.filter((i) => liveNumbers.has(i.number));
 items = items.map((i) => (liveNumbers.has(i.number) ? { ...i, number: null } : i));
@@ -234,42 +237,51 @@ if (!members.length && !options.length && !items.length && !activity.length) {
 
 async function restore() {
   let failures = 0;
-  // `fallback(row, error)` may offer a changed row to try once more: { row, note }.
+  // `fallback(row, error)` may offer a changed row to try again (twice at most): { row, note }.
   const insertEach = async (table, rows, label, fallback) => {
     let added = 0;
-    for (const row of rows) {
-      try {
-        await rest('POST', table, { body: row, prefer: 'return=minimal' });
-        added++;
-      } catch (error) {
-        let problem = error;
-        const retry = fallback?.(row, error);
-        if (retry) {
-          try {
-            await rest('POST', table, { body: retry.row, prefer: 'return=minimal' });
-            added++;
-            console.log(`  ${label(row)}: ${retry.note}`);
-            continue;
-          } catch (second) {
-            problem = second;
+    for (const original of rows) {
+      let row = original;
+      const changes = [];
+      for (let attempt = 0; ; attempt++) {
+        try {
+          await rest('POST', table, { body: row, prefer: 'return=minimal' });
+          added++;
+          for (const note of changes) console.log(`  ${label(original)}: ${note}`);
+          break;
+        } catch (error) {
+          const retry = attempt < 2 ? fallback?.(row, error) : null;
+          if (!retry) {
+            failures++;
+            console.log(`  Couldn't add ${label(original)}: ${error.message}`);
+            break;
           }
+          row = retry.row;
+          changes.push(retry.note);
         }
-        failures++;
-        console.log(`  Couldn't add ${label(row)}: ${problem.message}`);
       }
     }
     console.log(`Added ${added} of ${rows.length} ${table}.`);
   };
 
-  // A task whose domain is gone (deleted, or its subteam has none of that name) comes back without it.
-  const withoutDomain = (item, error) =>
-    item.domain && /Unknown domain/.test(error.message)
-      ? { row: { ...item, domain: null }, note: `added without its domain "${item.domain}", which ${item.subteam ?? 'its subteam'} no longer has` }
-      : null;
+  // A task comes back without what no longer fits, rather than not at all: a domain its subteam no
+  // longer has, or a parent task that is gone (or has become a subtask itself).
+  const itemFallback = (item, error) => {
+    if (item.domain && /Unknown domain/.test(error.message)) {
+      return {
+        row: { ...item, domain: null },
+        note: `added without its domain "${item.domain}", which ${item.subteam ?? 'its subteam'} no longer has`,
+      };
+    }
+    if (item.parent_id && /items_parent_id_fkey|subtasks of its own|at most 100 subtasks/.test(error.message)) {
+      return { row: { ...item, parent_id: null }, note: "added as a separate task: it can't go back under its parent task" };
+    }
+    return null;
+  };
 
   await insertEach('members', members, (m) => `member ${m.username}`);
   await insertEach('field_options', options, optionLabel);
-  await insertEach('items', items, (i) => `task "${i.title}"`, withoutDomain);
+  await insertEach('items', items, (i) => `task "${i.title}"`, itemFallback);
   let historyAdded = 0;
   for (let start = 0; start < activity.length; start += 500) {
     const batch = activity.slice(start, start + 500);

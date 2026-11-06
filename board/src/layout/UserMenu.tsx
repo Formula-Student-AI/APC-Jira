@@ -164,6 +164,7 @@ function EditNameDialog({ current, onClose }: { current: string; onClose: () => 
           id={inputId}
           className="input"
           autoFocus
+          data-autofocus
           maxLength={100}
           value={name}
           autoComplete="name"

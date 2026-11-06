@@ -252,6 +252,7 @@ const TYPES: { id: ItemType; label: string; hint: string }[] = [
 /** Task, milestone (a key date) or phase (a period). Milestones and phases stand out on the Timeline. */
 function TypeRow({ item }: { item: Item }) {
   const current: ItemType = item.is_phase ? 'phase' : item.is_milestone ? 'milestone' : 'task'
+  const subtask = !!item.parent_id
   const pick = (type: ItemType) => {
     if (type !== current) void updateItem(item.id, { is_milestone: type === 'milestone', is_phase: type === 'phase' }, 'the type')
   }
@@ -264,7 +265,8 @@ function TypeRow({ item }: { item: Item }) {
             type="button"
             className="ip-type-option"
             aria-pressed={current === type.id}
-            title={type.hint}
+            disabled={subtask && type.id !== 'task'}
+            title={subtask && type.id !== 'task' ? 'A subtask is always a task' : type.hint}
             onClick={() => pick(type.id)}
           >
             {type.id === 'milestone' && <MilestoneIcon size={11} label="" />}
@@ -274,6 +276,7 @@ function TypeRow({ item }: { item: Item }) {
         ))}
       </div>
       {current !== 'task' && <p className="ip-type-hint">{TYPES.find((type) => type.id === current)?.hint}</p>}
+      {subtask && <p className="ip-type-hint">A subtask is always a task. To change that, make it a separate task first (⋯ menu).</p>}
     </Row>
   )
 }

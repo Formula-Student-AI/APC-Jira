@@ -870,3 +870,122 @@
   margin: 0;
   font-size: 12px;
 }
+
+/* ------------------------------------------------------------ subtasks */
+
+/* A subtask's parent, before its number in the header (Jira's breadcrumb). */
+.ip-crumb {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+  max-width: 45%;
+  padding: 2px 6px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.ip-crumb:hover {
+  background: var(--btn-bg-hover);
+  color: var(--text);
+}
+.ip-crumb-number {
+  flex: none;
+  color: var(--text-subtle);
+  font-family: var(--mono);
+  font-size: 12px;
+}
+.ip-crumb-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ip-crumb-sep {
+  color: var(--text-subtle);
+}
+
+.ip-subtasks-count {
+  margin-right: auto;
+  color: var(--text-subtle);
+  font-size: 12px;
+}
+.ip-subtasks-bar {
+  height: 6px;
+  margin-bottom: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--btn-bg-hover);
+}
+.ip-subtasks-bar span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--success);
+  transition: width 200ms ease;
+}
+.ip-subtasks {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ip-subtask {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  padding: 2px 8px 2px 12px;
+  border: 1px solid var(--border-muted);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  transition: background-color 120ms ease;
+}
+.ip-subtask:hover {
+  background: var(--surface-2);
+}
+.ip-subtask-check {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--success);
+  cursor: pointer;
+}
+.ip-subtask-check:disabled {
+  cursor: default;
+}
+.ip-subtask-done .ip-link-title {
+  color: var(--text-muted);
+  text-decoration: line-through;
+}
+.ip-subtasks-archived {
+  margin-top: 8px;
+  font-size: 12px;
+}
+/* Type a step, Enter, type the next. */
+.ip-subtask-form {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+}
+.ip-subtask-form .input {
+  flex: 1;
+  min-width: 0;
+}
+/* "Make a subtask of…": a search like the link form's. */
+.ip-parentpick {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.ip-parentpick-note {
+  margin: 0;
+  font-size: 13px;
+}

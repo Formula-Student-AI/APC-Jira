@@ -495,6 +495,7 @@ export async function createItem(input: NewItem): Promise<Item | null> {
     related_to: [],
     is_milestone: false,
     is_phase: false,
+    parent_id: null,
     extra: {},
     position: Date.now() / 1000,
     archived: false,
@@ -528,6 +529,16 @@ export async function createItem(input: NewItem): Promise<Item | null> {
   applyServerItem(data as Item, true)
   endSave(id, true)
   return data as Item
+}
+
+/** Add a subtask (a step) under `parent`, in the parent's subteam and domain. It goes last in its list. */
+export function addSubtask(parent: Item, title: string): Promise<Item | null> {
+  return createItem({ title, parent_id: parent.id, subteam: parent.subteam, domain: parent.domain })
+}
+
+/** Make `item` a subtask of `parent`, move it to another parent, or (null) make it a separate task again. */
+export function setParent(item: Item, parent: Item | null): Promise<boolean> {
+  return updateItem(item.id, { parent_id: parent?.id ?? null }, parent ? 'the parent task' : 'making it a separate task')
 }
 
 export function archiveItem(id: string): Promise<boolean> {

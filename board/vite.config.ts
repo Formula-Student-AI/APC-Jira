@@ -11,8 +11,8 @@ export default defineConfig({
   base: process.env.BASE_PATH ?? '/',
   plugins: [react()],
   build: {
-    // The main chunk is ~190 kB gzipped (mostly supabase-js and React); markdown is split out.
-    chunkSizeWarningLimit: 700,
+    // The main chunk is ~205 kB gzipped (mostly supabase-js and React); markdown is split out.
+    chunkSizeWarningLimit: 800,
   },
   test: {
     include: ['src/**/*.test.ts'],

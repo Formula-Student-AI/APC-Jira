@@ -301,3 +301,20 @@
     padding-right: 12px;
   }
 }
+
+/* A subtask: its parent, above the title. A task with subtasks: how many are done. */
+.bcard-parent {
+  margin: 0 0 2px;
+  overflow: hidden;
+  color: var(--text-subtle);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.bcard-subtasks {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--text-subtle);
+  font-size: 12px;
+}

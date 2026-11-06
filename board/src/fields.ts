@@ -35,6 +35,8 @@ export const SELECT_FIELDS = ['status', 'subteam', 'priority'] as const
 export type SelectFieldKey = (typeof SELECT_FIELDS)[number]
 
 export const BLOCKED_STATUS = 'Blocked'
+/** The status that means finished: not overdue, and a ticked subtask. */
+export const DONE_STATUS = 'Done'
 
 /** Read any field's value from an item (custom fields come from item.extra). */
 export function fieldValue(item: Item, key: FieldKey): string | string[] | null {
@@ -59,6 +61,7 @@ export function labelForChangeKey(key: string): string {
     related_to: 'Relates to',
     is_milestone: 'Milestone',
     is_phase: 'Phase',
+    parent_id: 'Parent',
     archived: 'Archived',
     legacy_assignees: 'Legacy assignees',
     github_url: 'GitHub link',

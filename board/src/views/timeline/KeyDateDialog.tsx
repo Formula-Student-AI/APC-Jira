@@ -92,6 +92,7 @@ export function KeyDateDialog({ kind, subteam, onClose }: KeyDateDialogProps) {
             id={ids.title}
             className="input"
             autoFocus
+            data-autofocus
             maxLength={300}
             value={title}
             placeholder={text.placeholder}

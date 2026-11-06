@@ -3,7 +3,7 @@
 
 import { ArrowDownIcon, ArrowUpIcon, PlusIcon, TrashIcon } from '@primer/octicons-react'
 import { useState, type FormEvent } from 'react'
-import { BLOCKED_STATUS } from '../fields'
+import { BLOCKED_STATUS, DONE_STATUS } from '../fields'
 import { colorClass } from '../lib/options'
 import { addOption, deleteOption, moveOption, updateOption } from '../store/board'
 import type { FieldOption, OptionColor } from '../types'
@@ -17,7 +17,8 @@ export function OptionRow({ option, first, last }: { option: FieldOption; first:
   const [name, setName] = useState(option.name)
   const [confirming, setConfirming] = useState(false)
   const [busy, run] = useBusy()
-  const locked = option.field === 'status' && option.name === BLOCKED_STATUS
+  // The board relies on these two statuses by name (the database refuses renaming or deleting them too).
+  const locked = option.field === 'status' && (option.name === BLOCKED_STATUS || option.name === DONE_STATUS)
 
   const commitName = () => {
     const next = name.trim()
@@ -65,7 +66,11 @@ export function OptionRow({ option, first, last }: { option: FieldOption; first:
           </button>
         )}
       </div>
-      {locked && <span className="muted settings-locked">Used by the Blocked view</span>}
+      {locked && (
+        <span className="muted settings-locked">
+          {option.name === BLOCKED_STATUS ? 'Used by the Blocked view' : 'Marks finished tasks (subtask ticks, due dates)'}
+        </span>
+      )}
     </li>
   )
 }

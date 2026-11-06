@@ -21,6 +21,7 @@ function item(overrides: Partial<Item> = {}): Item {
     related_to: [],
     is_milestone: false,
     is_phase: false,
+    parent_id: null,
     extra: { priority: 'High' },
     position: 1,
     archived: false,

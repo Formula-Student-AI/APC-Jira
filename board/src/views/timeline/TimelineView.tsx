@@ -427,6 +427,7 @@ interface GroupRowsProps {
 }
 
 function GroupRows({ group, collapsed, onToggle, range, px, linking }: GroupRowsProps) {
+  const shown = new Set(group.items.map((item) => item.id))
   return (
     <section className="tl-section" aria-label={group.name}>
       <div className="tl-group">
@@ -446,7 +447,7 @@ function GroupRows({ group, collapsed, onToggle, range, px, linking }: GroupRows
               className={`tl-row${linking.target === item.number ? ' tl-row-link-target' : ''}`}
               data-item-number={item.number || undefined}
             >
-              <RowLabel item={item} />
+              <RowLabel item={item} nested={!!item.parent_id && shown.has(item.parent_id)} />
               <div className="tl-track">{bar && <TimelineBar item={item} bar={bar} range={range} px={px} linking={linking} />}</div>
             </div>
           )
@@ -455,17 +456,32 @@ function GroupRows({ group, collapsed, onToggle, range, px, linking }: GroupRows
   )
 }
 
-function RowLabel({ item }: { item: Item }) {
+/**
+ * A row's label. A subtask shown just under its parent (`nested`) is indented; one shown elsewhere (its
+ * parent is in another subteam, undated, or filtered out) names its parent instead.
+ */
+function RowLabel({ item, nested }: { item: Item; nested: boolean }) {
+  const parentNumber = useBoard((s) => (item.parent_id && !nested ? (s.items[item.parent_id]?.number ?? null) : null))
   return (
     <button
       type="button"
-      className="tl-label"
+      className={`tl-label${nested ? ' tl-label-sub' : ''}`}
       disabled={item.number === 0}
       onClick={() => openItem(item.number)}
-      title={`#${item.number} ${item.title}`}
+      title={`#${item.number} ${item.title}${item.parent_id ? ' (a subtask)' : ''}`}
     >
+      {nested && (
+        <span className="tl-label-submark" aria-hidden="true">
+          ↳
+        </span>
+      )}
       <span className="tl-label-number">{item.number ? `#${item.number}` : '#…'}</span>
       <span className="tl-label-title">{item.title}</span>
+      {parentNumber !== null && (
+        <span className="tl-label-parent" title={`Subtask of #${parentNumber}`}>
+          ↳ #{parentNumber}
+        </span>
+      )}
       <AvatarStack usernames={item.assignees} max={2} size={18} />
     </button>
   )
@@ -628,6 +644,7 @@ interface UndatedRowsProps {
 
 function UndatedRows({ items, collapsed, onToggle, today, linkTarget }: UndatedRowsProps) {
   if (items.length === 0) return null
+  const shown = new Set(items.map((item) => item.id))
   const addDates = (item: Item) => {
     const start = parseDay(today)
     if (!start) return
@@ -649,7 +666,7 @@ function UndatedRows({ items, collapsed, onToggle, today, linkTarget }: UndatedR
             className={`tl-row tl-row-undated${linkTarget === item.number ? ' tl-row-link-target' : ''}`}
             data-item-number={item.number || undefined}
           >
-            <RowLabel item={item} />
+            <RowLabel item={item} nested={!!item.parent_id && shown.has(item.parent_id)} />
             <div className="tl-track">
               <button type="button" className="btn btn-sm tl-adddates" disabled={item.number === 0} onClick={() => addDates(item)}>
                 <CalendarIcon size={14} />

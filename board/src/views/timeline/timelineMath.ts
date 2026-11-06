@@ -14,6 +14,7 @@ import {
 } from 'date-fns'
 import { parseDay, toDay } from '../../lib/format'
 import { byPosition } from '../../lib/position'
+import { withSubtasksUnderParents } from '../../lib/subtasks'
 import type { FieldOption, Item } from '../../types'
 
 export type Zoom = 'month' | 'quarter' | 'year'
@@ -144,8 +145,10 @@ export function groupForTimeline(items: Item[], subteams: FieldOption[]): { grou
   const firstDay = (item: Item) => item.start_date ?? item.due_date ?? ''
   for (const group of [...groups, none]) {
     group.items.sort((a, b) => firstDay(a).localeCompare(firstDay(b)) || byPosition(a, b))
+    // Subtasks go just under their parent when it is in the same group.
+    group.items = withSubtasksUnderParents(group.items)
   }
-  return { groups: none.items.length ? [...groups, none] : groups, undated }
+  return { groups: none.items.length ? [...groups, none] : groups, undated: withSubtasksUnderParents(undated) }
 }
 
 // ------------------------------------------------------------------------------------------ links

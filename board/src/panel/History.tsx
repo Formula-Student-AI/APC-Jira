@@ -11,6 +11,7 @@ import { useMinuteTick } from './useMinuteTick'
 export function History({ item }: { item: Item }) {
   const entries = useBoard((s) => s.activity[item.id])
   const members = useBoard((s) => s.members)
+  const items = useBoard((s) => s.items)
   useMinuteTick()
 
   useEffect(() => {
@@ -22,15 +23,21 @@ export function History({ item }: { item: Item }) {
   return (
     <ol className="ip-history">
       {entries.map((entry) => (
-        <HistoryEntry key={entry.id} entry={entry} members={members} />
+        <HistoryEntry key={entry.id} entry={entry} members={members} items={items} />
       ))}
     </ol>
   )
 }
 
-function HistoryEntry({ entry, members }: { entry: Activity; members: Record<string, Member> }) {
+interface HistoryEntryProps {
+  entry: Activity
+  members: Record<string, Member>
+  items: Record<string, Item>
+}
+
+function HistoryEntry({ entry, members, items }: HistoryEntryProps) {
   const who = entry.username ? (members[entry.username]?.full_name ?? entry.username) : 'A script'
-  const lines = describeActivity(entry, members)
+  const lines = describeActivity(entry, members, items)
   return (
     <li className="ip-history-entry">
       {entry.username ? (

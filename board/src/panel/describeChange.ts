@@ -2,7 +2,7 @@
 
 import { labelForChangeKey } from '../fields'
 import { formatDay } from '../lib/format'
-import type { Activity, Member } from '../types'
+import type { Activity, Item, Member } from '../types'
 
 const MAX = 60
 
@@ -42,11 +42,20 @@ function asList(value: unknown): unknown[] {
   return Array.isArray(value) ? value : []
 }
 
-/** One line per change, e.g. "changed Status from Todo to In Progress". */
-export function describeActivity(entry: Activity, members: Record<string, Member>): string[] {
+/** "#12", or "a deleted task" for an id that no longer exists. */
+function taskRef(items: Record<string, Item>, id: unknown): string {
+  const item = typeof id === 'string' ? items[id] : undefined
+  return item ? `#${item.number}` : 'a deleted task'
+}
+
+/**
+ * One line per change, e.g. "changed Status from Todo to In Progress". `items` (by id) names a
+ * subtask's parent by its number.
+ */
+export function describeActivity(entry: Activity, members: Record<string, Member>, items: Record<string, Item> = {}): string[] {
   switch (entry.action) {
     case 'created':
-      return ['created this item']
+      return [entry.changes.parent_id?.new ? `created this item as a subtask of ${taskRef(items, entry.changes.parent_id.new)}` : 'created this item']
     case 'archived':
       return ['archived this item']
     case 'restored':
@@ -69,6 +78,10 @@ export function describeActivity(entry: Activity, members: Record<string, Member
       lines.push(change.new ? 'made this a milestone' : 'stopped this being a milestone')
     } else if (key === 'is_phase') {
       lines.push(change.new ? 'made this a phase' : 'stopped this being a phase')
+    } else if (key === 'parent_id') {
+      if (change.new && change.old) lines.push(`moved this from ${taskRef(items, change.old)} to ${taskRef(items, change.new)}`)
+      else if (change.new) lines.push(`made this a subtask of ${taskRef(items, change.new)}`)
+      else lines.push(`made this a separate task (it was a subtask of ${taskRef(items, change.old)})`)
     } else if (key === 'attachments') {
       lines.push(change.new ? `added the image “${short(String(change.new))}”` : `removed the image “${short(String(change.old ?? ''))}”`)
     } else if (key === 'blocked_reason') {

@@ -4,18 +4,22 @@
 import {
   ArchiveIcon,
   CheckIcon,
+  IssueTrackedByIcon,
   KebabHorizontalIcon,
   LinkIcon,
   MarkGithubIcon,
+  TasklistIcon,
   TrashIcon,
   UndoIcon,
+  UnlinkIcon,
   XIcon,
 } from '@primer/octicons-react'
 import { useRef, useState } from 'react'
-import { closeItem } from '../lib/router'
+import { closeItem, openItem } from '../lib/router'
 import { timeAgo, formatDateTime } from '../lib/format'
-import { archiveItem, deleteItem, pushToast, restoreItem, useBoard } from '../store/board'
-import { useIsBoardAdmin, useItemByNumber, useSaveState } from '../store/hooks'
+import { subtaskProblem } from '../lib/subtasks'
+import { archiveItem, deleteItem, pushToast, restoreItem, setParent, useBoard } from '../store/board'
+import { useIsBoardAdmin, useItemById, useItemByNumber, useSaveState } from '../store/hooks'
 import type { Item } from '../types'
 import { Dropdown } from '../ui/Dropdown'
 import { Modal } from '../ui/Modal'
@@ -26,7 +30,9 @@ import { History } from './History'
 import { LinkedTasks } from './LinkedTasks'
 import { MarkdownEditor } from './MarkdownEditor'
 import { PanelFields } from './PanelFields'
+import { ParentPicker } from './ParentPicker'
 import { saveTitle } from './saves'
+import { Subtasks } from './Subtasks'
 import { useAutoGrow } from './useAutoGrow'
 import { useDraft } from './useDebouncedSave'
 import { useMinuteTick } from './useMinuteTick'
@@ -63,6 +69,7 @@ function PanelContent({ item }: { item: Item }) {
   return (
     <>
       <header className="ip-header">
+        <ParentCrumb item={item} />
         <span className="ip-number">#{item.number || '…'}</span>
         {item.archived && <span className="badge ip-archived">Archived</span>}
         <SaveIndicator itemId={item.id} />
@@ -88,6 +95,7 @@ function PanelContent({ item }: { item: Item }) {
           <h3 className="ip-section-title">Description</h3>
           <MarkdownEditor item={item} />
         </section>
+        <Subtasks item={item} />
         <Attachments item={item} />
         <LinkedTasks item={item} />
         <section className="ip-section">
@@ -96,6 +104,28 @@ function PanelContent({ item }: { item: Item }) {
         </section>
         <MetaLine item={item} />
       </div>
+    </>
+  )
+}
+
+/** A subtask's parent, before its number (as in Jira's breadcrumb): click to open the parent. */
+function ParentCrumb({ item }: { item: Item }) {
+  const parent = useItemById(item.parent_id)
+  if (!parent) return null
+  return (
+    <>
+      <button
+        type="button"
+        className="ip-crumb"
+        title={`Subtask of #${parent.number} ${parent.title}. Open it`}
+        onClick={() => openItem(parent.number)}
+      >
+        <span className="ip-crumb-number">#{parent.number}</span>
+        <span className="ip-crumb-title">{parent.title}</span>
+      </button>
+      <span className="ip-crumb-sep" aria-hidden="true">
+        /
+      </span>
     </>
   )
 }
@@ -140,6 +170,9 @@ function SaveIndicator({ itemId }: { itemId: string }) {
 function PanelMenu({ item }: { item: Item }) {
   const isAdmin = useIsBoardAdmin()
   const [confirming, setConfirming] = useState(false)
+  const [choosingParent, setChoosingParent] = useState(false)
+  // A task can become a subtask unless it is a milestone or phase, or has subtasks itself.
+  const canBeSubtask = useBoard((s) => item.number > 0 && subtaskProblem(item, s.items) === null)
   const githubUrl = item.github_url?.startsWith('https://github.com/') ? item.github_url : null
 
   const copyLink = async () => {
@@ -170,6 +203,22 @@ function PanelMenu({ item }: { item: Item }) {
                 <MarkGithubIcon /> Open on GitHub
               </a>
             )}
+            {item.parent_id ? (
+              <>
+                <button type="button" className="menu-item" onClick={() => { close(); setChoosingParent(true) }}>
+                  <IssueTrackedByIcon /> Move to another task…
+                </button>
+                <button type="button" className="menu-item" onClick={() => { void setParent(item, null); close() }}>
+                  <UnlinkIcon /> Make a separate task
+                </button>
+              </>
+            ) : (
+              canBeSubtask && (
+                <button type="button" className="menu-item" onClick={() => { close(); setChoosingParent(true) }}>
+                  <TasklistIcon /> Make a subtask of…
+                </button>
+              )
+            )}
             {item.archived ? (
               <button type="button" className="menu-item" onClick={() => { void restoreItem(item.id); close() }}>
                 <UndoIcon /> Restore
@@ -190,6 +239,7 @@ function PanelMenu({ item }: { item: Item }) {
           </div>
         )}
       </Dropdown>
+      {choosingParent && <ParentPicker item={item} onClose={() => setChoosingParent(false)} />}
       {confirming && (
         <Modal
           title={`Delete #${item.number}?`}

@@ -6,7 +6,7 @@ import { DIAMOND_R, GROUP_H, linkPath, linkX, milestoneMarkers, phaseBands, ROW_
 function item(number: number, start: string | null, due: string | null, blocked_by: number[] = []): Item {
   return {
     id: `id-${number}`, number, title: `Item ${number}`, description: '', status: 'Todo', subteam: 'A', domain: null, assignees: [],
-    legacy_assignees: [], labels: [], start_date: start, due_date: due, blocked_reason: null, blocked_by, related_to: [], is_milestone: false, is_phase: false, extra: {},
+    legacy_assignees: [], labels: [], start_date: start, due_date: due, blocked_reason: null, blocked_by, related_to: [], is_milestone: false, is_phase: false, parent_id: null, extra: {},
     position: number, archived: false, github_item_id: null, github_url: null, created_by: null, updated_by: null,
     created_at: '', updated_at: '',
   }

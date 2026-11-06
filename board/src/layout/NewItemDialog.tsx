@@ -77,6 +77,7 @@ export function NewItemDialog({ route, view, onClose }: { route: Route; view: Vi
             id={titleId}
             className="input"
             autoFocus
+            data-autofocus
             maxLength={300}
             value={title}
             placeholder="What needs doing?"

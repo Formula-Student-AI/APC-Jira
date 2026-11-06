@@ -16,6 +16,7 @@ const EXAMPLES: { text: string; meaning: string }[] = [
   { text: 'status:Todo,Blocked', meaning: 'a comma means "either"' },
   { text: 'no:assignee', meaning: 'empty field (has: for not empty)' },
   { text: 'is:milestone', meaning: 'milestones only (is:phase for phases)' },
+  { text: '-is:subtask', meaning: 'hide subtasks (parent:12 for the subtasks of #12)' },
   { text: 'is:archived', meaning: 'show archived items' },
 ]
 

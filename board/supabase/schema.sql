@@ -162,6 +162,17 @@ alter table public.items add constraint items_one_kind check (not (is_milestone 
 alter table public.items add column if not exists domain text;
 comment on column public.items.domain is
   'One of the subteam''s domains. Cleared when the item moves to a subteam without a domain of that name.';
+-- Subtasks (Jira's sub-tasks): an item can be a step of another item, its parent. One level only: a
+-- subtask has no subtasks of its own, and only tasks (not milestones or phases) are subtasks. Deleting a
+-- parent (board admins only) keeps its subtasks, as separate tasks.
+alter table public.items add column if not exists parent_id uuid references public.items (id) on delete set null;
+alter table public.items drop constraint if exists items_parent_not_self;
+alter table public.items add constraint items_parent_not_self check (parent_id is distinct from id);
+alter table public.items drop constraint if exists items_subtask_is_task;
+alter table public.items add constraint items_subtask_is_task check (parent_id is null or not (is_milestone or is_phase));
+create index if not exists items_parent_idx on public.items (parent_id) where parent_id is not null;
+comment on column public.items.parent_id is
+  'Subtasks: the item this one is a step of. One level only: a parent is never itself a subtask.';
 alter table public.items drop constraint if exists items_limits;
 alter table public.items add constraint items_limits check (
   octet_length(extra::text) <= 8000
@@ -576,6 +587,22 @@ begin
     end if;
   end if;
 
+  -- Subtasks: one level only (the parent isn't a subtask, and a subtask has no subtasks). Checked under a
+  -- lock, so two items can't become each other's parent at the same moment.
+  if new.parent_id is not null and (tg_op = 'INSERT' or new.parent_id is distinct from old.parent_id) then
+    perform pg_advisory_xact_lock(hashtext('fsai-board: item parents'));
+    if exists (select 1 from public.items p where p.id = new.parent_id and p.parent_id is not null) then
+      raise exception 'A subtask can''t have subtasks of its own' using errcode = '23514';
+    end if;
+    -- (Also on INSERT: in a multi-row insert, a subtask may come before its parent in the same statement.)
+    if exists (select 1 from public.items c where c.parent_id = new.id) then
+      raise exception 'This task has subtasks, so it can''t be a subtask itself' using errcode = '23514';
+    end if;
+    if (select count(*) from public.items c where c.parent_id = new.parent_id and c.id <> new.id) >= 100 then
+      raise exception 'A task can have at most 100 subtasks' using errcode = '54000';
+    end if;
+  end if;
+
   -- Custom fields in extra: only Priority, as text naming one of its options. Empty values are dropped.
   for v_key, v_value in select e.key, e.value from jsonb_each(new.extra) e loop
     if v_key <> all (array['priority']) then
@@ -872,6 +899,10 @@ begin
     if old.field = 'status' and old.name = 'Blocked' then
       raise exception 'The Blocked status is used by the Blocked view and cannot be renamed' using errcode = '23514';
     end if;
+    if old.field = 'status' and old.name = 'Done' then
+      raise exception 'The Done status marks finished tasks (ticked subtasks, due dates) and cannot be renamed'
+        using errcode = '23514';
+    end if;
     -- Wait for item edits in progress, and hold new ones, so no item is left on the old name.
     lock table public.items in share row exclusive mode;
   end if;
@@ -916,6 +947,10 @@ declare
 begin
   if old.field = 'status' and old.name = 'Blocked' then
     raise exception 'The Blocked status is used by the Blocked view and cannot be deleted' using errcode = '23514';
+  end if;
+  if old.field = 'status' and old.name = 'Done' then
+    raise exception 'The Done status marks finished tasks (ticked subtasks, due dates) and cannot be deleted'
+      using errcode = '23514';
   end if;
   if old.field = 'status'
      and not exists (select 1 from public.field_options o where o.field = 'status' and o.id <> old.id) then
