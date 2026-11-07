@@ -11,7 +11,7 @@ import { useBoard } from '../../store/board'
 import { useSubteamLeads, useViewItems } from '../../store/hooks'
 import type { Item, Member } from '../../types'
 import { AvatarStack } from '../../ui/Avatar'
-import { OptionChip } from '../../ui/OptionChip'
+import { DomainChip, OptionChip } from '../../ui/OptionChip'
 import { PriorityIcon } from '../../ui/PriorityIcon'
 import type { TableViewConfig } from '../config'
 import { columnsWidth, countText, firstName, formatCellDay, isBlockedView, tableColumns, type TableColumn } from './columns'
@@ -214,11 +214,7 @@ function TableCell({ item, column, members, today }: TableCellProps) {
     case 'members':
       return <PeopleCell usernames={list} members={members} />
     case 'single_select':
-      return (
-        <td>
-          <OptionChip field={key} name={text} />
-        </td>
-      )
+      return <td>{key === 'domain' ? <DomainChip subteam={item.subteam} name={text} /> : <OptionChip field={key} name={text} />}</td>
     case 'labels':
       return (
         <td title={list.join(', ')}>

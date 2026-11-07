@@ -1,13 +1,15 @@
 // Debounced saving for fields people type into.
 //
 // Whatever is waiting to be saved always gets saved in the end: when the field is left (commit),
-// and when the component unmounts (the panel closes or shows another item).
+// when the component unmounts (the panel closes or shows another item), and when the page is hidden.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 export interface Debounced<T> {
   /** Run the function with `value` once nothing new has been scheduled for `delay` ms. */
   schedule: (value: T) => void
+  /** Keep `value` waiting with no timer: it runs on flush (and on unmount). */
+  hold: (value: T) => void
   /** Run what is waiting now, if anything. */
   flush: () => void
   /** Forget what is waiting. */
@@ -45,10 +47,31 @@ export function useDebounced<T>(fn: (value: T) => void, delay: number): Debounce
     [delay, flush],
   )
 
+  const hold = useCallback(
+    (value: T) => {
+      cancel()
+      pendingRef.current = { value }
+    },
+    [cancel],
+  )
+
   // Save what is still waiting when the component goes away.
   useEffect(() => flush, [flush])
 
-  return useMemo(() => ({ schedule, flush, cancel }), [schedule, flush, cancel])
+  // ...and when the page is hidden or closed. (A closing page may not finish the save.)
+  useEffect(() => {
+    const onHide = () => {
+      if (document.visibilityState === 'hidden') flush()
+    }
+    document.addEventListener('visibilitychange', onHide)
+    window.addEventListener('pagehide', flush)
+    return () => {
+      document.removeEventListener('visibilitychange', onHide)
+      window.removeEventListener('pagehide', flush)
+    }
+  }, [flush])
+
+  return useMemo(() => ({ schedule, hold, flush, cancel }), [schedule, hold, flush, cancel])
 }
 
 export interface Draft {

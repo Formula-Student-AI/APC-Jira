@@ -169,6 +169,8 @@
 
 /* Cards: white on the column's grey, lifted by a soft shadow instead of a border (as in Jira). */
 .bcard {
+  /* Holds the card's screen-reader-only labels; without it they'd sit far out in the board's own box. */
+  position: relative;
   border-radius: var(--radius-md);
   background: var(--surface);
   box-shadow: var(--shadow-card);
@@ -244,6 +246,10 @@
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
+}
+/* Text-only pills: as block boxes, a name too long for the card ends in "…" (a flex box just cuts it). */
+.bcard-chips .chip {
+  display: block;
 }
 
 .bcard-footer {

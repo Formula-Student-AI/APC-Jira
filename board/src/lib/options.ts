@@ -73,10 +73,14 @@ export function canManageDomains(
 
 const DOMAIN_COLORS: OptionColor[] = ['BLUE', 'GREEN', 'PURPLE', 'ORANGE', 'PINK', 'YELLOW', 'RED', 'GRAY']
 
-/** A colour for a subteam's next domain: the first one its domains don't use yet. */
-export function nextDomainColor(domains: FieldOption[]): OptionColor {
+/**
+ * A colour for a subteam's next domain: the first one its domains don't use yet. Never the subteam's own
+ * colour, since a card shows its domain's tag right beside its subteam's.
+ */
+export function nextDomainColor(domains: FieldOption[], subteamColor: OptionColor): OptionColor {
   const used = new Set(domains.map((d) => d.color))
-  return DOMAIN_COLORS.find((color) => !used.has(color)) ?? DOMAIN_COLORS[domains.length % DOMAIN_COLORS.length]
+  const colors = DOMAIN_COLORS.filter((color) => color !== subteamColor)
+  return colors.find((color) => !used.has(color)) ?? colors[domains.length % colors.length]
 }
 
 /** CSS class that sets --opt-fg / --opt-bg / --opt-border / --opt-solid for a colour (see global.css). */

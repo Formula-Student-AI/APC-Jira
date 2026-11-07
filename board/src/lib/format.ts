@@ -16,6 +16,14 @@ export function parseDay(value: string | null | undefined): Date | null {
   return isValid(date) ? date : null
 }
 
+/**
+ * A whole date from a date box: 'YYYY-MM-DD', from 1900 on. While a year is being typed the box
+ * reports values such as "0002-11-05" and "0020-11-05" on the way, which aren't whole yet.
+ */
+export function isWholeDay(value: string): boolean {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value) && Number(value.slice(0, 4)) >= 1900
+}
+
 /** Date -> 'YYYY-MM-DD' */
 export function toDay(date: Date): string {
   return format(date, 'yyyy-MM-dd')

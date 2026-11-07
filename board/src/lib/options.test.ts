@@ -71,10 +71,21 @@ describe('canManageDomains', () => {
 
 describe('nextDomainColor', () => {
   it('picks the first colour not used yet, then cycles', () => {
-    expect(nextDomainColor([])).toBe('BLUE')
-    expect(nextDomainColor(domainsOf(options, 'Electrical'))).toBe('GREEN')
+    expect(nextDomainColor([], 'GRAY')).toBe('BLUE')
+    expect(nextDomainColor(domainsOf(options, 'Electrical'), 'GRAY')).toBe('GREEN')
     const all: OptionColor[] = ['BLUE', 'GREEN', 'PURPLE', 'ORANGE', 'PINK', 'YELLOW', 'RED', 'GRAY']
     const full = all.map((color, i) => option(`c${i}`, 'domain', `D${i}`, { color, parent_id: 'elec' }))
-    expect(nextDomainColor(full)).toBe('BLUE')
+    expect(nextDomainColor(full, 'GRAY')).toBe('GREEN')
+  })
+
+  it("never picks the subteam's own colour, so the two tags on a card look different", () => {
+    expect(nextDomainColor([], 'BLUE')).toBe('GREEN')
+    const all: OptionColor[] = ['BLUE', 'GREEN', 'PURPLE', 'ORANGE', 'PINK', 'YELLOW', 'RED', 'GRAY']
+    for (let count = 0; count <= 20; count++) {
+      const domains = Array.from({ length: count }, (_, i) =>
+        option(`c${i}`, 'domain', `D${i}`, { color: all[i % all.length], parent_id: 'mech' }),
+      )
+      expect(nextDomainColor(domains, 'BLUE')).not.toBe('BLUE')
+    }
   })
 })

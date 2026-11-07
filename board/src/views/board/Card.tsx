@@ -1,4 +1,5 @@
-// A Jira-style card: number and priority, title, subteam (its leads in the tooltip), labels, dates and assignees.
+// A Jira-style card: number and priority, title, subteam (its leads in the tooltip), domain, labels, dates and
+// assignees.
 // A subtask shows its parent above the title; a task with subtasks shows how many are done.
 // SortableCard is the draggable card on the board; CardBody is also shown in the drag overlay.
 
@@ -16,7 +17,7 @@ import { useBoard } from '../../store/board'
 import type { Item } from '../../types'
 import { AvatarStack } from '../../ui/Avatar'
 import { BlockedBadge } from '../../ui/BlockedBadge'
-import { OptionChip } from '../../ui/OptionChip'
+import { DomainChip, OptionChip } from '../../ui/OptionChip'
 import { MilestoneIcon } from '../../ui/MilestoneIcon'
 import { PhaseIcon } from '../../ui/PhaseIcon'
 import { PriorityIcon } from '../../ui/PriorityIcon'
@@ -84,7 +85,7 @@ export function CardBody({ item, overlay = false }: CardProps & { overlay?: bool
   })
   const dates = formatDayRange(item.start_date, item.due_date)
   const overdue = isOverdue(item.due_date, item.status, today)
-  const hasChips = !!item.subteam || item.labels.length > 0
+  const hasChips = !!item.subteam || !!item.domain || item.labels.length > 0
 
   return (
     <div className={cx('bcard-body', overlay && 'bcard-overlay')}>
@@ -110,10 +111,13 @@ export function CardBody({ item, overlay = false }: CardProps & { overlay?: bool
           <OptionChip
             field="subteam"
             name={item.subteam}
+            label="Subteam"
             title={leads ? `Subteam: ${item.subteam} · Lead: ${leads}` : `Subteam: ${item.subteam}`}
           />
+          <DomainChip subteam={item.subteam} name={item.domain} />
           {item.labels.map((label) => (
             <span key={label} className="chip chip-plain" title={`Label: ${label}`}>
+              <span className="sr-only">Label: </span>
               {label}
             </span>
           ))}

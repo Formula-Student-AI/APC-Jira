@@ -91,7 +91,7 @@ export function DomainsEditor() {
         field="domain"
         parentId={subteam.id}
         noun={`${subteam.name} domain`}
-        defaultColor={nextDomainColor(domains)}
+        defaultColor={nextDomainColor(domains, subteam.color)}
       />
     </div>
   )

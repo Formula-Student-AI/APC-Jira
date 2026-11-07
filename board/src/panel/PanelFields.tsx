@@ -2,23 +2,49 @@
 // Labels and dates.
 
 import { PlusIcon, XIcon } from '@primer/octicons-react'
-import { useId, useState, type FormEvent, type ReactNode } from 'react'
+import {
+  useEffect,
+  useEffectEvent,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type FormEvent,
+  type ReactNode,
+  type RefObject,
+} from 'react'
 import { FIELDS, type SelectFieldKey } from '../fields'
 import { colorClass, nextDomainColor, subteamChange, subteamOption } from '../lib/options'
 import { addOption, updateExtraField, updateItem, useBoard } from '../store/board'
 import { useCanManageDomains, useDomains, useFieldOptions, useSubteamLeads } from '../store/hooks'
 import type { FieldOption, Item } from '../types'
 import { Avatar } from '../ui/Avatar'
+import { DateBox } from '../ui/DateBox'
 import { Dropdown } from '../ui/Dropdown'
 import { MilestoneIcon } from '../ui/MilestoneIcon'
 import { OptionDot } from '../ui/OptionChip'
 import { PhaseIcon } from '../ui/PhaseIcon'
 import { PriorityIcon } from '../ui/PriorityIcon'
-import { datesOutOfOrder, datesWhat, dropUnfinished, isWholeDayOrEmpty, planDateChange, shownDate, type DateDrafts, type DateKey } from './dates'
+import {
+  datesBlocked,
+  datesWhat,
+  HALF_TYPED,
+  isFilledIn,
+  isTyped,
+  leftBox,
+  planDates,
+  readDateBox,
+  shownDate,
+  waitsForLeave,
+  type DateDraft,
+  type DateDrafts,
+  type DateKey,
+} from './dates'
 import { closeMenu } from './dom'
 import { LabelsEditor } from './LabelsEditor'
 import { AssigneesPicker } from './MemberPicker'
 import { memberName } from './members'
+import { useDebounced } from './useDebouncedSave'
 
 export function PanelFields({ item }: { item: Item }) {
   return (
@@ -207,7 +233,7 @@ function AddDomainForm({ item, subteam, domains, onDone }: AddDomainFormProps) {
     // A domain that already has this name (in any case) is picked rather than added twice.
     const existing = domains.find((domain) => domain.name.toLowerCase() === text.toLowerCase())
     setBusy(true)
-    const domain = existing ?? (await addOption('domain', text, nextDomainColor(domains), parent.id))
+    const domain = existing ?? (await addOption('domain', text, nextDomainColor(domains, parent.color), parent.id))
     setBusy(false)
     if (!domain) return
     if (domain.name !== item.domain) void updateItem(item.id, { domain: domain.name }, 'the domain')
@@ -281,40 +307,72 @@ function TypeRow({ item }: { item: Item }) {
   )
 }
 
-/** Start and due dates: saved when both are whole dates in the right order. */
+/**
+ * Start and due dates: saved when both are whole dates in the right order. Typed dates are saved when
+ * the box is left, on Enter or when the panel closes; picked ones after a short pause (see dates.ts).
+ */
 function DateRows({ item }: { item: Item }) {
   const [drafts, setDrafts] = useState<DateDrafts>({})
+  const startBox = useRef<HTMLInputElement>(null)
+  const dueBox = useRef<HTMLInputElement>(null)
   const start = shownDate(item, drafts, 'start_date')
   const due = shownDate(item, drafts, 'due_date')
-  const outOfOrder = datesOutOfOrder(start, due)
+  const blocked = datesBlocked(item, drafts)
 
-  const change = (key: DateKey, raw: string) => {
-    const plan = planDateChange(item, drafts, key, isWholeDayOrEmpty(raw) ? raw : null)
+  const save = (next: DateDrafts) => {
+    const plan = planDates(item, next)
     setDrafts(plan.drafts)
     if (plan.patch) void updateItem(item.id, plan.patch, datesWhat(plan.patch))
   }
+  // Whatever is waiting is also saved when the panel closes or shows another item.
+  const later = useDebounced(save, 800)
+  const saveNow = (next: DateDrafts) => {
+    later.cancel()
+    save(next)
+  }
+
+  const change = (key: DateKey, box: DateDraft, typed: boolean) => {
+    const next = { ...drafts, [key]: box }
+    setDrafts(next)
+    if (waitsForLeave(box, typed)) later.hold(next)
+    else later.schedule(next)
+  }
+
+  // A date held back because it was after the other one is saved once the order is put right
+  // elsewhere (the Timeline, or someone else), unless a box is being typed in. Only when the saved
+  // dates change: while someone types, the browser may briefly report no box as focused.
+  const { start_date: savedStart, due_date: savedDue } = item
+  const replan = useEffectEvent(() => {
+    const focused = document.activeElement
+    const typing = !!focused && (focused === startBox.current || focused === dueBox.current)
+    if (!typing && planDates({ start_date: savedStart, due_date: savedDue }, drafts).patch) later.schedule(drafts)
+  })
+  useEffect(() => replan(), [savedStart, savedDue])
+
+  const boxProps = (key: DateKey) => ({
+    invalid: blocked,
+    onChange: (box: DateDraft, typed: boolean) => change(key, box, typed),
+    // Hold the box from the first typed key, so a live change from someone else can't replace what's
+    // being typed: the box may report nothing yet (a new date, or a part Firefox is still holding).
+    onTyping: (box: DateDraft) => {
+      if (!drafts[key]) change(key, box, true)
+    },
+    onEnter: (box: DateDraft) => {
+      if (box.done) saveNow({ ...drafts, [key]: box })
+    },
+    onLeave: (box: DateDraft) => saveNow(leftBox(drafts, key, box)),
+    onClear: () => saveNow({ ...drafts, [key]: { value: '', done: true } }),
+  })
 
   return (
     <>
       <Row label="Start date">
-        <DateInput
-          label="Start date"
-          value={start}
-          invalid={outOfOrder}
-          onChange={(value) => change('start_date', value)}
-          onBlur={() => setDrafts((current) => dropUnfinished(current, 'start_date'))}
-        />
+        <DateInput label="Start date" value={start} boxRef={startBox} {...boxProps('start_date')} />
       </Row>
       <Row label="Due date">
-        <DateInput
-          label="Due date"
-          value={due}
-          invalid={outOfOrder}
-          onChange={(value) => change('due_date', value)}
-          onBlur={() => setDrafts((current) => dropUnfinished(current, 'due_date'))}
-        />
+        <DateInput label="Due date" value={due} boxRef={dueBox} {...boxProps('due_date')} />
       </Row>
-      {outOfOrder && (
+      {blocked && (
         <p className="field-error ip-field-wide" role="alert">
           The start date must be on or before the due date. Nothing is saved until it is.
         </p>
@@ -325,26 +383,104 @@ function DateRows({ item }: { item: Item }) {
 
 interface DateInputProps {
   label: string
+  /** Exactly what the box holds while someone types (see dates.ts), otherwise the saved date */
   value: string
+  boxRef: RefObject<HTMLInputElement | null>
   invalid: boolean
-  onChange: (value: string) => void
-  onBlur: () => void
+  /** What the box holds after a change, and whether it was typed */
+  onChange: (box: DateDraft, typed: boolean) => void
+  /** A key is being typed into the box: what it holds so far (never saved as it is) */
+  onTyping: (box: DateDraft) => void
+  onEnter: (box: DateDraft) => void
+  /** What the box holds as it's left, or as it's removed while focused */
+  onLeave: (box: DateDraft) => void
+  onClear: () => void
 }
 
-function DateInput({ label, value, invalid, onChange, onBlur }: DateInputProps) {
+function DateInput(props: DateInputProps) {
+  const { label, value, boxRef, invalid, onChange, onTyping, onEnter, onLeave, onClear } = props
+  // The key down, if any. Read in the capture phase: Firefox changes the box before a key bubbles.
+  const keyDown = useRef<string | null>(null)
+  // A digit typed that the box hasn't reported yet (see isTyped).
+  const pendingDigit = useRef<string | null>(null)
+  // The box has been half-typed, or holds a date the browser filled in by itself (see isFilledIn).
+  const halfTyped = useRef(false)
+  const filledIn = useRef(false)
+  const read = (box: HTMLInputElement) => (filledIn.current ? HALF_TYPED : readDateBox(box))
+  const forget = () => {
+    keyDown.current = pendingDigit.current = null
+    halfTyped.current = filledIn.current = false
+  }
+
+  // React sends no blur when the box is removed while focused (browser Back, say), so read it then.
+  const leaveRemoved = useRef(() => {})
+  useLayoutEffect(() => {
+    leaveRemoved.current = () => {
+      const box = boxRef.current
+      if (box && box === document.activeElement) onLeave(read(box))
+    }
+  })
+  useLayoutEffect(() => () => leaveRemoved.current(), [])
+
   return (
     <div className="ip-date">
-      <input
-        type="date"
+      <DateBox
+        boxRef={boxRef}
         className="input"
         value={value}
         aria-label={label}
         aria-invalid={invalid || undefined}
-        onChange={(event) => onChange(event.target.value)}
-        onBlur={onBlur}
+        onKeyDownCapture={(event) => {
+          keyDown.current = event.key
+          if (isTyped(event.key, null)) pendingDigit.current = event.key
+          if (event.key === 'Enter') onEnter(read(event.currentTarget))
+        }}
+        onKeyUpCapture={(event) => {
+          keyDown.current = null
+          const box = readDateBox(event.currentTarget)
+          if (!box.done) {
+            halfTyped.current = true
+            onTyping(box)
+          } else if (isTyped(event.key, null)) {
+            // Firefox still shows the old date while it holds a part's first digit.
+            onTyping({ value: box.value, done: false })
+          }
+        }}
+        onChange={(event) => {
+          const el = event.currentTarget
+          const box = readDateBox(el)
+          const key = keyDown.current
+          const typed = isTyped(key, pendingDigit.current)
+          pendingDigit.current = null
+          const focused = el === document.activeElement && document.hasFocus()
+          filledIn.current = !typed && isFilledIn(halfTyped.current, box, key, focused)
+          halfTyped.current = !box.done || filledIn.current
+          onChange(filledIn.current ? { ...box, done: false } : box, typed)
+        }}
+        onBlur={(event) => {
+          const el = event.currentTarget
+          keyDown.current = null
+          // The window lost focus, not the box: keep what's typed for when the person comes back.
+          if (el === document.activeElement) return
+          const box = read(el)
+          forget()
+          // Clear the parts of a half-typed box; React then puts the saved date back, if there is one.
+          if (!box.done) el.value = ''
+          onLeave(box)
+        }}
       />
       {value && (
-        <button type="button" className="btn btn-ghost btn-icon btn-sm" aria-label={`Clear ${label}`} onClick={() => onChange('')}>
+        <button
+          type="button"
+          className="btn btn-ghost btn-icon btn-sm"
+          aria-label={`Clear ${label}`}
+          // Focus stays in the box, so a date being typed isn't saved just before it's cleared.
+          onMouseDown={(event) => event.preventDefault()}
+          onClick={() => {
+            forget()
+            onClear()
+          }}
+        >
           <XIcon size={14} />
         </button>
       )}

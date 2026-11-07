@@ -2,6 +2,7 @@
 // The store functions update the board at once and show their own error messages.
 
 import { combineFilters, defaultsFromFilter, matchesFilter, parseFilter } from '../../lib/filter'
+import { subteamChange } from '../../lib/options'
 import { positionBetween } from '../../lib/position'
 import { useAuth } from '../../store/auth'
 import { createItem, pushToast, updateItem, useBoard } from '../../store/board'
@@ -33,6 +34,9 @@ export function moveCard(
     setGroupValue(patch, view.swimlaneField, place.lane)
   }
   if (position !== item.position) patch.position = position
+  // A card moved to another subteam loses its domain, unless that subteam has one of the same name
+  // (as in the panel, and as the database does).
+  if ('subteam' in patch) Object.assign(patch, subteamChange(useBoard.getState().options, item, patch.subteam ?? null))
   if (Object.keys(patch).length > 0) void updateItem(item.id, patch, 'moving the card')
 }
 

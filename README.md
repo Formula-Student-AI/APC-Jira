@@ -55,8 +55,12 @@ HyPower-Bristol's BSEP plan. The board itself started empty.
    the item's Status, Priority, Subteam, Domain and that subteam's lead(s), Assignees, Labels and
    dates. Priorities are Jira's: Highest, High, Medium, Low and Lowest, each with its Jira icon.
    **Domain** is one of the subteam's own domains (for example LV systems or Accumulator for
-   Electrical; see [Subteam domains](#subteam-domains)). A subteam's leads can add one straight from
-   the panel with the **+** next to Domain.
+   Electrical; see [Subteam domains](#subteam-domains)). It shows as a tag next to the subteam's on
+   the task's card. A subteam's leads can add one straight from the panel with the **+** next to
+   Domain.
+   Dates can be picked from the calendar or typed. A typed date saves when you leave the box, press
+   Enter or close the panel (a picked one, a moment after you pick it). A start date after the due
+   date is shown as an error and saved once the order is put right; a half-typed date is never saved.
    **Linked tasks**, as in Jira: in the panel, **Linked tasks** > **+**, pick the link type
    (**is blocked by**, **blocks** or **relates to**), search for the task and press **Link**.
    Links are listed by type on both tasks. Loops of blocking links are refused.
@@ -197,11 +201,14 @@ items of the subteams you lead. Leads also look after their subteam's domains (b
 ### Subteam domains
 
 Each subteam has its own list of **domains**, for example LV systems, Accumulator and Software for
-Electrical. A task can have one of its subteam's domains: **Domain** in the task's panel.
+Electrical. A task can have one of its subteam's domains: **Domain** in the task's panel. Its card
+shows the domain as a tag in the domain's colour, next to the subteam's tag.
 
 - **Who can change them:** the subteam's leads and the board admins. Leads use **user menu >
   Subteam domains**; board admins use **Board settings > Domains**, which has every subteam. There
   they can add, rename, recolour, reorder and delete domains, as for the other dropdowns below.
+  A new domain starts in a colour none of the subteam's domains use yet (once all seven others are
+  taken, colours repeat), and never in the subteam's own colour.
 - **Quick add:** in a task's panel, a lead (or board admin) can press **+** next to Domain, type a
   name and press **Add**. The domain joins the subteam's list and is set on that task.
 - Renaming a domain updates its tasks. A domain still used by a task (archived ones count) can't be
@@ -390,7 +397,7 @@ From `board/`:
 | --- | --- |
 | `npm run dev` | Run locally at http://localhost:5173 |
 | `npm run build` | Typecheck and build to `board/dist/` |
-| `npm test` | Unit tests (Vitest): filter parser, item ordering, login inputs, table columns |
+| `npm test` | Unit tests (Vitest): the filter, item ordering, login inputs, table columns, links, subtasks, dates, domains, images and more |
 | `npm run lint` | ESLint |
 | `npm run db:apply` / `npm run db:seed` | Apply the schema / seed the options |
 
@@ -406,7 +413,7 @@ Not built yet:
 
 - comments on items
 - notifications
-- attachments
+- attachments other than images
 - switching on email-code login (see above)
 - two-way sync back to GitHub
 - the GitHub views left out on purpose: Review queue, Unassigned and Assigned

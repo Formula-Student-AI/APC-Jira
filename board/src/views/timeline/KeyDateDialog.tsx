@@ -4,6 +4,8 @@
 
 import { useId, useState, type FormEvent } from 'react'
 import { useToday } from '../../lib/clock'
+import { isWholeDay } from '../../lib/format'
+import { DateBox } from '../../ui/DateBox'
 import { openItem } from '../../lib/router'
 import { createItem } from '../../store/board'
 import { useFieldOptions } from '../../store/hooks'
@@ -45,8 +47,9 @@ export function KeyDateDialog({ kind, subteam, onClose }: KeyDateDialogProps) {
   const ids = { title: useId(), start: useId(), end: useId(), team: useId() }
   const text = TEXT[kind]
   const phase = kind === 'phase'
-  const datesWrong = phase && !!start && !!end && end < start
-  const ready = !!title.trim() && !!start && (!phase || (!!end && !datesWrong))
+  // Half-typed dates (e.g. "0202-11-05" while a year is typed) are neither errors nor ready.
+  const datesWrong = phase && isWholeDay(start) && isWholeDay(end) && end < start
+  const ready = !!title.trim() && isWholeDay(start) && (!phase || (isWholeDay(end) && !datesWrong))
 
   async function submit(event: FormEvent) {
     event.preventDefault()
@@ -104,14 +107,15 @@ export function KeyDateDialog({ kind, subteam, onClose }: KeyDateDialogProps) {
             <label className="field-label" htmlFor={ids.start}>
               {phase ? 'Start date' : 'Date'}
             </label>
-            <input
+            <DateBox
               id={ids.start}
-              type="date"
               className="input"
               value={start}
-              onChange={(event) => {
-                setStart(event.target.value)
-                if (phase && end && event.target.value > end) setEnd(event.target.value)
+              onChange={(event) => setStart(event.target.value)}
+              // Keep the end on or after the start: once the start is left, as typing passes through
+              // other dates ("25" is "02" first).
+              onBlur={() => {
+                if (phase && isWholeDay(start) && isWholeDay(end) && start > end) setEnd(start)
               }}
             />
           </div>
@@ -120,12 +124,11 @@ export function KeyDateDialog({ kind, subteam, onClose }: KeyDateDialogProps) {
               <label className="field-label" htmlFor={ids.end}>
                 End date
               </label>
-              <input
+              <DateBox
                 id={ids.end}
-                type="date"
                 className="input"
                 value={end}
-                min={start || undefined}
+                // No min: changing it makes the browser rebuild the box, wiping an end date being typed.
                 aria-invalid={datesWrong || undefined}
                 onChange={(event) => setEnd(event.target.value)}
               />
