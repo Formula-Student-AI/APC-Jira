@@ -137,8 +137,8 @@ create table if not exists public.items (
   archived         boolean not null default false,
   github_item_id   text unique,
   github_url       text,
-  created_by       text references public.members (username) on update cascade on delete set null,
-  updated_by       text references public.members (username) on update cascade on delete set null,
+  created_by       text,                              -- member username (kept if the member is deleted)
+  updated_by       text,                              -- member username, or null for a script
   created_at       timestamptz not null default now(),
   updated_at       timestamptz not null default now(),
   constraint items_dates_in_order check (start_date is null or due_date is null or start_date <= due_date)
@@ -433,9 +433,18 @@ begin
   if new.username is distinct from old.username and auth.uid() is not null then
     raise exception 'Usernames cannot be changed' using errcode = '22023';
   end if;
-  if old.is_board_admin and not new.is_board_admin
-     and not exists (select 1 from public.members m where m.is_board_admin and m.username <> old.username) then
-    raise exception 'Keep at least one board admin' using errcode = '23514';
+  -- Keep at least one working (flagged and active) board admin. Unticking or retiring one waits for any
+  -- other change to board admins (deleting a member takes the same lock), so two admins can't remove
+  -- each other at the same moment; the checks then run on fresh data.
+  if old.is_board_admin and old.active and not (new.is_board_admin and new.active) then
+    perform pg_advisory_xact_lock(hashtext('fsai-board: board admins'));
+    if auth.uid() is not null and not public.is_board_admin() then
+      raise exception 'Only board admins can change that' using errcode = '42501';
+    end if;
+    if not exists (select 1 from public.members m
+                   where m.is_board_admin and m.active and m.username <> old.username) then
+      raise exception 'Keep at least one board admin' using errcode = '23514';
+    end if;
   end if;
   return new;
 end;
@@ -445,6 +454,98 @@ drop trigger if exists members_before_write on public.members;
 create trigger members_before_write
   before insert or update on public.members
   for each row execute function public.members_before_write();
+
+-- -----------------------------------------------------------------------------
+-- Members: deleting one (board admins only, by RLS). Retiring (active = false) hides a member but keeps
+-- them; deleting removes them from the board.
+-- -----------------------------------------------------------------------------
+
+-- Who made or last changed an item, and who added an image, keep the username after that member is
+-- deleted, as the history does. (An item the deletion takes them off shows that board admin as its last
+-- change.) These columns used to have foreign keys, which cleared them.
+do $$
+declare
+  c record;
+begin
+  for c in
+    select con.conrelid::regclass as tbl, con.conname
+    from pg_constraint con
+    where con.contype = 'f'
+      and con.confrelid = 'public.members'::regclass
+      and con.conrelid in (to_regclass('public.items'), to_regclass('public.attachments'))
+  loop
+    execute format('alter table %s drop constraint %I', c.tbl, c.conname);
+  end loop;
+end;
+$$;
+
+-- Before a member is deleted: refuse deleting yourself or the last working board admin, then take them
+-- off the subteams they lead and the items they're assigned to (each item's history records that,
+-- under the board admin who deleted them). Their session links go with them (foreign keys), so any
+-- device signed in as them is signed out.
+-- It runs with the owner's rights, as a foreign-key cascade does, so row-level security can't quietly
+-- skip part of the clean-up. Who may delete is decided by the members delete policy and the checks below.
+create or replace function public.members_before_delete()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  -- One change to board admins at a time (members_before_write takes the same lock), so two admins can't
+  -- delete each other at the same moment.
+  perform pg_advisory_xact_lock(hashtext('fsai-board: board admins'));
+  if auth.uid() is not null then
+    -- Hold this device's link to its member until the deletion commits, so "Switch user" in another tab
+    -- waits rather than changing who is deleting half-way through. The checks then run on fresh data: the
+    -- one deleting may have been deleted, or stopped being an admin, while waiting.
+    perform 1 from public.member_sessions s where s.auth_user_id = auth.uid() for share;
+    if not public.is_board_admin() then
+      raise exception 'Only board admins can delete members' using errcode = '42501';
+    end if;
+    if old.username = public.current_member() then
+      raise exception 'You can''t delete yourself. Ask another board admin.' using errcode = '42501';
+    end if;
+  end if;
+  if old.is_board_admin and old.active
+     and not exists (select 1 from public.members m where m.is_board_admin and m.active and m.username <> old.username) then
+    raise exception 'Keep at least one board admin' using errcode = '23514';
+  end if;
+  -- Wait for edits in progress to subteam leads and items, and hold new ones until this commits, so nobody
+  -- is left leading or assigned to a deleted member. Options before items: the order renaming an option
+  -- uses, so the two can't deadlock.
+  lock table public.field_options in share row exclusive mode;
+  update public.field_options set leads = array_remove(leads, old.username) where old.username = any (leads);
+  lock table public.items in share row exclusive mode;
+  update public.items set assignees = array_remove(assignees, old.username) where old.username = any (assignees);
+  return old;
+end;
+$$;
+
+drop trigger if exists members_before_delete on public.members;
+create trigger members_before_delete
+  before delete on public.members
+  for each row execute function public.members_before_delete();
+
+-- One member per statement from the app, as for items, so a slip can't delete everyone at once.
+create or replace function public.members_delete_guard()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  if auth.uid() is not null and (select count(*) from deleted_rows) > 1 then
+    raise exception 'Delete members one at a time' using errcode = '42501';
+  end if;
+  return null;
+end;
+$$;
+
+drop trigger if exists members_delete_guard on public.members;
+create trigger members_delete_guard
+  after delete on public.members
+  referencing old table as deleted_rows
+  for each statement execute function public.members_delete_guard();
 
 -- -----------------------------------------------------------------------------
 -- Items: attribution, numbering and validation (BEFORE INSERT/UPDATE)
@@ -1027,7 +1128,11 @@ create policy members_update_by_board_admin on public.members
   for update to authenticated
   using ((select public.is_board_admin()))
   with check ((select public.is_board_admin()));
--- No delete policy: retire members (active = false) instead; delete in the dashboard if you must.
+
+-- Board admins can delete members (see members_before_delete for what that does).
+drop policy if exists members_delete_by_board_admin on public.members;
+create policy members_delete_by_board_admin on public.members
+  for delete to authenticated using ((select public.is_board_admin()));
 
 drop policy if exists sessions_read_own on public.member_sessions;
 create policy sessions_read_own on public.member_sessions
@@ -1097,6 +1202,7 @@ grant select on table public.board_settings, public.members, public.member_sessi
   to authenticated;
 grant insert (username, full_name, github_login, active) on table public.members to authenticated;
 grant update (full_name, github_login, is_board_admin, active) on table public.members to authenticated;
+grant delete on table public.members to authenticated;
 grant insert, update, delete on table public.field_options to authenticated;
 grant insert, update, delete on table public.items to authenticated;
 revoke all on sequence public.item_number_seq from anon, authenticated;
@@ -1140,7 +1246,7 @@ create table if not exists public.attachments (
   height      integer not null check (height between 1 and 10000),
   path        text not null unique,
   thumb_path  text not null unique,
-  created_by  text references public.members (username) on update cascade on delete set null,
+  created_by  text,  -- member username (kept if the member is deleted)
   created_at  timestamptz not null default now()
 );
 comment on table public.attachments is 'Images on items; the files are in the Storage bucket "attachments".';

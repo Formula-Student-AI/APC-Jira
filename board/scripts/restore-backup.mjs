@@ -182,6 +182,15 @@ items = items.map((i) => {
   notes.push(`#${i.number} ${i.title}: its domain "${i.domain}" is called "${now.name}" now, so it gets that`);
   return { ...i, domain: now.name };
 });
+// Only members can be assignees. Someone deleted since the backup comes back with a full restore (above);
+// with --items they don't, so their tasks come back without them.
+const memberNames = new Set([...liveUsernames, ...members.map((m) => m.username)]);
+items = items.map((i) => {
+  const gone = (i.assignees ?? []).filter((u) => !memberNames.has(u));
+  if (!gone.length) return i;
+  notes.push(`#${i.number} ${i.title}: comes back without ${gone.join(', ')}, no longer a member`);
+  return { ...i, assignees: i.assignees.filter((u) => memberNames.has(u)) };
+});
 // Parent tasks before their subtasks (a subtask points at its parent, so the parent must be there first).
 items = items.sort((a, b) => Number(!!a.parent_id) - Number(!!b.parent_id));
 // A taken number means another task has it now: the restored task gets the next free number instead.

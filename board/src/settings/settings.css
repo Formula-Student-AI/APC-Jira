@@ -124,6 +124,8 @@
 
 .settings-table-wrap {
   overflow-x: auto;
+  /* So the delete question can size itself to the visible width (100cqi) when the table scrolls. */
+  container-type: inline-size;
 }
 .settings-members {
   width: 100%;
@@ -150,6 +152,52 @@
 }
 .settings-retired td {
   opacity: 0.6;
+}
+.settings-member-delete {
+  width: 1%;
+  text-align: right;
+}
+/* "Delete <name>?" under a member's row. On a narrow screen the table scrolls sideways; the question stays
+   in the visible part of it. */
+.settings-members .settings-member-confirm td {
+  padding: 10px 12px;
+  border-top: 0;
+  border-left: 3px solid var(--danger-border);
+  background: var(--surface-2);
+}
+.settings-member-question,
+.settings-member-error,
+.settings-member-answers {
+  position: sticky;
+  left: 15px;
+  max-width: calc(100cqi - 30px);
+}
+.settings-member-question {
+  margin: 0 0 8px;
+  font-size: 13px;
+}
+.settings-member-error {
+  margin: 0 0 8px;
+}
+.settings-member-answers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+/* While the deletion is sent (aria-disabled keeps focus on the button, unlike disabled). */
+.settings-member-answers .btn[aria-disabled='true'] {
+  opacity: 0.6;
+  cursor: progress;
+}
+.settings-notice {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  font-size: 13px;
 }
 
 .settings-leads {

@@ -238,9 +238,9 @@ Without the app, the same can be done in Supabase > **Table Editor** > `field_op
 
 ## Board admins
 
-A board admin can choose subteam leads, manage the dropdown options and every subteam's domains, add, rename and retire members,
-make other people board admins, and delete items permanently. Everyone else archives instead of deleting. **Board
-admin is a permission. It has nothing to do with the Admin subteam.**
+A board admin can choose subteam leads, manage the dropdown options and every subteam's domains, add, rename,
+retire and delete members, make other people board admins, and delete items permanently. Everyone else archives
+instead of deleting. **Board admin is a permission. It has nothing to do with the Admin subteam.**
 
 To make someone a board admin, use any of these:
 
@@ -248,7 +248,19 @@ To make someone a board admin, use any of these:
 - From `board/`: `npm run db:seed -- --admin <username>` (they must have signed in once).
 - In the SQL Editor: `update public.members set is_board_admin = true where username = 'ab12345';`
 
-The board always keeps at least one board admin.
+The board always keeps at least one working (active) board admin: the last one can't be unticked, retired or
+deleted.
+
+**Retiring or deleting a member** (Board settings > Members):
+
+- **Retire** (untick **Active**): hidden from the pickers, but still a member. Tick it again to bring them back.
+- **Delete** (the bin, then **Delete member**): removes them from the board. They're taken off every task
+  they're assigned to (each task's history records it under your name, so "Last changed by" shows you), they stop
+  leading any subteams, and any device signed in as them is signed out. "Created by" and the history keep their
+  username. Only board admins can delete members, one at a time, and you can't delete yourself. Deleting isn't a
+  ban: if they sign in again, they come back as a new member.
+- **Undo a deletion:** add them again (**Add member**), re-assign their tasks, and make them a subteam lead or
+  board admin again if they were one. A full restore from a backup also brings them back (see [Backups](#backups)).
 
 **Important:** with username-only login (trust mode), anyone can sign in as any username,
 including a board admin's or a subteam lead's. The setting `board_settings.trust_mode_admins`
@@ -346,7 +358,10 @@ A restored item keeps its number unless another item has taken it, in which case
 one. If its domain was renamed since the backup, it gets the new name; if its subteam no longer has
 that domain, it comes back without one (the script says so). A subtask whose parent task is gone
 comes back as a separate task. A deleted parent's subtasks stay on the board as separate tasks, and
-restoring the parent doesn't put them back under it: use **⋯ > Make a subtask of…** on each. To undo an *edit* rather than a
+restoring the parent doesn't put them back under it: use **⋯ > Make a subtask of…** on each. A member deleted since the
+backup comes back with a full restore, with their board-admin tick, but not on the tasks still on the board that
+they were assigned to, and not as a subteam lead. With `--items` members aren't restored, so a task comes back
+without any assignees deleted since the backup (the script says which). To undo an *edit* rather than a
 deletion, look up the old values in the item's History or in
 the backup's `items.json`. The `activity` table also keeps a full copy of every permanently deleted
 item.

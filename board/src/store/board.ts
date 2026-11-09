@@ -173,6 +173,13 @@ export async function loadBoard(): Promise<void> {
       fetchAll<Attachment>('attachments', 'created_at'),
     ])
     if (seq !== loadSeq) return // a newer load started meanwhile
+    // This device is no longer signed in as a member (deleted, say, while it was offline): the database
+    // shows it nothing, so go back to the login screen rather than show an empty board.
+    const me = currentUsername()
+    if (me && !members.some((m) => m.username === me)) {
+      void refreshSession()
+      return
+    }
     set((s) => {
       const base: Record<string, Item> = {}
       for (const row of items) {
@@ -237,15 +244,22 @@ function onItemChange(payload: RealtimePostgresChangesPayload<Item>): void {
   applyServerItem(payload.new as Item)
 }
 
+function removeMember(username: string): void {
+  set((s) => {
+    if (!(username in s.members)) return s // already gone (deleted here, then the realtime echo)
+    const members = { ...s.members }
+    delete members[username]
+    return { members }
+  })
+}
+
 function onMemberChange(payload: RealtimePostgresChangesPayload<Member>): void {
   if (payload.eventType === 'DELETE') {
     const username = (payload.old as Partial<Member>).username
     if (!username) return
-    set((s) => {
-      const members = { ...s.members }
-      delete members[username]
-      return { members }
-    })
+    removeMember(username)
+    // I've been deleted: this device is no longer signed in, so go back to the login screen.
+    if (username === currentUsername()) void refreshSession()
     return
   }
   const member = payload.new as Member
@@ -685,6 +699,21 @@ export async function addMember(username: string, fullName: string): Promise<boo
     return false
   }
   return true
+}
+
+/**
+ * Delete a member (board admins only, and not yourself). The database takes them off the items they're
+ * assigned to and the subteams they lead (those changes arrive through realtime) and signs out their
+ * devices. "Created by" and the history keep their username.
+ *
+ * Returns null once deleted, or why it couldn't be. Unlike the other writes it shows no toast: it is
+ * used in Board settings, whose dialog would hide one, so the dialog shows the reason itself.
+ */
+export async function deleteMember(username: string): Promise<string | null> {
+  const { data, error } = await supabase.from('members').delete().eq('username', username).select('username')
+  if (error || !data?.length) return error?.message ?? 'Only board admins can delete members.'
+  removeMember(username)
+  return null
 }
 
 // ---------------------------------------------------------------------------
