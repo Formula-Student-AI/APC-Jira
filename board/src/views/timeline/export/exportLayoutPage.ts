@@ -561,7 +561,6 @@ function drawLegend(prims: Prim[], frame: Frame): void {
     }
     if (item.label) prims.push(textPrim(item.label, item.x + width + 3 * k, y, fonts.legend, INK.text))
   }
-  if (legend.definitions) prims.push(textPrim(legend.definitions.text, left, lineY(legend.definitions.line), fonts.legend, INK.muted))
 }
 
 /** 'Bristol FSAI · 2026–27 Plan · Exported 10 Nov 2026, 14:32', the title shortened first if it must be. */

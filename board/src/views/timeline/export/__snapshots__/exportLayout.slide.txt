@@ -1,8 +1,7 @@
 Slide 1 of 1: Mechanical, Electrical and Autonomy, 32 tasks
-960 × 540 pt, 225 prims (image 1, line 60, path 13, rect 57, text 94)
+960 × 540 pt, 215 prims (image 1, line 60, path 13, rect 57, text 84)
   30.9  BRISTOL FORMULA STUDENT AI
   33.2  Status as of 10 November 2026
-  44.8  32 tasks | · | 12 done | · | 1 blocked | · | 2 overdue | · | 1 at risk
   47.7  2026–27 Plan
   60.4  Timeline · All subteams · summary by domain · Sep 2026 – Aug 2027
   83.9  As of 10 Nov
@@ -22,6 +21,5 @@ Slide 1 of 1: Mechanical, Electrical and Autonomy, 32 tasks
  323.0  Low voltage | 4/7 | —
  348.4  Autonomy | 2/4 | —
  369.0  Perception | 2/4 | —
- 488.4  KEY | Mechanical | Electrical | Autonomy | Whole team | Key date | Key date done | Phase | As of 10 Nov 2026
- 499.4  Overdue: due before 10 Nov 2026 and not done. At risk: waits on work that is blocked, overdue, or due after it starts.
+ 499.4  KEY | Mechanical | Electrical | Autonomy | Whole team | Key date | Key date done | Phase | As of 10 Nov 2026
  513.4  Bristol FSAI · 2026–27 Plan · Exported 10 Nov 2026, 14:32

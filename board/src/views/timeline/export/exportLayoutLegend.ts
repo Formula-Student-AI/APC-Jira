@@ -1,6 +1,6 @@
 // The Timeline export's legend, the same on every page: KEY, a swatch for each subteam drawn, then only the
 // markings this document uses, each with a sample drawn by the chart's own shape functions, flowing onto up
-// to three lines, and the definitions of Overdue and At risk when either appears.
+// to three lines.
 
 import type { Entry, TaskView } from './exportLayoutGrid'
 import type { KeyDateView, PhaseView } from './exportLayoutLanes'
@@ -11,7 +11,7 @@ import { cleanText, fitLine, formatDayShort } from './exportText'
 import type { Plan } from './planTypes'
 import type { Measure } from './scene'
 
-/** The legend's most lines, the definitions of Overdue and At risk among them. */
+/** The legend's most lines. */
 const LEGEND_LINES = 3
 
 export interface LegendItem {
@@ -29,7 +29,6 @@ export interface LegendView {
   /** The samples' scale: 1 on paper */
   k: number
   items: LegendItem[]
-  definitions: { text: string; line: number } | null
   /** The rule above the legend, and the top of its first line */
   ruleY: number
   top: number
@@ -91,7 +90,7 @@ const SAMPLE_LABELS: Record<SampleKind, string> = {
 }
 
 /** The legend: KEY, a swatch for each subteam drawn (in board order), then the markings used, flowing onto
- *  up to three lines with the definitions of Overdue and At risk last when they appear. */
+ *  up to three lines. */
 export function layLegend(input: LegendInputs): Omit<LegendView, 'ruleY' | 'top'> {
   const { plan, fonts, measure, left, right, entries, phases, keyDates } = input
   const k = fonts.legend.size / 6.5
@@ -118,25 +117,7 @@ export function layLegend(input: LegendInputs): Omit<LegendView, 'ruleY' | 'top'
     label: kind === 'asOf' ? `As of ${asOf}` : SAMPLE_LABELS[kind],
   }))
 
-  const overdue =
-    used.has('overdue') ||
-    plan.counts.overdue > 0 ||
-    plan.keyDates.some((keyDate) => keyDate.state === 'overdue') ||
-    rows.some((view) => view.kind === 'summary' && view.row.overdue > 0)
-  const atRisk =
-    used.has('atRisk') ||
-    plan.counts.atRisk > 0 ||
-    plan.keyDates.some((keyDate) => keyDate.state === 'atRisk') ||
-    rows.some((view) => view.kind === 'summary' && view.row.atRisk > 0)
-  const definitions = [
-    overdue ? `Overdue: due before ${asOf} and not done.` : '',
-    atRisk ? 'At risk: waits on work that is blocked, overdue, or due after it starts.' : '',
-  ]
-    .filter(Boolean)
-    .join(' ')
-
   // Every marking drawn is explained, on slides too, so the legend takes a third line when two can't hold it.
-  const itemLines = Math.max(1, LEGEND_LINES - (definitions ? 1 : 0))
   const start = left + widthOf('KEY', fonts.heading, measure) + 8 * k
   const gap = 10 * k
   const items: LegendItem[] = []
@@ -153,17 +134,11 @@ export function layLegend(input: LegendInputs): Omit<LegendView, 'ruleY' | 'top'
       line++
       x = start
     }
-    if (line >= itemLines) break
+    if (line >= LEGEND_LINES) break
     if (x + width() > right) label = fitLine(label, right - x - sample - 3 * k, fonts.legend, measure)
     items.push({ swatch: item.swatch, sample: item.sample, label, line, x })
     x += width() + gap
   }
-  const itemCount = items.length ? items[items.length - 1].line + 1 : 0
-  const lines = itemCount + (definitions ? 1 : 0)
-  return {
-    lines,
-    k,
-    items,
-    definitions: definitions ? { text: fitLine(definitions, right - left, fonts.legend, measure), line: itemCount } : null,
-  }
+  const lines = items.length ? items[items.length - 1].line + 1 : 0
+  return { lines, k, items }
 }

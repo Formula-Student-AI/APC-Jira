@@ -1,12 +1,11 @@
 Page 1 of 1: Mechanical, Electrical, Autonomy and Whole team, 13 tasks
-841.89 × 593.86 pt, 358 prims (image 1, line 88, path 50, rect 58, text 161)
+841.89 × 593.86 pt, 348 prims (image 1, line 88, path 50, rect 58, text 151)
   33.0  BRISTOL FORMULA STUDENT AI
   35.0  Status as of 10 November 2026
-  45.0  13 tasks | · | 2 done | · | 1 blocked | · | 1 overdue | · | 2 at risk
+  45.0  Next key date: Design freeze, 15 Dec 2026
   48.0  2026–27 Plan
-  54.0  Next key date: Design freeze, 15 Dec 2026
+  54.0  Prepared by Jane Smith
   59.0  Timeline · All subteams · Sep 2026 – Aug 2027
-  63.0  Prepared by Jane Smith
   79.8  Note: | Updated after the October design review; chassis dates moved two weeks.
   99.3  As of 10 Nov
   99.6  2026 | 2027
@@ -36,7 +35,6 @@ Page 1 of 1: Mechanical, Electrical, Autonomy and Whole team, 13 tasks
  452.8  #303 | Sensor calibration | Jane Smith | Due 15 Mar | Not started
  473.7  Whole team | 1 task · 1 at risk
  489.8  #401 | Sponsor report | Chris Wong | 1 Dec – 5 Dec | At risk
- 539.6  KEY | Mechanical | Electrical | Autonomy | Whole team | Not started | In progress | Done | Part done | Blocked | Overdue | At risk | Key date | Key date done
- 548.6  Phase | As of 10 Nov 2026 | Dependency | Dates clash
- 557.6  Overdue: due before 10 Nov 2026 and not done. At risk: waits on work that is blocked, overdue, or due after it starts.
+ 548.6  KEY | Mechanical | Electrical | Autonomy | Whole team | Not started | In progress | Done | Part done | Blocked | Overdue | At risk | Key date | Key date done
+ 557.6  Phase | As of 10 Nov 2026 | Dependency | Dates clash
  569.6  Bristol FSAI · 2026–27 Plan · Exported 10 Nov 2026, 14:32 | Page 1 of 1

@@ -139,9 +139,8 @@ is open. The preview on the right is drawn by the same code as the export, so wh
   as separate files, and Chrome and Edge ask once before letting the site download more than one. **Copy alt
   text** gives a description of the slide to paste into the picture's alt text.
 
-Every page has the logo, the title, what it covers, "Status as of" with the headline counts and the next key
-date, the phases and key dates lanes, a legend of only what is used, and "Page n of N", so any page can be
-forwarded on its own. Colour always means subteam. Status is shown by how full a bar is (hollow: not
+Every page has the logo, the title, what it covers, "Status as of" and the next key date, the phases and key
+dates lanes, a legend of only what is used, and "Page n of N", so any page can be forwarded on its own. Colour always means subteam. Status is shown by how full a bar is (hollow: not
 started; tinted: in progress; solid: done), with a red hatch for Blocked, a red trail for Overdue (due before
 the as-of date and not done) and an amber triangle for At risk (waits on work that is blocked, overdue, or
 due after it starts), and always in words as well, so a greyscale print loses nothing. Slipped work is never

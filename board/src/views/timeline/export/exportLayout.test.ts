@@ -228,20 +228,14 @@ describe('the legend', () => {
     expect(legendTexts(page)).toEqual(['KEY', 'Mechanical', 'Not started', asOf])
   })
 
-  it('adds a marking, and the words that define Overdue and At risk, only when they appear', () => {
+  it('adds a marking only when it appears, and no sentences defining them', () => {
     const done = makePlan([group('m', 'Mechanical', 'BLUE', [one('Not started'), one('Done', 2)])])
     expect(legendTexts(layoutDocument(done, A4, measure).pages[0])).toEqual(['KEY', 'Mechanical', 'Not started', 'Done', asOf])
 
-    const late = makePlan([group('m', 'Mechanical', 'BLUE', [one('Overdue')])])
+    const late = makePlan([group('m', 'Mechanical', 'BLUE', [one('Overdue'), one('At risk', 2)])])
     const words = legendTexts(layoutDocument(late, A4, measure).pages[0])
-    expect(words).toContain('Overdue')
-    expect(words).toContain('Overdue: due before 10 Nov 2026 and not done.')
-    expect(words.join(' ')).not.toContain('At risk')
-
-    const risky = makePlan([group('m', 'Mechanical', 'BLUE', [one('At risk')])])
-    expect(legendTexts(layoutDocument(risky, A4, measure).pages[0])).toContain(
-      'At risk: waits on work that is blocked, overdue, or due after it starts.',
-    )
+    expect(words).toEqual(expect.arrayContaining(['Overdue', 'At risk']))
+    expect(words.some((text) => text.startsWith('Overdue:') || text.startsWith('At risk:'))).toBe(false)
   })
 
   it('lists every marking of the sample board, on every page, and dependency lines only when they are drawn', () => {
@@ -664,12 +658,20 @@ describe('rows', () => {
     expect(texts(page).map((prim) => prim.text)).toContain('Brake caliper order')
   })
 
-  it('say in the headline how many tasks are not yet scheduled, never No tasks above them', () => {
+  it('leave the counts out of the title block, which says only what the status is as of, what is next and who prepared it', () => {
     const later = [task(1, 'Book venue', null, null, { word: 'Not started' }), task(2, 'Order hoodies', null, null, { word: 'Not started' })]
-    const plan = makePlan([group('undated', 'Not yet scheduled', null, later, { undated: true, span: null })])
-    const words = texts(layoutDocument(plan, A4, measure).pages[0]).map((prim) => prim.text)
-    expect(words).toEqual(expect.arrayContaining(['No scheduled tasks', '2 not yet scheduled', 'Book venue', 'Order hoodies']))
-    expect(words).not.toContain('No tasks')
+    const plan = makePlan([
+      group('m', 'Mechanical', 'BLUE', [task(3, 'Frame CAD', '2026-10-05', '2026-11-04', { word: 'Overdue' })]),
+      group('undated', 'Not yet scheduled', null, later, { undated: true, span: null }),
+    ])
+    for (const sheet of [A4, SLIDE]) {
+      const { frame } = paginateDocument(plan, sheet, measure)
+      const right = frame.titleBlock.right.map((line) => line.runs.map((run) => run.text).join(''))
+      expect(right.join(' ')).not.toMatch(/\d+ tasks?\b|No tasks|No scheduled tasks|not yet scheduled|overdue/)
+      expect(right).toEqual(sheet === A4 ? ['Status as of 10 November 2026', 'Prepared by Jane Smith'] : ['Status as of 10 November 2026'])
+      // The rows still show both groups.
+      expect(textsOf(layoutDocument(plan, sheet, measure).pages)).toEqual(expect.arrayContaining(['Frame CAD', 'Book venue']))
+    }
   })
 
   it('set right-to-left names apart where words or numbers follow them', () => {

@@ -7,13 +7,13 @@
 import { columnOf, DONE_BAR, layColumns, layEntries, roomIn, type Column, type Entry } from './exportLayoutGrid'
 import { layKeyDates, layPhases, type AfterView, type KeyDateView, type LaneInputs, type PhaseView } from './exportLayoutLanes'
 import { layLegend, type LegendView } from './exportLayoutLegend'
-import { countParts, fontsFor, lineHeight, plural, runsWidth, widthOf, type CountTone, type LayoutFonts, type Run } from './exportLayoutText'
+import { fontsFor, lineHeight, plural, runsWidth, widthOf, type LayoutFonts, type Run } from './exportLayoutText'
 import { INK } from './exportPalette'
 import { dayOffset, LABEL_INSET, needsYear, periodDays, scaleFor, tiersFor, type Scale } from './exportPeriod'
 import type { SheetSpec } from './exportSheets'
-import { cleanText, fitLine, formatAsOf, formatDayShort, isolate, listText, unscheduledCount, wrapLines } from './exportText'
+import { cleanText, fitLine, formatAsOf, formatDayShort, isolate, listText, wrapLines } from './exportText'
 import type { Plan } from './planTypes'
-import type { FontSpec, Hex, Measure } from './scene'
+import type { FontSpec, Measure } from './scene'
 
 /** Room between the timescale or lanes and the first row, and between the last row and the legend. */
 const BODY_GAP = 4
@@ -119,46 +119,25 @@ const clamp = (value: number, low: number, high: number) => Math.min(high, Math.
  *  step, stack their lines by their sizes and let the block grow when the type needs it. */
 function titleBaselines(sheet: SheetSpec, fonts: LayoutFonts): { height: number; eyebrow: number; title: number; subtitle: number; right: number[] } {
   const block = sheet.titleBlock
-  if (sheet.id !== 'slide') return { height: block.height, eyebrow: 7, title: 22, subtitle: 33, right: [9, 19, 28, 37] }
+  if (sheet.id !== 'slide') return { height: block.height, eyebrow: 7, title: 22, subtitle: 33, right: [9, 19, 28] }
   const ascent = 0.76
   const descent = 0.22
   const eyebrow = 1 + 0.72 * fonts.eyebrow.size
   const title = eyebrow + 2.5 + ascent * fonts.title.size
   const subtitle = title + descent * fonts.title.size + 1 + ascent * fonts.subtitle.size
   const asOf = 1 + ascent * fonts.asOf.size
-  const headline = asOf + descent * fonts.asOf.size + 2 + ascent * fonts.headline.size
-  const needed = Math.max(subtitle + descent * fonts.subtitle.size, headline + descent * fonts.headline.size) + 0.5
-  return { height: Math.max(block.height, block.logoHeight, Math.ceil(needed)), eyebrow, title, subtitle, right: [asOf, headline] }
+  const needed = Math.max(subtitle + descent * fonts.subtitle.size, asOf + descent * fonts.asOf.size) + 0.5
+  return { height: Math.max(block.height, block.logoHeight, Math.ceil(needed)), eyebrow, title, subtitle, right: [asOf] }
 }
 
-/** The title block: the eyebrow, title and subtitle beside the logo; on the right the as-of date, the headline
- *  counts, the next key date and who prepared it (slides keep the first two). */
+/** The title block: the eyebrow, title and subtitle beside the logo; on the right the as-of date, the next
+ *  key date and who prepared it (slides keep the as-of date alone). No counts: the rows tell their own story. */
 function layTitleBlock(plan: Plan, sheet: SheetSpec, fonts: LayoutFonts, measure: Measure, left: number, right: number): TitleBlockView {
   const slide = sheet.id === 'slide'
   const cap = (right - left) * RIGHT_SHARE
   const lines: Run[][] = []
   const asOf = formatAsOf(plan.asOf)
   if (asOf) lines.push([{ text: fitLine(`Status as of ${asOf}`, cap, fonts.asOf, measure), font: fonts.asOf, color: INK.text }])
-
-  const colors: Record<CountTone, Hex> = { plain: INK.text, problem: INK.problemText, risk: INK.amberText }
-  const headline: Run[] = []
-  // Tasks without dates aren't in the counts, but when they are listed the headline says so, and never says
-  // 'No tasks' above them.
-  const parts = countParts(plan.counts)
-  const unscheduled = unscheduledCount(plan)
-  if (unscheduled > 0) {
-    if (plan.counts.tasks <= 0) parts[0] = { text: 'No scheduled tasks', tone: 'plain' }
-    parts.push({ text: `${unscheduled} not yet scheduled`, tone: 'plain' })
-  }
-  parts.forEach((part, i) => {
-    if (i > 0) headline.push({ text: ' · ', font: fonts.headline, color: INK.text })
-    headline.push({ text: part.text, font: fonts.headline, color: colors[part.tone] })
-  })
-  lines.push(
-    runsWidth(headline, measure) <= cap
-      ? headline
-      : [{ text: fitLine(headline.map((run) => run.text).join(''), cap, fonts.headline, measure), font: fonts.headline, color: INK.text }],
-  )
 
   const next = plan.nextKeyDate
   if (!slide && next) {
