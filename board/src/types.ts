@@ -102,6 +102,19 @@ export type ItemPatch = Partial<
 
 export type NewItem = { title: string } & ItemPatch
 
+/**
+ * A member in a subteam: a record of who is in which subteam, kept by board admins and the subteam's leads.
+ * It changes no task, assignee, lead or permission. A member can be in several subteams.
+ */
+export interface SubteamMember {
+  /** The subteam's option id (renaming the subteam keeps it) */
+  subteam: string
+  username: string
+  /** Who put them in (set by the database) */
+  added_by: string | null
+  added_at: string
+}
+
 /** An image on an item. The files are in the private Storage bucket "attachments". */
 export interface Attachment {
   id: string

@@ -246,7 +246,22 @@ The subteams are **Mechanical, Powertrain, Electrical, Braking System and Admin*
 **user menu > Board settings > Subteam leads**. Every item then shows its subteam's leads: in the
 side panel, in the Blocked table and in the subteam chip's tooltip on cards. When someone becomes
 or stops being a lead, every item of that subteam follows. `lead:@me` in the filter box shows the
-items of the subteams you lead. Leads also look after their subteam's domains (below).
+items of the subteams you lead. Leads also look after their subteam's domains and members (below).
+
+### Subteam members
+
+A record of **who is in which subteam**, for keeping track of the team. It changes no task: who is assigned
+to what, and who leads a subteam, stay as they are, and nothing else on the board reads it. Someone can be in
+more than one subteam.
+
+- **Who can change it:** the board admins, for every subteam, in **Board settings > Subteam members**, which
+  also lists the active members who aren't in a subteam yet; and each subteam's leads, for their own, in
+  **user menu > Subteam members**. Press **Add members** to tick people in or out, or the **×** beside a name.
+- The app shows it to board admins (every subteam) and to each subteam's leads (their own). The database lets
+  any signed-in member read it. Deleting a member takes them out of their subteams; deleting a subteam takes
+  its list with it. Renaming a subteam keeps it.
+- As for domains, a lead's powers need a verified sign-in, or the board owner's permission for username-only
+  sign-ins (`board_settings.trust_mode_admins`). The database enforces it (`subteam_members` in `schema.sql`).
 
 ### Subteam domains
 
@@ -306,11 +321,13 @@ deleted.
 - **Retire** (untick **Active**): hidden from the pickers, but still a member. Tick it again to bring them back.
 - **Delete** (the bin, then **Delete member**): removes them from the board. They're taken off every task
   they're assigned to (each task's history records it under your name, so "Last changed by" shows you), they stop
-  leading any subteams, and any device signed in as them is signed out. "Created by" and the history keep their
+  leading any subteams, they're taken out of the subteams they're in, and any device signed in as them is
+  signed out. "Created by" and the history keep their
   username. Only board admins can delete members, one at a time, and you can't delete yourself. Deleting isn't a
   ban: if they sign in again, they come back as a new member.
-- **Undo a deletion:** add them again (**Add member**), re-assign their tasks, and make them a subteam lead or
-  board admin again if they were one. A full restore from a backup also brings them back (see [Backups](#backups)).
+- **Undo a deletion:** add them again (**Add member**), re-assign their tasks, put them back in their subteams
+  (**Subteam members**), and make them a subteam lead or board admin again if they were one. A full restore from a
+  backup also brings them back, in their subteams (see [Backups](#backups)).
 
 **Important:** with username-only login (trust mode), anyone can sign in as any username,
 including a board admin's or a subteam lead's. The setting `board_settings.trust_mode_admins`
@@ -374,8 +391,8 @@ switch it on:
 Supabase's free plan has no downloadable backups, so the board backs itself up **every 3 days**
 (04:23 UTC on the 1st, 4th, 7th, … of each month) into the **private** repository
 `Formula-Student-AI/APC-Jira-backups`. Each backup is a folder `backups/<date>/` with the items,
-their history, members, dropdown options (with subteam leads and domains) and settings as JSON. The newest 30
-stay in the folder; older ones remain in that repository's git history.
+their history, members, dropdown options (with subteam leads and domains), who is in which subteam and
+settings as JSON. The newest 30 stay in the folder; older ones remain in that repository's git history.
 
 The backup logs in as `backup_reader`, a **read-only** database login defined in `schema.sql`. It
 can read the board's tables and change nothing, so the backup never holds a key that could alter
@@ -392,6 +409,18 @@ node scripts/setup-backups.mjs         # creates the private repo, sets the pass
 `node scripts/setup-backups.mjs --password` gives `backup_reader` a new password (and updates the
 secret) if it might have leaked. To back up immediately: backups repo > Actions > Backup > Run workflow.
 If a scheduled backup fails, GitHub emails whoever last changed its workflow.
+
+**Changing what is backed up.** The backups repository runs its own copy of the files in
+`board/backup-repo/`, so a change to them (say `export.sql` backs up a new table) reaches it only when you
+send it, and only after the schema is applied. In the other order every backup fails until the schema
+catches up, so `--update` checks that `backup_reader` can read every table `export.sql` reads, and stops if not.
+It sends the files as committed, so commit the change first:
+
+```sh
+cd board
+npm run db:apply                          # the database first
+node scripts/setup-backups.mjs --update   # then commits the changed files to the backups repository
+```
 
 **Restoring.** `board/scripts/restore-backup.mjs` puts back what is **missing** (for example an item
 deleted by mistake, or everything after a total loss). It never changes or deletes existing rows.
@@ -471,6 +500,11 @@ Code layout: `src/store/` (data, live updates, login), `src/lib/` (filter, routi
 panel), `src/layout/` (header, toasts), `src/settings/` (board settings, subteam domains) and `src/ui/` (shared
 pieces). Security lives in the database (`board/supabase/schema.sql`): Row Level Security and
 triggers decide who may do what and record every change.
+
+**Changing the database.** Apply `schema.sql` (`npm run db:apply`) before pushing code that uses the
+change: the site goes live as soon as `main` is built, and until the database catches up, whatever needs the
+change fails. Usually the board shows an error; Subteam members instead looks empty and refuses changes. If
+`board/backup-repo/` changed too, update the backups repository after that (see [Backups](#backups)).
 
 ### Checking the Timeline export by hand
 

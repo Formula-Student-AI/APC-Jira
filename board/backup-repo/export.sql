@@ -19,6 +19,9 @@ select coalesce(jsonb_pretty(jsonb_agg(to_jsonb(t) order by t.id)), '[]') from p
 \o board_settings.json
 select coalesce(jsonb_pretty(jsonb_agg(to_jsonb(t))), '[]') from public.board_settings t;
 
+\o subteam_members.json
+select coalesce(jsonb_pretty(jsonb_agg(to_jsonb(t) order by t.subteam, t.username)), '[]') from public.subteam_members t;
+
 \o manifest.json
 select jsonb_pretty(jsonb_build_object(
   'taken_at', now(),
@@ -26,7 +29,8 @@ select jsonb_pretty(jsonb_build_object(
     'members', (select count(*) from public.members),
     'field_options', (select count(*) from public.field_options),
     'items', (select count(*) from public.items),
-    'activity', (select count(*) from public.activity)
+    'activity', (select count(*) from public.activity),
+    'subteam_members', (select count(*) from public.subteam_members)
   )
 ));
 

@@ -13,6 +13,8 @@
 //                    task is gone comes back as a separate task.
 //     activity       history, only for tasks that have no history at all (after a total loss;
 //                    a deleted task keeps its history, so it is not needed then)
+//     subteam_members who was in which subteam (matched by the subteam's name), for members on the
+//                    board or coming back; backups from before Subteam members have none
 //   --items 12,15    only those tasks (and their history if it is missing). Nothing else.
 //
 // board_settings are never changed; differences are printed. Restored tasks also get a "created" entry
@@ -108,6 +110,17 @@ async function fetchAll(table, select, order) {
   }
 }
 
+/** fetchAll, or null when the board has no such table (its schema is older). Any other error stops the run. */
+async function fetchAllIfThere(table, select, order) {
+  try {
+    return await fetchAll(table, select, order);
+  } catch (error) {
+    // PostgREST answers 404 with PGRST205 (42P01 before version 12) for a table it doesn't know.
+    if (/^HTTP 404: .*"(PGRST205|42P01)"/s.test(error.message)) return null;
+    throw error;
+  }
+}
+
 // ------------------------------------------------------------------------------------- the plan
 
 const backup = {
@@ -116,6 +129,9 @@ const backup = {
   items: readTable('items'),
   activity: readTable('activity'),
   settings: readTable('board_settings'),
+  // null for a backup with no such file: taken before Subteam members, or by a backups repo whose
+  // export.sql wasn't brought up to date (node scripts/setup-backups.mjs --update).
+  subteamMembers: existsSync(join(folder, 'subteam_members.json')) ? readTable('subteam_members') : null,
 };
 const manifestFile = join(folder, 'manifest.json');
 const takenAt = existsSync(manifestFile) ? JSON.parse(readFileSync(manifestFile, 'utf8')).taken_at : 'unknown time';
@@ -126,6 +142,9 @@ const live = {
   items: await fetchAll('items', 'id,number', 'number'),
   activity: await fetchAll('activity', 'item_id', 'id'),
   settings: await fetchAll('board_settings', '*', 'id'),
+  // null when the live board has no Subteam members yet (its schema is older than this script).
+  // Paged in a unique order, like the rest, so no row can fall between two pages.
+  subteamMembers: await fetchAllIfThere('subteam_members', 'subteam,username', 'subteam,username'),
 };
 
 // Domains belong to a subteam by id, but a subteam may have been deleted and added again since the backup
@@ -191,6 +210,33 @@ items = items.map((i) => {
   notes.push(`#${i.number} ${i.title}: comes back without ${gone.join(', ')}, no longer a member`);
   return { ...i, assignees: i.assignees.filter((u) => memberNames.has(u)) };
 });
+// Who was in which subteam: by the subteam's name, as it may have been deleted and added again since (a new
+// id), for members on the board or coming back. Only with a full restore.
+const restoredOptionIds = new Set(options.map((o) => o.id));
+const subteamIdNow = (id) => {
+  const name = subteamNameById.get(id);
+  return (name && liveSubteamIdByName.get(name.toLowerCase())) ?? (restoredOptionIds.has(id) ? id : null);
+};
+const membershipKey = (subteam, username) => `${subteam}\u0000${username}`;
+const liveMemberships = new Set((live.subteamMembers ?? []).map((r) => membershipKey(r.subteam, r.username)));
+const memberships = [];
+if (!onlyNumbers && backup.subteamMembers && live.subteamMembers) {
+  for (const row of backup.subteamMembers) {
+    const subteam = subteamIdNow(row.subteam);
+    if (!subteam || !memberNames.has(row.username) || liveMemberships.has(membershipKey(subteam, row.username))) continue;
+    liveMemberships.add(membershipKey(subteam, row.username));
+    memberships.push({ ...row, subteam });
+  }
+} else if (!onlyNumbers && live.subteamMembers) {
+  notes.push(
+    'This backup has no subteam_members.json, so who was in which subteam is left out. (It was taken before ' +
+      'Subteam members, or before the backups repo was brought up to date: node scripts/setup-backups.mjs --update.)',
+  );
+} else if (!onlyNumbers && backup.subteamMembers?.length) {
+  notes.push('The board has no Subteam members yet (its schema is older), so who was in which subteam is left out.');
+}
+const membershipLabel = (r) => `${r.username} in ${subteamNameById.get(r.subteam) ?? r.subteam}`;
+
 // Parent tasks before their subtasks (a subtask points at its parent, so the parent must be there first).
 items = items.sort((a, b) => Number(!!a.parent_id) - Number(!!b.parent_id));
 // A taken number means another task has it now: the restored task gets the next free number instead.
@@ -229,9 +275,10 @@ for (const item of items) {
   const note = item.number === null ? `  (#${original.number} is taken now: gets a new number)` : '';
   console.log(`  #${original.number} ${original.title}${original.archived ? ' [archived]' : ''}${note}`);
 }
-console.log(`History to add:  ${activity.length} entries for ${new Set(activity.map((a) => a.item_id)).size} task(s)\n`);
+console.log(`History to add:  ${activity.length} entries for ${new Set(activity.map((a) => a.item_id)).size} task(s)`);
+console.log(`Subteam members: ${memberships.length}${memberships.length ? `  (${list(memberships, membershipLabel)})` : ''}\n`);
 
-if (!members.length && !options.length && !items.length && !activity.length) {
+if (!members.length && !options.length && !items.length && !activity.length && !memberships.length) {
   console.log('Nothing is missing. Nothing to do.');
 } else if (!args.yes) {
   console.log('Dry run: nothing was changed. Add --yes to restore the rows above.');
@@ -240,9 +287,9 @@ if (!members.length && !options.length && !items.length && !activity.length) {
 }
 
 // ------------------------------------------------------------------------------------- restore
-// Order matters: members first (tasks and leads refer to them), then options (tasks use their names;
-// subteams before their domains), then tasks, then history. One row at a time, so one bad row doesn't
-// stop the rest.
+// Order matters: members first (tasks, leads and subteam members refer to them), then options (tasks use
+// their names; subteams before their domains), then who is in which subteam, then tasks, then history. One
+// row at a time, so one bad row doesn't stop the rest.
 
 async function restore() {
   let failures = 0;
@@ -290,6 +337,8 @@ async function restore() {
 
   await insertEach('members', members, (m) => `member ${m.username}`);
   await insertEach('field_options', options, optionLabel);
+  // Who put them in, and when, are kept (the database only sets them for a member's own change).
+  await insertEach('subteam_members', memberships, membershipLabel);
   await insertEach('items', items, (i) => `task "${i.title}"`, itemFallback);
   let historyAdded = 0;
   for (let start = 0; start < activity.length; start += 500) {

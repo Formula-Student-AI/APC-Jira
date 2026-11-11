@@ -247,6 +247,15 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* Why a change to the row couldn't be saved: under the whole row, and atop the Add members menu while it is
+   open (it covers the row's copy). */
+.settings-lead-error {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+.settings-menu-error {
+  margin: 2px 4px 8px;
+}
 
 @media (max-width: 560px) {
   .settings-add-member {
@@ -287,4 +296,13 @@
   height: 100%;
   border-radius: 999px;
   background: var(--accent);
+}
+
+/* Subteam members: how many are in each subteam, and who is not in one yet. */
+.settings-member-count {
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+.settings-unassigned {
+  margin-top: 12px;
 }

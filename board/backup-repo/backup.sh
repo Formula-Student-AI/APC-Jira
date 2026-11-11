@@ -25,7 +25,7 @@ for attempt in 1 2 3; do
 done
 
 # Every file must be JSON, and each table must have as many rows as the manifest counted.
-for table in members field_options items activity; do
+for table in members field_options items activity subteam_members; do
   rows="$(jq length "$work/$table.json")"
   expected="$(jq ".counts.$table" "$work/manifest.json")"
   if [ "$rows" != "$expected" ]; then

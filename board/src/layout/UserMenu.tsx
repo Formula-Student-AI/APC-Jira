@@ -5,6 +5,7 @@ import {
   GearIcon,
   ListUnorderedIcon,
   MoonIcon,
+  PeopleIcon,
   PencilIcon,
   SunIcon,
 } from '@primer/octicons-react'
@@ -12,6 +13,7 @@ import { useId, useState, type FormEvent } from 'react'
 import { setThemeChoice, useThemeChoice, type ThemeChoice } from '../lib/theme'
 import { BoardSettingsDialog } from '../settings/BoardSettingsDialog'
 import { DomainsDialog } from '../settings/DomainsEditor'
+import { SubteamMembersDialog } from '../settings/SubteamMembersEditor'
 import { errorText, setMyName, switchUser } from '../store/auth'
 import { useDomainSubteams, useHasBoardAdminRole, useIsBoardAdmin, useMe } from '../store/hooks'
 import { Avatar } from '../ui/Avatar'
@@ -20,15 +22,15 @@ import { Modal } from '../ui/Modal'
 
 /**
  * The signed-in member: name, board admin status, "Edit my name", "Board settings" (board admins),
- * "Subteam domains" (subteam leads) and "Switch user".
+ * "Subteam domains" and "Subteam members" (subteam leads) and "Switch user".
  */
 export function UserMenu() {
   const member = useMe()
   const adminActive = useIsBoardAdmin()
   const adminRole = useHasBoardAdminRole()
-  // Board admins edit domains in Board settings; leads get their own entry.
+  // Board admins edit domains and who is in each subteam in Board settings; leads get their own entries.
   const leadsDomains = useDomainSubteams().length > 0 && !adminActive
-  const [dialog, setDialog] = useState<'name' | 'settings' | 'domains' | null>(null)
+  const [dialog, setDialog] = useState<'name' | 'settings' | 'domains' | 'members' | null>(null)
   const themeLabelId = useId()
   if (!member) return null
 
@@ -73,6 +75,11 @@ export function UserMenu() {
                 <ListUnorderedIcon /> Subteam domains
               </button>
             )}
+            {leadsDomains && (
+              <button type="button" className="menu-item" onClick={() => { close(); setDialog('members') }}>
+                <PeopleIcon /> Subteam members
+              </button>
+            )}
             <button type="button" className="menu-item" onClick={() => { close(); void switchUser() }}>
               <ArrowSwitchIcon /> Switch user
             </button>
@@ -87,6 +94,7 @@ export function UserMenu() {
       {dialog === 'name' && <EditNameDialog current={member.full_name} onClose={() => setDialog(null)} />}
       {dialog === 'settings' && <BoardSettingsDialog onClose={() => setDialog(null)} />}
       {dialog === 'domains' && <DomainsDialog onClose={() => setDialog(null)} />}
+      {dialog === 'members' && <SubteamMembersDialog onClose={() => setDialog(null)} />}
     </>
   )
 }

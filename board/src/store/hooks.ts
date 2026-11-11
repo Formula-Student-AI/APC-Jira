@@ -40,8 +40,9 @@ export function useDomains(subteam: string | null | undefined): FieldOption[] {
   return useMemo(() => domainsOf(options, subteam), [options, subteam])
 }
 
-/** The subteams whose domains you may manage: every one for a board admin, otherwise the ones you lead. */
-export function useDomainSubteams(): FieldOption[] {
+/** The subteams you look after (their domains, and who is in them): every one for a board admin, otherwise the
+ *  ones you lead, as the database decides (on a trusted session). */
+export function useManagedSubteams(): FieldOption[] {
   const subteams = useFieldOptions('subteam')
   const me = useAuth((s) => s.member)
   const adminActive = useAuth((s) => s.adminActive)
@@ -50,6 +51,11 @@ export function useDomainSubteams(): FieldOption[] {
     () => subteams.filter((subteam) => canManageDomains(subteam, me, { adminActive, sessionTrusted })),
     [subteams, me, adminActive, sessionTrusted],
   )
+}
+
+/** The subteams whose domains you may manage (useManagedSubteams). */
+export function useDomainSubteams(): FieldOption[] {
+  return useManagedSubteams()
 }
 
 /** May you add domains to this subteam (and rename, reorder or delete them)? */

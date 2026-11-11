@@ -1,4 +1,5 @@
-// Board settings (board admins only): subteam leads, each subteam's domains, dropdown options and members.
+// Board settings (board admins only): subteam leads, who is in each subteam, each subteam's domains, dropdown
+// options and members.
 // The database checks every change too, so this is a convenience, not the security boundary.
 
 import { CheckIcon, PlusIcon, TrashIcon, XIcon } from '@primer/octicons-react'
@@ -19,13 +20,15 @@ import { OptionDot } from '../ui/OptionChip'
 import { DomainsEditor } from './DomainsEditor'
 import { deletionText, memberUse } from './memberDeletion'
 import { AddOptionForm, OptionRow } from './OptionEditor'
+import { SubteamMembersEditor } from './SubteamMembersEditor'
 import { useBusy } from './useBusy'
 import './settings.css'
 
-type Tab = 'leads' | 'domains' | 'options' | 'members'
+type Tab = 'leads' | 'subteam-members' | 'domains' | 'options' | 'members'
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'leads', label: 'Subteam leads' },
+  { id: 'subteam-members', label: 'Subteam members' },
   { id: 'domains', label: 'Domains' },
   { id: 'options', label: 'Dropdown options' },
   { id: 'members', label: 'Members' },
@@ -47,6 +50,7 @@ export function BoardSettingsDialog({ onClose }: { onClose: () => void }) {
         ))}
       </div>
       {tab === 'leads' && <LeadsTab />}
+      {tab === 'subteam-members' && <SubteamMembersEditor />}
       {tab === 'domains' && <DomainsEditor />}
       {tab === 'options' && <OptionsTab />}
       {tab === 'members' && <MembersTab />}
@@ -364,9 +368,10 @@ interface DeleteMemberQuestionProps {
 function DeleteMemberQuestion({ id, member, busy, error, onDelete, onKeep }: DeleteMemberQuestionProps) {
   const items = useBoard((s) => s.items)
   const options = useBoard((s) => s.options)
+  const subteamMembers = useBoard((s) => s.subteamMembers)
   const text = useMemo(
-    () => deletionText(memberUse(Object.values(items), options, member.username)),
-    [items, options, member.username],
+    () => deletionText(memberUse(Object.values(items), options, member.username, subteamMembers)),
+    [items, options, member.username, subteamMembers],
   )
   const textId = useId()
   const keepButton = useRef<HTMLButtonElement>(null)

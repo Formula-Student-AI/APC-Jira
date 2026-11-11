@@ -9,7 +9,7 @@ import { errorMessage } from '../lib/format'
 import { linkTypeProblem, withNumber, type LinkType } from '../lib/links'
 import { sortOptions } from '../lib/options'
 import { supabase } from '../lib/supabase'
-import type { Activity, Attachment, FieldOption, Item, ItemExtra, ItemPatch, Member, NewItem } from '../types'
+import type { Activity, Attachment, FieldOption, Item, ItemExtra, ItemPatch, Member, NewItem, SubteamMember } from '../types'
 import { currentUsername, refreshSession } from './auth'
 
 export type LoadState = 'idle' | 'loading' | 'ready' | 'error'
@@ -37,6 +37,8 @@ export interface BoardState {
   activity: Record<string, Activity[]>
   /** Attachments (images) per item id, oldest first */
   attachments: Record<string, Attachment[]>
+  /** Who is in which subteam (a record only: it changes no task), oldest first */
+  subteamMembers: SubteamMember[]
   load: LoadState
   loadError: string | null
   live: LiveState
@@ -52,6 +54,7 @@ const initialState: BoardState = {
   options: [],
   activity: {},
   attachments: {},
+  subteamMembers: [],
   load: 'idle',
   loadError: null,
   live: 'connecting',
@@ -160,17 +163,31 @@ async function fetchAll<T>(table: string, orderBy: string): Promise<T[]> {
 }
 
 let loadSeq = 0
+/**
+ * Counts every change to who is in which subteam on this device: made here, saved, heard live or read. A read
+ * of the list that began before the latest change may be out of date, so it isn't put in place (see
+ * loadSubteamMembers).
+ */
+let membershipEdits = 0
+/**
+ * Changes to the list on their way to the database. A read made meanwhile may be from before they were saved,
+ * so it is set aside, and the last of them to finish reads the list again (if one was set aside).
+ */
+let membershipSaves = 0
+let membershipReadOwed = false
 
 /** Fetch everything. Used at start-up and after every (re)connect so nothing missed offline is lost. */
 export async function loadBoard(): Promise<void> {
   const seq = ++loadSeq
+  const edits = membershipEdits
   if (get().load !== 'ready') set({ load: 'loading', loadError: null })
   try {
-    const [items, members, options, attachments] = await Promise.all([
+    const [items, members, options, attachments, subteamMembers] = await Promise.all([
       fetchAll<Item>('items', 'number'),
       fetchAll<Member>('members', 'username'),
       fetchAll<FieldOption>('field_options', 'sort_order'),
       fetchAll<Attachment>('attachments', 'created_at'),
+      readSubteamMembers(),
     ])
     if (seq !== loadSeq) return // a newer load started meanwhile
     // This device is no longer signed in as a member (deleted, say, while it was offline): the database
@@ -180,6 +197,11 @@ export async function loadBoard(): Promise<void> {
       void refreshSession()
       return
     }
+    // Who is in which subteam changed while this was read (a change made here, or heard live), or a change is
+    // still being saved: keep the list as it is now and read it again, rather than put back what it was.
+    const membershipRead = subteamMembers && membershipReadIsCurrent(edits) ? subteamMembers : null
+    if (membershipRead) membershipEdits++
+    else if (subteamMembers) readSubteamMembersAgain()
     set((s) => {
       const base: Record<string, Item> = {}
       for (const row of items) {
@@ -200,6 +222,7 @@ export async function loadBoard(): Promise<void> {
         members: Object.fromEntries(members.map((m) => [m.username, m])),
         options: sortOptions(options),
         attachments: groupAttachments(attachments),
+        subteamMembers: membershipRead ?? s.subteamMembers,
         load: 'ready',
         loadError: null,
       }
@@ -233,7 +256,15 @@ export async function loadActivity(itemId: string): Promise<void> {
 // ---------------------------------------------------------------------------
 
 let channel: RealtimeChannel | null = null
+let membershipChannel: RealtimeChannel | null = null
 let hiddenSince: number | null = null
+
+/** A `system` message on a channel: with extension 'postgres_changes', whether the server streams its changes. */
+interface StreamStatus {
+  extension?: string
+  status?: string
+  message?: string
+}
 
 function onItemChange(payload: RealtimePostgresChangesPayload<Item>): void {
   if (payload.eventType === 'DELETE') {
@@ -245,12 +276,14 @@ function onItemChange(payload: RealtimePostgresChangesPayload<Item>): void {
 }
 
 function removeMember(username: string): void {
+  if (!(username in get().members)) return // already gone (deleted here, then the realtime echo)
   set((s) => {
-    if (!(username in s.members)) return s // already gone (deleted here, then the realtime echo)
     const members = { ...s.members }
     delete members[username]
     return { members }
   })
+  // The database takes them out of their subteams too.
+  changeSubteamMembers((rows) => rows.filter((row) => row.username !== username))
 }
 
 function onMemberChange(payload: RealtimePostgresChangesPayload<Member>): void {
@@ -275,10 +308,132 @@ function putOption(option: FieldOption): void {
 function onOptionChange(payload: RealtimePostgresChangesPayload<FieldOption>): void {
   if (payload.eventType === 'DELETE') {
     const id = (payload.old as Partial<FieldOption>).id
-    set((s) => ({ options: s.options.filter((o) => o.id !== id) }))
+    if (id) dropOption(id)
     return
   }
   putOption(payload.new as FieldOption)
+}
+
+function dropOption(id: string): void {
+  set((s) => ({ options: s.options.filter((o) => o.id !== id) }))
+  // A deleted subteam's members go with it, in the database as here.
+  changeSubteamMembers((rows) => rows.filter((row) => row.subteam !== id))
+}
+
+// ---------------------------------------------------------------------------
+// Subteam members: who is in which subteam (a record only: it changes no task)
+// ---------------------------------------------------------------------------
+
+const sameMembership = (row: SubteamMember, subteam: string, username: string) => row.subteam === subteam && row.username === username
+
+/** Every change to the list of who is in which subteam goes through here (see membershipEdits). */
+function changeSubteamMembers(change: (rows: SubteamMember[]) => SubteamMember[]): void {
+  membershipEdits++
+  set((s) => ({ subteamMembers: change(s.subteamMembers) }))
+}
+
+function putSubteamMember(row: SubteamMember): void {
+  changeSubteamMembers((rows) => [...rows.filter((r) => !sameMembership(r, row.subteam, row.username)), row])
+}
+
+function dropSubteamMember(subteam: string, username: string): void {
+  changeSubteamMembers((rows) => rows.filter((r) => !sameMembership(r, subteam, username)))
+}
+
+function onSubteamMemberChange(payload: RealtimePostgresChangesPayload<SubteamMember>): void {
+  if (payload.eventType === 'DELETE') {
+    const old = payload.old as Partial<SubteamMember>
+    if (old.subteam && old.username) dropSubteamMember(old.subteam, old.username)
+    return
+  }
+  putSubteamMember(payload.new as SubteamMember)
+}
+
+/**
+ * The whole list, or null if it can't be read. It is only a record, which nothing else on the board needs,
+ * so the board still loads without it (say the database is a step behind this page), keeping the list it had.
+ */
+function readSubteamMembers(): Promise<SubteamMember[] | null> {
+  return fetchAll<SubteamMember>('subteam_members', 'added_at').catch((error: unknown) => {
+    console.warn(`Couldn't read the subteam members: ${errorMessage(error)}`)
+    return null
+  })
+}
+
+/** Whether a read of the list that began at `edits` can be shown: nothing changed since, and nothing is being saved. */
+function membershipReadIsCurrent(edits: number): boolean {
+  return edits === membershipEdits && membershipSaves === 0
+}
+
+/** Read the list again: now, or (while changes are being saved) once the last of them is. */
+function readSubteamMembersAgain(): void {
+  if (membershipSaves > 0) membershipReadOwed = true
+  else void loadSubteamMembers()
+}
+
+/** Read who is in which subteam again (only that), and show it unless it changed meanwhile: then read again. */
+async function loadSubteamMembers(): Promise<void> {
+  const seq = loadSeq
+  const edits = membershipEdits
+  const rows = await readSubteamMembers()
+  // Signed out, or a full load started meanwhile (it reads the list too); or the list couldn't be read.
+  if (seq !== loadSeq || !rows) return
+  if (!membershipReadIsCurrent(edits)) return readSubteamMembersAgain()
+  changeSubteamMembers(() => rows)
+}
+
+/**
+ * Puts a member in a subteam (`subteam` is its option id), or takes them out: the record of who is in which
+ * subteam, which board admins and the subteam's leads keep. It changes no task, assignee or lead. Shown at
+ * once, and put back if the database refuses. Returns why it couldn't be saved (to show beside the list:
+ * a toast would be hidden behind the dialog it is in), or null once it is.
+ */
+export async function setSubteamMember(subteam: string, username: string, inSubteam: boolean): Promise<string | null> {
+  const had = get().subteamMembers.find((row) => sameMembership(row, subteam, username))
+  if (inSubteam === !!had) return null
+  const name = get().members[username]?.full_name ?? username
+  const team = get().options.find((option) => option.id === subteam)?.name ?? 'the subteam'
+  if (inSubteam) putSubteamMember({ subteam, username, added_by: currentUsername(), added_at: new Date().toISOString() })
+  else dropSubteamMember(subteam, username)
+  membershipSaves++
+  const problem = await (inSubteam ? insertMembership(subteam, username) : deleteMembership(subteam, username)).finally(() => {
+    membershipSaves--
+    // A read of the list that began while this was on its way may be from before it was saved.
+    membershipEdits++
+  })
+  if (problem) {
+    if (inSubteam) dropSubteamMember(subteam, username)
+    else if (had) putSubteamMember(had)
+  }
+  if (membershipSaves === 0 && membershipReadOwed) {
+    membershipReadOwed = false
+    void loadSubteamMembers()
+  }
+  if (!problem) return null
+  return inSubteam ? `Couldn't add ${name} to ${team}: ${problem}` : `Couldn't take ${name} out of ${team}: ${problem}`
+}
+
+const NOT_ALLOWED = 'only board admins and its leads can.'
+
+async function insertMembership(subteam: string, username: string): Promise<string | null> {
+  const { error } = await supabase.from('subteam_members').insert({ subteam, username })
+  // 23505: someone else put them in at the same moment, which is what was wanted.
+  if (!error || error.code === '23505') return null
+  return error.code === '42501' ? NOT_ALLOWED : errorMessage(error)
+}
+
+async function deleteMembership(subteam: string, username: string): Promise<string | null> {
+  const { data, error } = await supabase.from('subteam_members').delete().eq('subteam', subteam).eq('username', username).select('username')
+  if (error) return errorMessage(error)
+  if (data.length > 0) return null
+  // Nothing was deleted: either someone else took them out already, or this session may not. Look again.
+  const { data: still, error: lookError } = await supabase
+    .from('subteam_members')
+    .select('username')
+    .eq('subteam', subteam)
+    .eq('username', username)
+  if (lookError) return errorMessage(lookError)
+  return still.length === 0 ? null : NOT_ALLOWED
 }
 
 // ---------------------------------------------------------------------------
@@ -361,10 +516,18 @@ export function startBoard(): void {
     .on('postgres_changes', { event: '*', schema: 'public', table: 'field_options' }, onOptionChange)
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'activity' }, onActivityInsert)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'attachments' }, onAttachmentChange)
-    .on('system', {}, (payload: { extension?: string; status?: string }) => {
-      // Sent once the server really streams database changes for this channel (just after SUBSCRIBED).
-      // Refetch then, so nothing changed between the last load and this moment is missed.
-      if (payload?.extension === 'postgres_changes' && payload.status === 'ok') void loadBoard()
+    .on('system', {}, (payload: StreamStatus) => {
+      if (payload?.extension !== 'postgres_changes') return
+      if (payload.status === 'ok') {
+        // Sent once the server really streams database changes for this channel (just after SUBSCRIBED, or
+        // when a failed try below succeeds). Refetch then, so nothing changed before this moment is missed.
+        set({ live: 'live' })
+        void loadBoard()
+      } else if (payload.status === 'error') {
+        // Joined, but the server can't stream the changes (it tries again shortly): this board isn't live.
+        console.warn(`Live updates stopped: ${payload.message ?? 'no reason given'}`)
+        set({ live: navigator.onLine ? 'reconnecting' : 'offline' })
+      }
     })
     .subscribe((status) => {
       if (status === 'SUBSCRIBED') {
@@ -376,6 +539,18 @@ export function startBoard(): void {
         if (channel) set({ live: navigator.onLine ? 'reconnecting' : 'offline' })
       }
     })
+  // Who is in which subteam has a channel of its own, so that if its table can't be streamed (say the
+  // database is a step behind this page) the rest of the board stays live. It reconnects with the socket.
+  membershipChannel = supabase
+    .channel('subteam-members-changes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'subteam_members' }, onSubteamMemberChange)
+    .on('system', {}, (payload: StreamStatus) => {
+      if (payload?.extension !== 'postgres_changes') return
+      // Streaming now: read the list again so nothing changed before this moment is missed.
+      if (payload.status === 'ok') void loadSubteamMembers()
+      else if (payload.status === 'error') console.warn(`Live updates of the subteam members stopped: ${payload.message ?? 'no reason given'}`)
+    })
+    .subscribe()
   window.addEventListener('online', onOnline)
   window.addEventListener('offline', onOffline)
   document.addEventListener('visibilitychange', onVisibility)
@@ -386,9 +561,9 @@ export function stopBoard(): void {
   window.removeEventListener('online', onOnline)
   window.removeEventListener('offline', onOffline)
   document.removeEventListener('visibilitychange', onVisibility)
-  const current = channel
+  for (const current of [channel, membershipChannel]) if (current) void supabase.removeChannel(current)
   channel = null
-  if (current) void supabase.removeChannel(current)
+  membershipChannel = null
   loadSeq++
   pendingCreates.clear()
   for (const key of Object.keys(inFlight)) delete inFlight[key]
@@ -648,7 +823,7 @@ export async function deleteOption(id: string): Promise<boolean> {
     pushToast('error', `Couldn't delete the option: ${error?.message ?? "you're not allowed to delete it, or it no longer exists"}`)
     return false
   }
-  set((s) => ({ options: s.options.filter((o) => o.id !== id) }))
+  dropOption(id)
   return true
 }
 

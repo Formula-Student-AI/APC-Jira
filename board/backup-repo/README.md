@@ -17,6 +17,7 @@ Keep it private and don't copy the backups anywhere public.
 | `members.json` | Members, board admins and retired members |
 | `field_options.json` | Statuses, subteams (with their leads), priorities and each subteam's domains |
 | `board_settings.json` | Login mode and the other board settings |
+| `subteam_members.json` | Who is in which subteam (only in backups taken since that was added, in November 2026) |
 | `manifest.json` | When the snapshot was taken and how many rows each file has |
 
 The newest 30 snapshots (about three months) stay in the folder. Older ones are still in the git
@@ -31,6 +32,8 @@ change it. Its connection string is stored in this repository's `BACKUP_DATABASE
 
 - **Back up now:** Actions → Backup → Run workflow.
 - **If a run fails,** GitHub emails whoever last changed the workflow file.
+- **Don't edit these files here.** They are kept in APC-Jira's `board/backup-repo/`: change and commit them
+  there, apply the schema, then run `node scripts/setup-backups.mjs --update` from `APC-Jira/board`.
 
 ## Restoring
 

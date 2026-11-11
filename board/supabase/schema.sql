@@ -12,7 +12,7 @@
 --   attributed to that member by triggers, never by anything the browser sends.
 -- * Only sessions linked to a member can read or change the board.
 -- * Board-admin powers (hard delete, dropdown options, members), and subteam leads' powers over their
---   subteam's domains, need a verified-email session, unless board_settings.trust_mode_admins is switched
+--   subteam's domains and its list of members, need a verified-email session, unless board_settings.trust_mode_admins is switched
 --   on. In trust mode anyone can sign in as any username, so turning that on means anyone can use the
 --   admins' and leads' powers too.
 -- =============================================================================
@@ -1375,6 +1375,72 @@ create policy attachments_files_delete on storage.objects
   );
 
 -- -----------------------------------------------------------------------------
+-- Subteam members: who is in which subteam, a record kept by board admins, and by each subteam's leads for
+-- their own subteam. Nothing else reads it: it changes no task, assignee, lead or permission. A member can be
+-- in several subteams. The rows go when the member or the subteam is deleted (a subteam is only deleted
+-- once no task uses it, and renaming one keeps its id).
+-- -----------------------------------------------------------------------------
+
+create table if not exists public.subteam_members (
+  subteam   uuid not null references public.field_options (id) on delete cascade,
+  username  text not null references public.members (username) on delete cascade,
+  added_by  text,  -- member username (who put them in; kept if that member is deleted)
+  added_at  timestamptz not null default now(),
+  primary key (subteam, username)
+);
+comment on table public.subteam_members is
+  'Who is in which subteam: a record kept by board admins and subteam leads. It changes no task, assignee, lead or permission.';
+create index if not exists subteam_members_username_idx on public.subteam_members (username);
+
+-- Only a subteam has members. Who put them in, and when, are set here for a member's change, never by the
+-- browser; a restore from a backup (the secret key, no member) keeps the ones it brings back.
+create or replace function public.subteam_members_before_insert()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+declare
+  v_member text := public.current_member();
+begin
+  if not exists (select 1 from public.field_options o where o.id = new.subteam and o.field = 'subteam') then
+    raise exception 'Only a subteam has members' using errcode = '23514';
+  end if;
+  if v_member is not null then
+    new.added_by := v_member;
+    new.added_at := now();
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists subteam_members_before_insert on public.subteam_members;
+create trigger subteam_members_before_insert
+  before insert on public.subteam_members
+  for each row execute function public.subteam_members_before_insert();
+
+alter table public.subteam_members enable row level security;
+
+drop policy if exists subteam_members_read on public.subteam_members;
+create policy subteam_members_read on public.subteam_members
+  for select to authenticated using ((select public.current_member()) is not null);
+
+-- Board admins put anyone in any subteam, or take them out; a subteam's leads do so for their own subteam
+-- (both on a trusted session, as for their other powers). There is nothing to update: a row is in or out.
+drop policy if exists subteam_members_insert on public.subteam_members;
+create policy subteam_members_insert on public.subteam_members
+  for insert to authenticated
+  with check ((select public.is_board_admin()) or public.leads_subteam(subteam));
+
+drop policy if exists subteam_members_delete on public.subteam_members;
+create policy subteam_members_delete on public.subteam_members
+  for delete to authenticated
+  using ((select public.is_board_admin()) or public.leads_subteam(subteam));
+
+revoke all on table public.subteam_members from anon, authenticated;
+grant select, delete on table public.subteam_members to authenticated;
+grant insert (subteam, username) on table public.subteam_members to authenticated;
+
+-- -----------------------------------------------------------------------------
 -- Backups: a read-only login for the scheduled backup (GitHub Actions in the private
 -- Formula-Student-AI/APC-Jira-backups repo). It can read the board tables and change nothing.
 -- Its password is never in this file: it is set separately and kept only in that repo's Actions secret.
@@ -1390,14 +1456,15 @@ $$;
 alter role backup_reader set default_transaction_read_only = on;
 alter role backup_reader set statement_timeout = '60s';
 grant usage on schema public to backup_reader;
-grant select on table public.board_settings, public.members, public.field_options, public.items, public.activity
+grant select on table public.board_settings, public.members, public.field_options, public.items, public.activity,
+  public.subteam_members
   to backup_reader;
 
 do $$
 declare
   t text;
 begin
-  foreach t in array array['board_settings', 'members', 'field_options', 'items', 'activity'] loop
+  foreach t in array array['board_settings', 'members', 'field_options', 'items', 'activity', 'subteam_members'] loop
     execute format('drop policy if exists backup_read on public.%I', t);
     execute format('create policy backup_read on public.%I for select to backup_reader using (true)', t);
   end loop;
@@ -1415,7 +1482,7 @@ begin
   if not exists (select 1 from pg_publication where pubname = 'supabase_realtime') then
     create publication supabase_realtime;
   end if;
-  foreach t in array array['items', 'members', 'field_options', 'activity', 'attachments'] loop
+  foreach t in array array['items', 'members', 'field_options', 'activity', 'attachments', 'subteam_members'] loop
     if not exists (
       select 1 from pg_publication_tables
       where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = t
