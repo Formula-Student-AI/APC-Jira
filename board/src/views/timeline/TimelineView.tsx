@@ -12,6 +12,7 @@ import {
   lazy,
   Suspense,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -96,6 +97,9 @@ interface NameLines {
   line: Map<string, number>
   /** Lines used */
   count: number
+  /** Every name's stretch and line, Today's too: the strip above the first subteam is as tall as the
+   *  names in view need */
+  spans: (Stretch & { line: number })[]
 }
 
 type Measure = (text: string) => number
@@ -125,22 +129,27 @@ function useNameMeasure(): Measure {
 }
 
 /**
- * Lines for the names: Today first on the top line (when given), the milestones' names, then the phases'
- * on lines of their own below, each name on the top line where it clears the others (cascadeLines).
+ * Lines for the names, each on the top line where it clears the others (cascadeLines): Today first, on the
+ * top line (when given), then the milestones' names, then the phases', which take any room the milestones
+ * leave, so the cascade is no deeper than it must be.
  */
 function nameLines(markers: MilestoneMarker[], bands: PhaseBand[], todayX: number | null, measure: Measure): NameLines {
-  const stretch = (x: number, text: string, around: number): Stretch => {
+  const stretch = (id: string, x: number, text: string, around: number) => {
     const x0 = x + LABEL_INSET
     // 2 px spare for the difference between canvas and page text.
-    return { x0, x1: x0 + Math.min(NAME.max, around + measure(text)) + 2 }
+    return { id, x0, x1: x0 + Math.min(NAME.max, around + measure(text)) + 2 }
   }
-  const today = todayX === null ? [] : [stretch(todayX, 'Today', AROUND.today)]
-  const first = cascadeLines([...today, ...markers.map((marker) => stretch(marker.x, marker.title, AROUND.milestone))], NAME.gap)
-  const second = cascadeLines(bands.map((band) => stretch(band.x, band.title, AROUND.phase)), NAME.gap)
+  const names = [
+    ...(todayX === null ? [] : [stretch('', todayX, 'Today', AROUND.today)]),
+    ...markers.map((marker) => stretch(marker.id, marker.x, marker.title, AROUND.milestone)),
+    ...bands.map((band) => stretch(band.id, band.x, band.title, AROUND.phase)),
+  ]
+  const { lines, count } = cascadeLines(names, NAME.gap)
   const line = new Map<string, number>()
-  markers.forEach((marker, i) => line.set(marker.id, first.lines[i + today.length]))
-  bands.forEach((band, i) => line.set(band.id, first.count + second.lines[i]))
-  return { line, count: first.count + second.count }
+  names.forEach((name, i) => {
+    if (name.id) line.set(name.id, lines[i])
+  })
+  return { line, count, spans: names.map((name, i) => ({ x0: name.x0, x1: name.x1, line: lines[i] })) }
 }
 
 // Export is its own chunk, fetched ahead when the pointer or focus reaches its button. If it can't load
@@ -226,7 +235,6 @@ export function TimelineView({ view, query, teams }: TimelineViewProps) {
     () => new Map([...bySubteam].map(([subteam, own]) => [subteam, nameLines(own.markers, own.bands, null, measure)])),
     [bySubteam, measure],
   )
-  const namesH = topNames.count > 0 ? LABEL_INSET + topNames.count * NAME.topLine : 0
   // A heading grows when its subteam's names need more lines than its usual two.
   const headingH = useMemo(() => {
     const heights = new Map<string, number>()
@@ -247,7 +255,7 @@ export function TimelineView({ view, query, teams }: TimelineViewProps) {
 
   // Where "today" is, for scrolling after a zoom change or a click on Today (read in handlers only).
   const todayX = useRef(0)
-  useEffect(() => {
+  useLayoutEffect(() => {
     todayX.current = todayIndex * px
   })
 
@@ -256,11 +264,41 @@ export function TimelineView({ view, query, teams }: TimelineViewProps) {
     if (el) el.scrollLeft = Math.max(0, todayX.current - (el.clientWidth - labelWidth(el)) / 4)
   }
 
-  // Start with today about a quarter of the way across.
-  useEffect(() => {
+  // Start with today about a quarter of the way across, before the first paint, so the strip below is
+  // fitted to what is in view from the start.
+  useLayoutEffect(() => {
     const el = scrollRef.current
     if (el) el.scrollLeft = Math.max(0, todayX.current - (el.clientWidth - labelWidth(el)) / 4)
   }, [])
+
+  // The strip above the first subteam is only as tall as the names in view need (a line at least, for
+  // Today), so names further along the year never leave an empty band here. It follows the scrolling and
+  // the window's width through a CSS variable, without drawing the timeline again.
+  useLayoutEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+    let frame = 0
+    const fit = () => {
+      frame = 0
+      const left = el.scrollLeft
+      const right = left + el.clientWidth - labelWidth(el)
+      let lines = topNames.count > 0 ? 1 : 0
+      for (const span of topNames.spans) if (span.x1 > left && span.x0 < right) lines = Math.max(lines, span.line + 1)
+      el.style.setProperty('--tl-names-h', `${lines > 0 ? LABEL_INSET + lines * NAME.topLine : 0}px`)
+    }
+    const later = () => {
+      if (!frame) frame = requestAnimationFrame(fit)
+    }
+    fit()
+    el.addEventListener('scroll', later, { passive: true })
+    const resized = new ResizeObserver(later)
+    resized.observe(el)
+    return () => {
+      el.removeEventListener('scroll', later)
+      resized.disconnect()
+      if (frame) cancelAnimationFrame(frame)
+    }
+  }, [topNames])
 
   // Where focus was when Export opened, to put it back there on closing: Ctrl/Cmd+P opens Export from
   // wherever the user is (the filter box, a bar), and typing should carry on where it left off.
@@ -380,15 +418,8 @@ export function TimelineView({ view, query, teams }: TimelineViewProps) {
               bands={wholeTeam.bands}
               names={topNames}
             />
-            <LinkLayer
-              links={links}
-              top={namesH}
-              height={layout.height}
-              draft={linking.draft}
-              layerRef={layerRef}
-              draftPathRef={draftPathRef}
-            />
-            {namesH > 0 && <div className="tl-names" style={{ height: namesH }} aria-hidden="true" />}
+            <LinkLayer links={links} height={layout.height} draft={linking.draft} layerRef={layerRef} draftPathRef={draftPathRef} />
+            <div className="tl-names" aria-hidden="true" />
             {groups.map((group) => (
               <GroupRows
                 key={group.key}
@@ -513,18 +544,17 @@ function useLinking(
 
 interface LinkLayerProps {
   links: LinkLine[]
-  /** Where the first subteam starts, below the room for the whole team's names */
-  top: number
   height: number
   draft: LinkDraft | null
   layerRef: RefObject<SVGSVGElement | null>
   draftPathRef: RefObject<SVGPathElement | null>
 }
 
-/** The link lines, under the bars; also the line being dragged out of a bar. */
-function LinkLayer({ links, top, height, draft, layerRef, draftPathRef }: LinkLayerProps) {
+/** The link lines, under the bars; also the line being dragged out of a bar. It starts where the first
+ *  subteam does, below the strip for the whole team's names (--tl-names-h). */
+function LinkLayer({ links, height, draft, layerRef, draftPathRef }: LinkLayerProps) {
   return (
-    <svg ref={layerRef} className="tl-links" style={{ top }} height={Math.max(1, height)} aria-hidden="true">
+    <svg ref={layerRef} className="tl-links" height={Math.max(1, height)} aria-hidden="true">
       {links.map((link) => (
         <path key={link.key} className={`tl-link${link.clash ? ' tl-link-clash' : ''}`} d={link.path} />
       ))}

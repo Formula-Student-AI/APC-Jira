@@ -391,8 +391,10 @@
 /* The lines run under the bars, from the end of the blocking bar to the start of the blocked one. */
 .tl-links {
   position: absolute;
-  top: 0;
+  /* Below the strip for the whole team's names, moving with it as it fits the names in view. */
+  top: var(--tl-names-h, 0px);
   left: var(--tl-label-w);
+  transition: top 150ms ease;
   z-index: 1;
   width: var(--tl-width);
   overflow: visible;
@@ -619,9 +621,13 @@
 /* ------------------------------------------------------------ whose milestones and phases */
 
 /* Room above the first subteam for the names of Today and the whole team's milestones and phases, so at
-   rest they never sit on a subteam's own names in its heading row. The label column carries on beside it. */
+   rest they never sit on a subteam's own names in its heading row. TimelineView sets its height
+   (--tl-names-h) to what the names in view need, as the timeline scrolls; it eases, and the links with it.
+   The label column carries on beside it. */
 .tl-names {
   position: relative;
+  height: var(--tl-names-h, 0px);
+  transition: height 150ms ease;
 }
 .tl-names::before {
   content: '';
