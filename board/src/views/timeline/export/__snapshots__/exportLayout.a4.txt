@@ -1,0 +1,42 @@
+Page 1 of 1: Mechanical, Electrical, Autonomy and Whole team, 13 tasks
+841.89 × 593.86 pt, 358 prims (image 1, line 88, path 50, rect 58, text 161)
+  33.0  BRISTOL FORMULA STUDENT AI
+  35.0  Status as of 10 November 2026
+  45.0  13 tasks | · | 2 done | · | 1 blocked | · | 1 overdue | · | 2 at risk
+  48.0  2026–27 Plan
+  54.0  Next key date: Design freeze, 15 Dec 2026
+  59.0  Timeline · All subteams · Sep 2026 – Aug 2027
+  63.0  Prepared by Jane Smith
+  79.8  Note: | Updated after the October design review; chassis dates moved two weeks.
+  99.3  As of 10 Nov
+  99.6  2026 | 2027
+ 112.5  # | TASK | OWNER | DATES | STATUS | Sep | Oct | Nov | Dec | Jan | Feb | Mar | Apr | May | Jun | Jul | Aug
+ 126.0  PHASES | Concept | Detailed design | Manufacture | Testing
+ 138.0  Electrical bring-up
+ 152.0  KEY DATES | Kick-off | 7 Sep | Design freeze | 15 Dec | Battery sign-off | 20 Mar | · at risk
+ 163.0  Brake test | 1 Nov | · overdue | FS UK competition | 15 Jul
+ 174.0  FS UK 2028 entry | 1 Oct 2027
+ 194.7  Mechanical | Lead: Jane Smith · 6 tasks · 1 done · 1 overdue
+ 210.8  #101 | Chassis concept and frame layout | Jane Smith | 7 Sep – 16 Oct | Done
+ 225.8  #102 | Suspension geometry review | 3/5 | Alexandra… +2 | 5 Oct – 27 Nov | In progress
+ 239.6  #110 | Upright FEA | Sam Lee | 5 Oct – 30 Oct | Done
+ 253.8  #103 | Brake pedal box | Priya Patel | 1 Oct – 2 Nov | Overdue
+ 268.8  #105 | Wheel assembly drawings for the | Jane Smith | 2 Nov – 18 Dec | In progress
+ 278.8  2027 car, with uprights, hubs an…
+ 293.8  #104 | Steering rack mounting | Jane Smith | 16 Nov – 22 Jan | Not started
+ 308.8  #120 | Damper selection | · part of | Jane Smith | 1 Dec – 15 Jan | Not started
+ 318.8  Suspension package for the 2027…
+ 339.7  Electrical | Lead: Tom Brown +1 · 3 tasks · 1 blocked · 1 at risk
+ 355.8  #203 | BMS firmware | — | 15 Oct – 10 Dec | In progress
+ 370.8  #201 | Accumulator enclosure | Jane Smith | 12 Jan – 3 Mar | Blocked
+ 385.8  #202 | Wiring loom | Jane Smith | 20 Jul – 30 Sep 2027 | At risk
+ 406.7  Autonomy | 3 tasks · 1 done
+ 422.8  #301 | Perception pipeline | Jane Smith | 10 Aug – 30 Oct 2026 | Done
+ 437.8  #302 | Path planning | Jane Smith | 1 Nov – 26 Feb | Not started
+ 452.8  #303 | Sensor calibration | Jane Smith | Due 15 Mar | Not started
+ 473.7  Whole team | 1 task · 1 at risk
+ 489.8  #401 | Sponsor report | Chris Wong | 1 Dec – 5 Dec | At risk
+ 539.6  KEY | Mechanical | Electrical | Autonomy | Whole team | Not started | In progress | Done | Part done | Blocked | Overdue | At risk | Key date | Key date done
+ 548.6  Phase | As of 10 Nov 2026 | Dependency | Dates clash
+ 557.6  Overdue: due before 10 Nov 2026 and not done. At risk: waits on work that is blocked, overdue, or due after it starts.
+ 569.6  Bristol FSAI · 2026–27 Plan · Exported 10 Nov 2026, 14:32 | Page 1 of 1

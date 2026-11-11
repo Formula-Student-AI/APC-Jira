@@ -1,0 +1,27 @@
+Slide 1 of 1: Mechanical, Electrical and Autonomy, 32 tasks
+960 × 540 pt, 225 prims (image 1, line 60, path 13, rect 57, text 94)
+  30.9  BRISTOL FORMULA STUDENT AI
+  33.2  Status as of 10 November 2026
+  44.8  32 tasks | · | 12 done | · | 1 blocked | · | 2 overdue | · | 1 at risk
+  47.7  2026–27 Plan
+  60.4  Timeline · All subteams · summary by domain · Sep 2026 – Aug 2027
+  83.9  As of 10 Nov
+  84.3  2026 | 2027
+  99.1  WORKSTREAM | DONE | ISSUES | Sep | Oct | Nov | Dec | Jan | Feb | Mar | Apr | May | Jun | Jul | Aug
+ 115.1  PHASES | Concept | Detailed design | Manufacture | Testing
+ 130.1  Electrical bring-up
+ 146.6  KEY DATES | Kick-off | 7 Sep | Brake test | 1 Nov | · overdue | Battery sign-off | 20 Mar | · at risk
+ 159.6  Design freeze | 15 Dec | FS UK competition | 15 Jul
+ 172.6  FS UK 2028 entry | 1 Oct 2027
+ 196.4  Mechanical | 6/16 | 2 overdue | · | 1 blocked
+ 217.0  Chassis | 3/9 | —
+ 237.0  Suspension | 2/6 | 2 overdue | · | 1 blocked
+ 257.0  General | All done | —
+ 282.4  Electrical | 4/12 | 1 at risk
+ 303.0  Accumulator | 0/5 | 1 at risk
+ 323.0  Low voltage | 4/7 | —
+ 348.4  Autonomy | 2/4 | —
+ 369.0  Perception | 2/4 | —
+ 488.4  KEY | Mechanical | Electrical | Autonomy | Whole team | Key date | Key date done | Phase | As of 10 Nov 2026
+ 499.4  Overdue: due before 10 Nov 2026 and not done. At risk: waits on work that is blocked, overdue, or due after it starts.
+ 513.4  Bristol FSAI · 2026–27 Plan · Exported 10 Nov 2026, 14:32

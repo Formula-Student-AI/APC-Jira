@@ -12,6 +12,7 @@ import {
   min as earliest,
   startOfMonth,
 } from 'date-fns'
+import { PLAN_END, PLAN_START } from '../../config'
 import { parseDay, toDay } from '../../lib/format'
 import { byPosition } from '../../lib/position'
 import { withSubtasksUnderParents } from '../../lib/subtasks'
@@ -42,13 +43,15 @@ export interface Bar {
 export type DragMode = 'move' | 'start' | 'end'
 
 /**
- * The days to show: the 2026–27 plan year (Sep–Aug) at least, widened to cover every item's dates
+ * The days to show: the plan year (PLAN_START to PLAN_END) at least, widened to cover every item's dates
  * (plus some room) and today, in whole months.
  */
 export function computeRange(items: Item[], today: Date): Range {
   const dates = items.flatMap((item) => [parseDay(item.start_date), parseDay(item.due_date)]).filter((d): d is Date => d !== null)
-  const start = startOfMonth(earliest([new Date(2026, 8, 1), addDays(today, -30), ...dates.map((d) => addDays(d, -14))]))
-  const end = endOfMonth(latest([new Date(2027, 7, 31), addDays(today, 60), ...dates.map((d) => addDays(d, 30))]))
+  const planStart = parseDay(PLAN_START) ?? today
+  const planEnd = parseDay(PLAN_END) ?? today
+  const start = startOfMonth(earliest([planStart, addDays(today, -30), ...dates.map((d) => addDays(d, -14))]))
+  const end = endOfMonth(latest([planEnd, addDays(today, 60), ...dates.map((d) => addDays(d, 30))]))
   return { start, days: differenceInCalendarDays(end, start) + 1 }
 }
 
@@ -173,21 +176,33 @@ export function rowLayout(groups: TimelineGroup[], collapsed: ReadonlySet<string
   return { centres, height: y }
 }
 
+/** Sizes for linkPath: the row height, the S-curve's bend, the shortest run drawn as an S, and the loop. */
+export interface LinkPathSizes {
+  rowH: number
+  bend: number
+  minRun: number
+  loop: number
+}
+
+/** The Timeline's own sizes (the export passes smaller ones for print). */
+const SCREEN_LINK: LinkPathSizes = { rowH: ROW_H, bend: 40, minRun: 16, loop: 14 }
+
 /**
  * An SVG path from the end of one bar (x1, y1) to the start of another (x2, y2), in Jira's style: a
  * smooth S when there's room, or out to the right, along the gap between the rows and back in when the
  * second bar starts too early.
  */
-export function linkPath(x1: number, y1: number, x2: number, y2: number): string {
+export function linkPath(x1: number, y1: number, x2: number, y2: number, sizes: LinkPathSizes = SCREEN_LINK): string {
   const r = (n: number) => Math.round(n * 10) / 10
-  if (x2 - x1 >= 16) {
-    const bend = Math.min(40, (x2 - x1) / 2)
+  if (x2 - x1 >= sizes.minRun) {
+    const bend = Math.min(sizes.bend, (x2 - x1) / 2)
     return `M${r(x1)} ${r(y1)}C${r(x1 + bend)} ${r(y1)} ${r(x2 - bend)} ${r(y2)} ${r(x2)} ${r(y2)}`
   }
-  const gap = y2 > y1 ? y1 + ROW_H / 2 : y1 - ROW_H / 2
+  const gap = y2 > y1 ? y1 + sizes.rowH / 2 : y1 - sizes.rowH / 2
+  const loop = sizes.loop
   return (
-    `M${r(x1)} ${r(y1)}C${r(x1 + 14)} ${r(y1)} ${r(x1 + 14)} ${r(gap)} ${r(x1)} ${r(gap)}` +
-    `L${r(x2)} ${r(gap)}C${r(x2 - 14)} ${r(gap)} ${r(x2 - 14)} ${r(y2)} ${r(x2)} ${r(y2)}`
+    `M${r(x1)} ${r(y1)}C${r(x1 + loop)} ${r(y1)} ${r(x1 + loop)} ${r(gap)} ${r(x1)} ${r(gap)}` +
+    `L${r(x2)} ${r(gap)}C${r(x2 - loop)} ${r(gap)} ${r(x2 - loop)} ${r(y2)} ${r(x2)} ${r(y2)}`
   )
 }
 

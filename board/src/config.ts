@@ -2,7 +2,12 @@
 
 export const APP_NAME = 'Bristol FSAI Board'
 export const ORG_NAME = 'Bristol FSAI'
+/** The society's full name, for documents read outside the team (the Timeline export). */
+export const ORG_LONG_NAME = 'Bristol Formula Student AI'
 export const PLAN_LABEL = '2026–27 Plan'
+/** The plan year, whole days inclusive. The Timeline always shows it; update all three for 2027–28. */
+export const PLAN_START = '2026-09-01'
+export const PLAN_END = '2027-08-31'
 export const EMAIL_DOMAIN = 'bristol.ac.uk'
 
 export const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL ?? ''

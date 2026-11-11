@@ -1,0 +1,143 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 841.89 593.86" width="297mm" height="209.5mm" role="img" aria-label="Page 1 of 1: Mechanical, 5 tasks" font-family="&#x27;Geist Variable&#x27;, system-ui, -apple-system, &#x27;Segoe UI&#x27;, sans-serif" text-rendering="geometricPrecision" stroke-miterlimit="10">
+<rect width="841.89" height="593.86" fill="#ffffff"></rect>
+<image href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20426%20240%22%3E%3Crect%20width%3D%22426%22%20height%3D%22240%22%20rx%3D%2224%22%20fill%3D%22%23160035%22%2F%3E%3C%2Fsvg%3E" x="28" y="26" width="53" height="30"></image>
+<text x="89" y="33" fill="#626f86" font-family="&#x27;Geist Mono Variable&#x27;, ui-monospace, &#x27;SFMono-Regular&#x27;, Menlo, Consolas, monospace" font-size="6.5" font-weight="600">BRISTOL FORMULA STUDENT AI</text>
+<text x="89" y="48" fill="#160035" font-size="15" font-weight="600">2026–27 Plan</text>
+<text x="89" y="59" fill="#44546f" font-size="8" font-weight="400">Timeline · Mechanical · selected tasks · Sep 2026 – Aug 2027</text>
+<text x="813.89" y="35" fill="#172b4d" font-size="8.5" font-weight="600" text-anchor="end">Status as of 10 November 2026</text>
+<text x="813.89" y="45" fill="#172b4d" font-size="7.5" font-weight="400" text-anchor="end">5 tasks · 1 done · 1 blocked · 1 overdue · 1 at risk</text>
+<text x="813.89" y="54" fill="#172b4d" font-size="7.5" font-weight="400" text-anchor="end">Next key date: Design freeze, 15 Dec 2026</text>
+<text x="813.89" y="63" fill="#172b4d" font-size="7.5" font-weight="400" text-anchor="end">Prepared by Jane Smith</text>
+<line x1="28" y1="66.75" x2="813.89" y2="66.75" stroke="#ab1f2d" stroke-width="1.5"></line>
+<rect x="430" y="75" width="73.62" height="26" fill="#eef0f3"></rect>
+<text x="46" y="97" fill="#626f86" font-family="&#x27;Geist Mono Variable&#x27;, ui-monospace, &#x27;SFMono-Regular&#x27;, Menlo, Consolas, monospace" font-size="6.5" font-weight="600" text-anchor="end">#</text>
+<text x="54" y="97" fill="#626f86" font-family="&#x27;Geist Mono Variable&#x27;, ui-monospace, &#x27;SFMono-Regular&#x27;, Menlo, Consolas, monospace" font-size="6.5" font-weight="600">TASK</text>
+<text x="248" y="97" fill="#626f86" font-family="&#x27;Geist Mono Variable&#x27;, ui-monospace, &#x27;SFMono-Regular&#x27;, Menlo, Consolas, monospace" font-size="6.5" font-weight="600">OWNER</text>
+<text x="318" y="97" fill="#626f86" font-family="&#x27;Geist Mono Variable&#x27;, ui-monospace, &#x27;SFMono-Regular&#x27;, Menlo, Consolas, monospace" font-size="6.5" font-weight="600">DATES</text>
+<text x="372" y="97" fill="#626f86" font-family="&#x27;Geist Mono Variable&#x27;, ui-monospace, &#x27;SFMono-Regular&#x27;, Menlo, Consolas, monospace" font-size="6.5" font-weight="600">STATUS</text>
+<text x="434" y="85" fill="#172b4d" font-size="7.5" font-weight="600">2026</text>
+<text x="562.31" y="85" fill="#172b4d" font-size="7.5" font-weight="600">2027</text>
+<text x="445.78" y="97.5" fill="#44546f" font-size="7" font-weight="500" text-anchor="middle">Sep</text>
+<line x1="461.55" y1="88" x2="461.55" y2="101" stroke="#dcdfe4" stroke-width="0.5"></line>
+<text x="477.85" y="97.5" fill="#44546f" font-size="7" font-weight="500" text-anchor="middle">Oct</text>
+<line x1="494.16" y1="88" x2="494.16" y2="101" stroke="#dcdfe4" stroke-width="0.5"></line>
+<text x="509.93" y="97.5" fill="#44546f" font-size="7" font-weight="500" text-anchor="middle">Nov</text>
+<line x1="525.71" y1="88" x2="525.71" y2="101" stroke="#dcdfe4" stroke-width="0.5"></line>
+<text x="542.01" y="97.5" fill="#44546f" font-size="7" font-weight="500" text-anchor="middle">Dec</text>
+<line x1="558.31" y1="75" x2="558.31" y2="101" stroke="#b3b9c4" stroke-width="0.75"></line>
+<text x="574.62" y="97.5" fill="#44546f" font-size="7" font-weight="500" text-anchor="middle">Jan</text>
+<line x1="590.92" y1="88" x2="590.92" y2="101" stroke="#dcdfe4" stroke-width="0.5"></line>
+<text x="605.64" y="97.5" fill="#44546f" font-size="7" font-weight="500" text-anchor="middle">Feb</text>
+<line x1="620.37" y1="88" x2="620.37" y2="101" stroke="#dcdfe4" stroke-width="0.5"></line>
+<text x="636.67" y="97.5" fill="#44546f" font-size="7" font-weight="500" text-anchor="middle">Mar</text>
+<line x1="652.97" y1="88" x2="652.97" y2="101" stroke="#dcdfe4" stroke-width="0.5"></line>
+<text x="668.75" y="97.5" fill="#44546f" font-size="7" font-weight="500" text-anchor="middle">Apr</text>
+<line x1="684.52" y1="88" x2="684.52" y2="101" stroke="#dcdfe4" stroke-width="0.5"></line>
+<text x="700.83" y="97.5" fill="#44546f" font-size="7" font-weight="500" text-anchor="middle">May</text>
+<line x1="717.13" y1="88" x2="717.13" y2="101" stroke="#dcdfe4" stroke-width="0.5"></line>
+<text x="732.9" y="97.5" fill="#44546f" font-size="7" font-weight="500" text-anchor="middle">Jun</text>
+<line x1="748.68" y1="88" x2="748.68" y2="101" stroke="#dcdfe4" stroke-width="0.5"></line>
+<text x="764.98" y="97.5" fill="#44546f" font-size="7" font-weight="500" text-anchor="middle">Jul</text>
+<line x1="781.29" y1="88" x2="781.29" y2="101" stroke="#dcdfe4" stroke-width="0.5"></line>
+<text x="797.59" y="97.5" fill="#44546f" font-size="7" font-weight="500" text-anchor="middle">Aug</text>
+<rect x="483.62" y="77" width="40" height="9" rx="4.5" fill="#ab1f2d"></rect>
+<text x="503.62" y="83.6" fill="#ffffff" font-size="6.5" font-weight="600" text-anchor="middle">As of 10 Nov</text>
+<line x1="28" y1="101" x2="813.89" y2="101" stroke="#b3b9c4" stroke-width="0.75"></line>
+<text x="32" y="110.5" fill="#626f86" font-family="&#x27;Geist Mono Variable&#x27;, ui-monospace, &#x27;SFMono-Regular&#x27;, Menlo, Consolas, monospace" font-size="6.5" font-weight="600">PHASES</text>
+<path d="M430 103H483.62V113H430Z" fill="#e3e0e7"></path>
+<line x1="430" y1="103.5" x2="483.62" y2="103.5" stroke="#160035" stroke-width="1"></line>
+<text x="434" y="110.5" fill="#160035" font-size="7" font-weight="600">Concept</text>
+<rect x="483.62" y="103" width="90" height="10" fill="#e3e0e7" stroke="#160035" stroke-width="0.75"></rect>
+<text x="487.62" y="110.5" fill="#160035" font-size="7" font-weight="600">Detailed design</text>
+<text x="32" y="124.5" fill="#626f86" font-family="&#x27;Geist Mono Variable&#x27;, ui-monospace, &#x27;SFMono-Regular&#x27;, Menlo, Consolas, monospace" font-size="6.5" font-weight="600">KEY DATES</text>
+<path d="M540.43 118.5L543.93 122L540.43 125.5L536.93 122Z" fill="#ffffff" stroke="#160035" stroke-width="0.75"></path>
+<text x="547" y="124.5" fill="#172b4d" font-size="7" font-weight="600">Design freeze</text>
+<text x="594" y="124.5" fill="#44546f" font-size="7" font-weight="400">15 Dec</text>
+<rect x="28" y="133" width="785.89" height="18" fill="#f1f2f4"></rect>
+<rect x="28" y="133" width="3" height="18" fill="#1d7afc"></rect>
+<text x="35" y="145" fill="#160035" font-size="9" font-weight="600">Mechanical</text>
+<text x="92" y="145" fill="#44546f" font-size="7" font-weight="400">Lead: Jane Smith · 5 tasks · 1 done · 1 overdue</text>
+<rect x="430" y="140.5" width="383.89" height="3" fill="#1d7afc"></rect>
+<path d="M430.5 139.5V145.5M813.39 139.5V145.5" fill="none" stroke="#1d7afc" stroke-width="1"></path>
+<text x="46" y="161.5" fill="#626f86" font-family="&#x27;Geist Mono Variable&#x27;, ui-monospace, &#x27;SFMono-Regular&#x27;, Menlo, Consolas, monospace" font-size="7" font-weight="400" text-anchor="end">#124</text>
+<text x="54" y="161.5" fill="#172b4d" font-size="8" font-weight="400">Chassis design review &amp; sign-off &lt;draft&gt;</text>
+<text x="248" y="161.5" fill="#172b4d" font-size="7.5" font-weight="400">Jane Smith +2</text>
+<text x="318" y="161.5" fill="#172b4d" font-size="7.5" font-weight="400">4 Nov – 20 Dec</text>
+<path d="M375 155.5A3 3 0 1 1 375 161.5A3 3 0 1 1 375 155.5Z" fill="none" stroke="#172b4d" stroke-width="0.75"></path>
+<path d="M375 155.5A3 3 0 0 0 375 161.5Z" fill="#172b4d"></path>
+<text x="381" y="161.5" fill="#172b4d" font-size="7.5" font-weight="400">In progress</text>
+<rect x="497.31" y="154.5" width="48.38" height="8" rx="1.5" fill="#bbd7fe" stroke="#0055cc" stroke-width="0.5"></rect>
+<rect x="28" y="166" width="785.89" height="15" fill="#f7f8f9"></rect>
+<text x="46" y="176.5" fill="#626f86" font-family="&#x27;Geist Mono Variable&#x27;, ui-monospace, &#x27;SFMono-Regular&#x27;, Menlo, Consolas, monospace" font-size="7" font-weight="400" text-anchor="end">#125</text>
+<text x="54" y="176.5" fill="#172b4d" font-size="8" font-weight="400">Brake pedal box</text>
+<text x="248" y="176.5" fill="#172b4d" font-size="7.5" font-weight="400">Alexandra Smith</text>
+<text x="318" y="176.5" fill="#ae2e24" font-size="7.5" font-weight="600">1 Oct – 2 Nov</text>
+<path d="M375 170.5A3 3 0 1 1 375 176.5A3 3 0 1 1 375 170.5Z" fill="#c9372c"></path>
+<line x1="375" y1="171.6" x2="375" y2="174.1" stroke="#ffffff" stroke-width="0.9"></line>
+<rect x="374.55" y="174.7" width="0.9" height="0.9" fill="#ffffff"></rect>
+<text x="381" y="176.5" fill="#ae2e24" font-size="7.5" font-weight="600">Overdue</text>
+<rect x="461.55" y="169.5" width="34.71" height="8" rx="1.5" fill="#bbd7fe" stroke="#0055cc" stroke-width="0.5"></rect>
+<line x1="496.26" y1="169.5" x2="496.26" y2="177.5" stroke="#c9372c" stroke-width="1"></line>
+<line x1="496.26" y1="173.5" x2="503.62" y2="173.5" stroke="#c9372c" stroke-width="0.75" stroke-dasharray="1 1.5"></line>
+<text x="46" y="191.5" fill="#626f86" font-family="&#x27;Geist Mono Variable&#x27;, ui-monospace, &#x27;SFMono-Regular&#x27;, Menlo, Consolas, monospace" font-size="7" font-weight="400" text-anchor="end">#126</text>
+<text x="54" y="191.5" fill="#172b4d" font-size="8" font-weight="400">Accumulator enclosure</text>
+<text x="248" y="191.5" fill="#172b4d" font-size="7.5" font-weight="400">Sam Lee</text>
+<text x="318" y="191.5" fill="#172b4d" font-size="7.5" font-weight="400">12 Jan – 3 Mar 2027</text>
+<rect x="372" y="185.5" width="6" height="6" rx="1" fill="#c9372c"></rect>
+<text x="381" y="191.5" fill="#ae2e24" font-size="7.5" font-weight="600">Blocked</text>
+<rect x="571" y="184.5" width="51" height="8" rx="1.5" fill="#bbd7fe"></rect>
+<line x1="571" y1="192.5" x2="579" y2="184.5" stroke="#c9372c" stroke-width="0.5"></line>
+<line x1="573.5" y1="192.5" x2="581.5" y2="184.5" stroke="#c9372c" stroke-width="0.5"></line>
+<line x1="576" y1="192.5" x2="584" y2="184.5" stroke="#c9372c" stroke-width="0.5"></line>
+<line x1="578.5" y1="192.5" x2="586.5" y2="184.5" stroke="#c9372c" stroke-width="0.5"></line>
+<line x1="581" y1="192.5" x2="589" y2="184.5" stroke="#c9372c" stroke-width="0.5"></line>
+<line x1="583.5" y1="192.5" x2="591.5" y2="184.5" stroke="#c9372c" stroke-width="0.5"></line>
+<line x1="586" y1="192.5" x2="594" y2="184.5" stroke="#c9372c" stroke-width="0.5"></line>
+<line x1="588.5" y1="192.5" x2="596.5" y2="184.5" stroke="#c9372c" stroke-width="0.5"></line>
+<line x1="591" y1="192.5" x2="599" y2="184.5" stroke="#c9372c" stroke-width="0.5"></line>
+<line x1="593.5" y1="192.5" x2="601.5" y2="184.5" stroke="#c9372c" stroke-width="0.5"></line>
+<line x1="596" y1="192.5" x2="604" y2="184.5" stroke="#c9372c" stroke-width="0.5"></line>
+<line x1="598.5" y1="192.5" x2="606.5" y2="184.5" stroke="#c9372c" stroke-width="0.5"></line>
+<line x1="601" y1="192.5" x2="609" y2="184.5" stroke="#c9372c" stroke-width="0.5"></line>
+<line x1="603.5" y1="192.5" x2="611.5" y2="184.5" stroke="#c9372c" stroke-width="0.5"></line>
+<line x1="606" y1="192.5" x2="614" y2="184.5" stroke="#c9372c" stroke-width="0.5"></line>
+<line x1="608.5" y1="192.5" x2="616.5" y2="184.5" stroke="#c9372c" stroke-width="0.5"></line>
+<line x1="611" y1="192.5" x2="619" y2="184.5" stroke="#c9372c" stroke-width="0.5"></line>
+<line x1="613.5" y1="192.5" x2="621.5" y2="184.5" stroke="#c9372c" stroke-width="0.5"></line>
+<rect x="571" y="184.5" width="51" height="8" rx="1.5" fill="none" stroke="#c9372c" stroke-width="1"></rect>
+<rect x="28" y="196" width="785.89" height="15" fill="#f7f8f9"></rect>
+<text x="46" y="206.5" fill="#626f86" font-family="&#x27;Geist Mono Variable&#x27;, ui-monospace, &#x27;SFMono-Regular&#x27;, Menlo, Consolas, monospace" font-size="7" font-weight="400" text-anchor="end">#127</text>
+<text x="54" y="206.5" fill="#172b4d" font-size="8" font-weight="400">Frame jig</text>
+<text x="248" y="206.5" fill="#172b4d" font-size="7.5" font-weight="400">—</text>
+<text x="318" y="206.5" fill="#172b4d" font-size="7.5" font-weight="400">1 Sep – 30 Sep</text>
+<path d="M375 200.5A3 3 0 1 1 375 206.5A3 3 0 1 1 375 200.5Z" fill="#172b4d"></path>
+<text x="381" y="206.5" fill="#172b4d" font-size="7.5" font-weight="400">Done</text>
+<rect x="430" y="199.5" width="31.55" height="8" rx="1.5" fill="#1d7afc" stroke="#0055cc" stroke-width="0.5"></rect>
+<path d="M433 203.5L434.5 205L437.5 202" fill="none" stroke="#ffffff" stroke-width="1"></path>
+<text x="46" y="221.5" fill="#626f86" font-family="&#x27;Geist Mono Variable&#x27;, ui-monospace, &#x27;SFMono-Regular&#x27;, Menlo, Consolas, monospace" font-size="7" font-weight="400" text-anchor="end">#128</text>
+<text x="54" y="221.5" fill="#172b4d" font-size="8" font-weight="400">Wiring loom</text>
+<text x="248" y="221.5" fill="#172b4d" font-size="7.5" font-weight="400">Priya Patel</text>
+<text x="318" y="221.5" fill="#172b4d" font-size="7.5" font-weight="400">20 Jul – 30 Sep 2027</text>
+<path d="M375 215.5L378 220.7H372Z" fill="#e56910"></path>
+<text x="381" y="221.5" fill="#a54800" font-size="7.5" font-weight="600">At risk</text>
+<path d="M755.5 215.8L758 220.2H753Z" fill="#e56910"></path>
+<path d="M761.5 214.5H813.89V222.5H761.5A1.5 1.5 0 0 1 760 221V216A1.5 1.5 0 0 1 761.5 214.5Z" fill="#bbd7fe" stroke="#0055cc" stroke-width="0.5"></path>
+<path d="M808.39 216L810.89 218.5L808.39 221" fill="none" stroke="#0055cc" stroke-width="0.75"></path>
+<line x1="430" y1="75" x2="430" y2="226" stroke="#b3b9c4" stroke-width="0.75"></line>
+<line x1="540.43" y1="125.5" x2="540.43" y2="226" stroke="#160035" stroke-width="0.5" stroke-dasharray="2 2" opacity="0.5"></line>
+<line x1="503.62" y1="86" x2="503.62" y2="226" stroke="#ab1f2d" stroke-width="0.75"></line>
+<line x1="28" y1="540" x2="813.89" y2="540" stroke="#dcdfe4" stroke-width="0.5"></line>
+<text x="28" y="549" fill="#626f86" font-family="&#x27;Geist Mono Variable&#x27;, ui-monospace, &#x27;SFMono-Regular&#x27;, Menlo, Consolas, monospace" font-size="6.5" font-weight="600">KEY</text>
+<rect x="48" y="544" width="12" height="6" fill="#1d7afc"></rect>
+<text x="63" y="549" fill="#172b4d" font-size="6.5" font-weight="400">Mechanical</text>
+<rect x="110" y="544" width="12" height="6" rx="1.5" fill="#ffffff" stroke="#44546f" stroke-width="0.75"></rect>
+<text x="125" y="549" fill="#172b4d" font-size="6.5" font-weight="400">Not started</text>
+<rect x="170" y="544" width="12" height="6" rx="1.5" fill="#dadee3" stroke="#44546f" stroke-width="0.5"></rect>
+<text x="185" y="549" fill="#172b4d" font-size="6.5" font-weight="400">In progress</text>
+<path d="M236 543.5L239 546.5L236 549.5L233 546.5Z" fill="#8590a2" stroke="#44546f" stroke-width="0.75" fill-opacity="0.6" stroke-opacity="0.6"></path>
+<text x="243" y="549" fill="#172b4d" font-size="6.5" font-weight="400" opacity="0.8">Key date done</text>
+<line x1="300" y1="546.5" x2="310" y2="546.5" stroke="#ab1f2d" stroke-width="0.75"></line>
+<text x="313" y="549" fill="#172b4d" font-size="6.5" font-weight="400">As of 10 Nov 2026</text>
+<text x="28" y="558" fill="#44546f" font-size="6.5" font-weight="400">Overdue: due before 10 Nov 2026 and not done. At risk: waits on work that is blocked, overdue, or due after it starts.</text>
+<text x="28" y="569" fill="#44546f" font-size="6.5" font-weight="400">Bristol FSAI · 2026–27 Plan · Exported 10 Nov 2026, 14:32</text>
+<text x="813.89" y="569" fill="#172b4d" font-size="7" font-weight="600" text-anchor="end">Page 1 of 1</text></svg>

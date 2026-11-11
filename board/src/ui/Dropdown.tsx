@@ -27,13 +27,16 @@ export function Dropdown({ label, ariaLabel, buttonClassName = 'btn', align = 'l
       if (!wrapperRef.current?.contains(event.target as Node)) setOpen(false)
     }
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        // Close only this menu: not the dialog or panel it sits in.
-        event.preventDefault()
-        event.stopPropagation()
-        setOpen(false)
-        buttonRef.current?.focus()
-      }
+      if (event.key !== 'Escape') return
+      setOpen(false)
+      // A dialog opened over the open menu (Ctrl/Cmd+P's Export, say) gets the Escape as well: the menu,
+      // inert behind it, just closes, and its button can't take focus.
+      const dialog = document.querySelector('dialog[open]')
+      if (dialog && !dialog.contains(wrapperRef.current)) return
+      // Close only this menu: not the dialog or panel it sits in.
+      event.preventDefault()
+      event.stopPropagation()
+      buttonRef.current?.focus()
     }
     document.addEventListener('pointerdown', onPointerDown)
     document.addEventListener('keydown', onKeyDown, true)

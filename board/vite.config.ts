@@ -16,5 +16,7 @@ export default defineConfig({
   },
   test: {
     include: ['src/**/*.test.ts'],
+    // Vitest empties CSS imports unless asked; the export's palette test reads global.css with ?raw.
+    css: { include: [/global\.css/] },
   },
 })

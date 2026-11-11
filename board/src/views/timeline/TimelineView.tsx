@@ -3,11 +3,23 @@
 // Links between tasks are drawn as lines from the end of the blocking bar to the start of the blocked one
 // (red when the dates clash); drag from the round handle at either end of a bar onto another task to link them.
 // Milestones are diamonds on their date, each with a line across the whole timeline; phases are bands
-// shaded across the whole timeline over their dates.
+// shaded across the whole timeline over their dates. Export makes a PDF or slide images of what it shows.
 
 import { addDays } from 'date-fns'
-import { BlockedIcon, CalendarIcon, ChevronDownIcon, ChevronRightIcon } from '@primer/octicons-react'
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent, type RefObject } from 'react'
+import { BlockedIcon, CalendarIcon, ChevronDownIcon, ChevronRightIcon, DownloadIcon } from '@primer/octicons-react'
+import {
+  lazy,
+  Suspense,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ComponentType,
+  type CSSProperties,
+  type KeyboardEvent,
+  type PointerEvent,
+  type RefObject,
+} from 'react'
 import { isBlocked } from '../../fields'
 import { useToday } from '../../lib/clock'
 import { formatDay, formatDayRange, parseDay, toDay } from '../../lib/format'
@@ -24,6 +36,8 @@ import { OptionDot } from '../../ui/OptionChip'
 import type { TimelineViewConfig } from '../config'
 import { SubteamPicker } from '../SubteamPicker'
 import { filterWithSubteams, useShownSubteams } from '../subteams'
+import type { ExportDialogProps } from './export/ExportDialog'
+import { ExportUnavailable } from './export/ExportUnavailable'
 import { KeyDateDialog, type KeyDateKind } from './KeyDateDialog'
 import {
   computeRange,
@@ -57,6 +71,17 @@ import {
 import './timeline.css'
 
 const ZOOM_KEY = 'fsai-board:timeline-zoom'
+
+// Export is its own chunk, fetched ahead when the pointer or focus reaches its button. If it can't load
+// (after a redeploy, or offline), a small dialog says so: the app has no error boundary to catch it.
+const loadExport = () => import('./export/ExportDialog')
+const ExportDialog = lazy<ComponentType<ExportDialogProps>>(() =>
+  loadExport()
+    .then((module) => ({ default: module.ExportDialog }))
+    .catch(() => ({ default: ExportUnavailable })),
+)
+const prefetchExport = () => void loadExport().catch(() => undefined)
+const MAC = /Mac|iPhone|iPad|iPod/.test(navigator.userAgent)
 
 function loadZoom(): Zoom {
   try {
@@ -101,6 +126,8 @@ export function TimelineView({ view, query, teams }: TimelineViewProps) {
   const markers = useMemo(() => milestoneMarkers(Object.values(allItems), range, px), [allItems, range, px])
   const bands = useMemo(() => phaseBands(Object.values(allItems), range, px), [allItems, range, px])
   const [adding, setAdding] = useState<KeyDateKind | null>(null)
+  const [exporting, setExporting] = useState(false)
+  const exportButton = useRef<HTMLButtonElement>(null)
   const layerRef = useRef<SVGSVGElement>(null)
   const draftPathRef = useRef<SVGPathElement>(null)
   const linking = useLinking(layout.centres, px, items, layerRef, draftPathRef)
@@ -121,6 +148,39 @@ export function TimelineView({ view, query, teams }: TimelineViewProps) {
     const el = scrollRef.current
     if (el) el.scrollLeft = Math.max(0, todayX.current - (el.clientWidth - labelWidth(el)) / 4)
   }, [])
+
+  // Where focus was when Export opened, to put it back there on closing: Ctrl/Cmd+P opens Export from
+  // wherever the user is (the filter box, a bar), and typing should carry on where it left off.
+  const focusBefore = useRef<HTMLElement | null>(null)
+
+  // Ctrl/Cmd+P opens Export rather than printing the clipped app. With a dialog open (Export's own among
+  // them) the browser prints as usual, and Export prints its pages.
+  useEffect(() => {
+    const onKeyDown = (event: WindowEventMap['keydown']) => {
+      const print = (event.key === 'p' || event.key === 'P') && (MAC ? event.metaKey : event.ctrlKey)
+      if (!print || event.altKey || event.shiftKey || document.querySelector('dialog[open]')) return
+      event.preventDefault()
+      focusBefore.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+      setExporting(true)
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [])
+
+  // Modal closes its <dialog> only after React has removed it, so focus is put back here: where it was,
+  // or on Export when that is gone.
+  const wasExporting = useRef(false)
+  useEffect(() => {
+    if (exporting) wasExporting.current = true
+    else if (wasExporting.current) {
+      wasExporting.current = false
+      const back = focusBefore.current
+      focusBefore.current = null
+      if (back && back !== document.body && back.isConnected) back.focus()
+      // Where it was may be gone, or no longer take focus: then Export has it.
+      if (!back || document.activeElement !== back) exportButton.current?.focus()
+    }
+  }, [exporting])
 
   const changeZoom = (next: Zoom) => {
     setZoom(next)
@@ -165,6 +225,31 @@ export function TimelineView({ view, query, teams }: TimelineViewProps) {
           <PhaseIcon size={12} label="" />
           Phase
         </button>
+        <button
+          ref={exportButton}
+          type="button"
+          className="btn btn-sm"
+          aria-haspopup="dialog"
+          aria-keyshortcuts={MAC ? 'Meta+P' : 'Control+P'}
+          title={`Export as PDF or image (${MAC ? '⌘P' : 'Ctrl+P'})`}
+          onPointerEnter={prefetchExport}
+          onFocus={prefetchExport}
+          onClick={() => setExporting(true)}
+        >
+          <DownloadIcon size={14} />
+          Export
+        </button>
+        {exporting && (
+          <Suspense
+            fallback={
+              <span className="spinner" role="status">
+                <span className="sr-only">Opening Export…</span>
+              </span>
+            }
+          >
+            <ExportDialog items={items} shownTeams={shownTeams} query={query} today={today} onClose={() => setExporting(false)} />
+          </Suspense>
+        )}
         {/* The subteam buttons double as the colour key. */}
         <SubteamPicker mode={view.subteamPicker ?? 'many'} shown={shownTeams} />
       </div>

@@ -119,6 +119,49 @@ HyPower-Bristol's BSEP plan. The board itself started empty.
 
 The filter is part of the address (`?q=…`), so you can share a filtered view as a link.
 
+### Exporting the timeline
+
+On the **Timeline**, **Export** (or Ctrl+P, ⌘P on a Mac) makes a plan for people outside the team, from
+exactly what the Timeline shows: the subteams picked and the filter (change those on the Timeline first;
+collapsed subteams are included). Ctrl+P opens Export only on the Timeline and only when no other dialog
+is open. The preview on the right is drawn by the same code as the export, so what you see is what you send.
+
+- **PDF**, to email or print: A4 or A3 landscape, each labelled with its page count. Press **Print or save
+  as PDF…**, then in the print window choose **Save as PDF** (or a printer) and leave **Margins** on
+  **Default**. In Firefox and Safari, also untick **Print headers and footers**. The PDF is named like
+  `Bristol FSAI 2026-27 Plan - Timeline - 2026-11-10`. On a phone, choose Save as PDF or Save to Files in
+  the print screen. With the dialog open, Ctrl+P (or File > Print) prints what the preview shows too (with
+  Image chosen, its slides on 16:9 pages), or, while the export can't be printed yet, a page saying why.
+- **Image (PNG)**, for slides: a 16:9 image, 3840 × 2160 px, that fills a widescreen slide in PowerPoint,
+  Google Slides or Keynote. **Download PNG**, or **Copy image** and paste it into the slide (Copy isn't
+  offered where the browser can't copy images). Rows that don't fit one slide make several images, each
+  with its own Copy and Download; **One row per domain** fits the whole plan on one. Several slides download
+  as separate files, and Chrome and Edge ask once before letting the site download more than one. **Copy alt
+  text** gives a description of the slide to paste into the picture's alt text.
+
+Every page has the logo, the title, what it covers, "Status as of" with the headline counts and the next key
+date, the phases and key dates lanes, a legend of only what is used, and "Page n of N", so any page can be
+forwarded on its own. Colour always means subteam. Status is shown by how full a bar is (hollow: not
+started; tinted: in progress; solid: done), with a red hatch for Blocked, a red trail for Overdue (due before
+the as-of date and not done) and an amber triangle for At risk (waits on work that is blocked, overdue, or
+due after it starts), and always in words as well, so a greyscale print loses nothing. Slipped work is never
+left out: a task that was due before the period and isn't done is still a row, its red trail coming in from
+the left edge, and key dates missed earlier are pointed out before you send.
+
+**Options:** Rows (every task, or one row per domain: each subteam with its domains under it), Period (the
+whole plan, the next 3 or 6 months, or months you choose), Columns (#, Owner, Dates, Status), subtasks,
+tasks without dates and dependency lines, then the title, a note for page 1 and Prepared by. The defaults
+give a sponsor-ready A4 PDF in two clicks: the whole plan, every task, no subtasks. Your choices are
+remembered on each device, except the note, which starts empty every time so an old one can't go out by
+mistake. Notes above the preview point out anything to check before sending (overdue key dates, tasks left
+out, a very long PDF), often with a one-click fix.
+
+**Never included:** archived items, items still being created, descriptions, labels, priorities, blocked
+reasons, images, usernames, email addresses, filter wording and the board's address. Owners and leads appear
+by full name: untick Owner for a copy without names, and check names before sending outside the team.
+Everything is made in your browser, and nothing is uploaded. To check printing in each browser before a
+release, see [Checking the Timeline export by hand](#checking-the-timeline-export-by-hand).
+
 ## What's in this repository
 
 | Path | What it is |
@@ -421,6 +464,28 @@ Code layout: `src/store/` (data, live updates, login), `src/lib/` (filter, routi
 panel), `src/layout/` (header, toasts), `src/settings/` (board settings, subteam domains) and `src/ui/` (shared
 pieces). Security lives in the database (`board/supabase/schema.sql`): Row Level Security and
 triggers decide who may do what and record every change.
+
+### Checking the Timeline export by hand
+
+The export's layout is tested in node, but printing and saving images can only be checked in real
+browsers. Before a release that changes the export (`board/src/views/timeline/export/`), check it in
+**Chrome and Edge on Windows, Chrome and Safari on macOS, Firefox, Safari on iOS and Chrome on Android**:
+
+- [ ] **A4 and A3**, saved as PDF: exactly the page count the dialog shows, landscape at the right size, no
+      blank page at the end, and no row cut across a page break.
+- [ ] No header or footer from the browser (title, date or the board's address); in Firefox and Safari,
+      once Print headers and footers is unticked.
+- [ ] The PDF is offered as `Bristol FSAI 2026-27 Plan - Timeline - <date>.pdf`, and the tab's title
+      comes back after printing.
+- [ ] The text can be selected and searched, colours print with Background graphics switched off, and the
+      pages are white in dark mode too.
+- [ ] Ctrl+P (⌘P) on the Timeline opens Export, and closing Export puts focus back where it was; inside it,
+      Ctrl+P and File > Print print the export (with Image chosen, the slides on 16:9 pages).
+- [ ] **Long and non-Latin titles**: an 80-character title of W's, and titles and names in Chinese, Arabic,
+      Cyrillic and Vietnamese and with emoji. Nothing runs past its cell, in the preview at 100% or on paper.
+- [ ] **Download PNG** and **Copy image** with the dialog open: a 3840 × 2160 image that pastes into
+      PowerPoint or Google Slides at slide size; with several slides, each slide's own buttons.
+- [ ] On the phones, the print screen opens from Print or save as PDF…, and Save as PDF or Save to Files works.
 
 ## Next steps
 

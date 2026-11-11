@@ -8,10 +8,12 @@ interface ModalProps {
   /** Buttons shown at the bottom right */
   footer?: ReactNode
   width?: number
+  /** Added to the dialog's own class, for a dialog with its own size or layout (e.g. the Timeline export) */
+  className?: string
 }
 
 /** Accessible modal built on <dialog>: focus is trapped, Escape and the backdrop close it. */
-export function Modal({ title, onClose, children, footer, width = 480 }: ModalProps) {
+export function Modal({ title, onClose, children, footer, width = 480, className }: ModalProps) {
   const ref = useRef<HTMLDialogElement>(null)
   const onCloseRef = useRef(onClose)
   const titleId = useId()
@@ -41,7 +43,7 @@ export function Modal({ title, onClose, children, footer, width = 480 }: ModalPr
   return (
     <dialog
       ref={ref}
-      className="modal"
+      className={className ? `modal ${className}` : 'modal'}
       aria-labelledby={titleId}
       style={{ width: `min(${width}px, calc(100vw - 24px))` }}
       onMouseDown={(event) => {
