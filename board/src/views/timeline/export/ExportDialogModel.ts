@@ -140,6 +140,10 @@ export function lengthNotices(format: ExportFormat, pageCount: number, settings:
       const text = `${long} A3 fits more rows on each page; one row per domain, or fewer subteams, would also make it shorter.`
       return [{ kind: 'warning', text, fix: { label: 'Try A3', action: 'a3' } }]
     }
+    if (settings.paper === 'a3') {
+      const text = `${long} A2 fits more rows on each page; one row per domain, or fewer subteams, would also make it shorter.`
+      return [{ kind: 'warning', text, fix: { label: 'Try A2', action: 'a2' } }]
+    }
     return [
       everyTask
         ? { kind: 'warning', text: `${long} One row per domain, or fewer subteams, would make it shorter.`, fix: summaryFix }
@@ -164,6 +168,8 @@ export function applyFix(settings: ExportSettings, fix: NoticeFix): ExportSettin
         : { ...settings, png: { ...settings.png, rows: 'summary' } }
     case 'a3':
       return { ...settings, format: 'pdf', paper: 'a3' }
+    case 'a2':
+      return { ...settings, format: 'pdf', paper: 'a2' }
     case 'plan':
       return { ...settings, period: { preset: 'plan' } }
     case 'subtasks':

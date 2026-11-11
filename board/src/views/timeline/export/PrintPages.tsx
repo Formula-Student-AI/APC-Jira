@@ -13,7 +13,7 @@ import { SvgPage } from './SvgPage'
 
 export interface PrintPagesProps {
   pages: Page[]
-  /** The sheet the pages were laid out for (A4 or A3) */
+  /** The sheet the pages were laid out for (A4, A3, A2, or the slide while Image is chosen) */
   sheet: SheetSpec
   logoHref: string | null
   /** The PDF's file name: the page's title while printing, which browsers offer as the name */

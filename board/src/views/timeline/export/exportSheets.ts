@@ -1,9 +1,9 @@
-// The three sheets the Timeline export lays out: A4 and A3 landscape for the PDF, and a 16:9 slide for
-// images. All sizes are points (1/72 inch). Sheets print 0.5 mm shorter than their paper (the slide 1.5 pt,
-// when Ctrl/Cmd+P prints slides), so rounding in the print engine never adds a blank page. A3 keeps A4's type
-// sizes: it gives a wider chart and more rows, not a bigger A4.
+// The sheets the Timeline export lays out: A4, A3 and A2 landscape for the PDF, and a 16:9 slide for images.
+// All sizes are points (1/72 inch). Sheets print 0.5 mm shorter than their paper (the slide 1.5 pt, when
+// Ctrl/Cmd+P prints slides), so rounding in the print engine never adds a blank page. A3 and A2 keep A4's
+// type sizes: they give a wider chart and more rows, not a bigger A4 (A2 is a wall chart, read up close).
 
-export type SheetId = 'a4' | 'a3' | 'slide'
+export type SheetId = 'a4' | 'a3' | 'a2' | 'slide'
 
 export interface TypeScale {
   /** BRISTOL FORMULA STUDENT AI above the title (mono, 600) */
@@ -152,6 +152,19 @@ export const A3: SheetSpec = {
   cols: { number: 24, owner: 80, dates: 70, status: 64, taskMin: 180, taskMax: 260, summaryDone: 50, summaryIssues: 76 },
 }
 
+/** A2 landscape, 594 × 420 mm: twice A3, for the whole plan on one wall chart. */
+export const A2: SheetSpec = {
+  ...A4,
+  id: 'a2',
+  width: 1683.78,
+  height: 1190.55,
+  cssWidth: '594mm',
+  cssHeight: '419.5mm',
+  pageSize: '594mm 420mm',
+  margin: { top: 36, right: 42, bottom: 30, left: 42 },
+  cols: { number: 26, owner: 96, dates: 76, status: 68, taskMin: 220, taskMax: 340, summaryDone: 54, summaryIssues: 84 },
+}
+
 /** PowerPoint's widescreen slide, 960 × 540 pt, painted at 4 px per pt (3840 × 2160 px). */
 export const SLIDE: SheetSpec = {
   id: 'slide',
@@ -179,7 +192,7 @@ export const SLIDE: SheetSpec = {
 /** Pixels per point when painting slides. */
 export const SLIDE_PX_PER_PT = 4
 
-export const SHEETS: Record<SheetId, SheetSpec> = { a4: A4, a3: A3, slide: SLIDE }
+export const SHEETS: Record<SheetId, SheetSpec> = { a4: A4, a3: A3, a2: A2, slide: SLIDE }
 
 /** The smallest text allowed: 6.5 pt on paper, 8 pt on slides. */
 export function minTextSize(sheet: SheetSpec): number {

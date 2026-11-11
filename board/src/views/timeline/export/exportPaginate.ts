@@ -1,7 +1,9 @@
-// Splitting the export's rows into pages, so every page count is known before anything is drawn. Each page is
-// filled until a block doesn't fit; the break then moves back to the latest point that keeps every rule. Only
-// a page that can't keep them all (rows taller than half a page) has them relaxed, one at a time, so the
-// paginator always finishes.
+// Splitting the export's rows into pages, so every page count is known before anything is drawn. packPages
+// keeps each subteam whole on a page where it fits, gives a subteam taller than a page pages of its own, and
+// packs the rest together, in as few pages as it can. paginate lays out a run of rows that is too tall for one
+// page: each page is filled until a block doesn't fit, and the break then moves back to the latest point that
+// keeps every rule. Only a page that can't keep them all (rows taller than half a page) has them relaxed, one
+// at a time, so the paginator always finishes.
 
 export interface PaginateBlock {
   kind: 'header' | 'row'
@@ -119,6 +121,143 @@ export function paginate(blocks: PaginateBlock[], firstCapacity: number, capacit
     const last = placed[placed.length - 1]
     pages.push({ continued, blocks: placed, height: last.y + blocks[last.index].height })
     start = cut
+  }
+  return pages
+}
+
+/** A group's blocks (its header and its rows), blocks first to end - 1, in board order `order`. */
+interface Run {
+  order: number
+  key: string
+  first: number
+  end: number
+  /** Its height when it starts a page, and the space above it when it follows another group */
+  height: number
+  gap: number
+}
+
+/** A page being packed: groups kept whole, after a big group's last rows when `own` holds its pages. */
+interface Bin {
+  capacity: number
+  used: number
+  runs: Run[]
+  /** A group taller than a page: its pages, laid out by paginate, the last of them this bin's page */
+  own: PageSlice[] | null
+  /** Where the page goes: the board order of its first group (a big group's own, whatever joins it) */
+  key: number
+}
+
+/** Places a run's blocks on a page from `top`, with the space above it when it follows something. */
+function placeRun(blocks: PaginateBlock[], run: Run, top: number, follows: boolean): { placed: PlacedBlock[]; bottom: number } {
+  const placed: PlacedBlock[] = []
+  let bottom = top
+  for (let k = run.first; k < run.end; k++) {
+    const y = k === run.first && !follows ? top : bottom + blocks[k].gapBefore
+    placed.push({ index: k, y })
+    bottom = y + blocks[k].height
+  }
+  return { placed, bottom }
+}
+
+/**
+ * Pages for the blocks with each group (a subteam's header and rows) kept whole where it fits a page, so a
+ * big subteam gets pages of its own and small ones share, in few, well-filled pages:
+ * - a group taller than its page starts a new page and runs on over as many as it needs (paginate's rules,
+ *   with its continued header), and the room left on its last page is open to others;
+ * - every other group stays whole, packed tallest first onto the page it fills best (the one it leaves the
+ *   least room on), or a new one; `lastGroup` (Not yet scheduled) is kept at the very end.
+ * Pages follow the board order of their first group, a big group's pages together, so the first group's page
+ * comes first and has the first page's room (`firstCapacity`, less with a note); within a page, groups keep
+ * board order after a continued one. Always returns at least one page.
+ */
+export function packPages(
+  blocks: PaginateBlock[],
+  firstCapacity: number,
+  capacity: number,
+  continuedHeight: number,
+  lastGroup: string | null = null,
+): PageSlice[] {
+  if (!blocks.length) return [{ continued: null, blocks: [], height: 0 }]
+  const runs: Run[] = []
+  for (let first = 0; first < blocks.length; ) {
+    let end = first + 1
+    while (end < blocks.length && blocks[end].group === blocks[first].group) end++
+    const height = placeRun(blocks, { order: 0, key: '', first, end, height: 0, gap: 0 }, 0, false).bottom
+    runs.push({ order: runs.length, key: blocks[first].group, first, end, height, gap: blocks[first].gapBefore })
+    first = end
+  }
+  const tooTall = (run: Run, room: number) =>
+    run.height > room + EPS || blocks.slice(run.first, run.end).some((block) => block.height > capacity + EPS)
+  /** A group laid out over pages of its own, starting on a page with `room`. */
+  const ownPages = (run: Run, room: number): Bin => {
+    const own = paginate(blocks.slice(run.first, run.end), room, capacity, continuedHeight).map((slice) => ({
+      ...slice,
+      blocks: slice.blocks.map((block) => ({ index: block.index + run.first, y: block.y })),
+    }))
+    return { capacity: own.length === 1 ? room : capacity, used: own[own.length - 1].height, runs: [], own, key: run.order }
+  }
+
+  const last = lastGroup !== null && runs.length > 1 && runs[runs.length - 1].key === lastGroup ? runs[runs.length - 1] : null
+  const packable = runs.filter((run) => run !== last)
+  const bins: Bin[] = []
+  const firstRun = packable[0]
+  const small: Run[] = []
+  for (const run of packable) {
+    const room = run === firstRun ? firstCapacity : capacity
+    if (tooTall(run, room)) bins.push(ownPages(run, room))
+    else if (run === firstRun) bins.push({ capacity: firstCapacity, used: run.height, runs: [run], own: null, key: run.order })
+    else small.push(run)
+  }
+  // Tallest first, each onto the page it fills best.
+  small.sort((a, b) => b.height - a.height || a.order - b.order)
+  for (const run of small) {
+    let best: Bin | null = null
+    let bestLeft = Infinity
+    for (const bin of bins) {
+      const left = bin.capacity - (bin.used + (bin.used > 0 ? run.gap : 0) + run.height)
+      if (left >= -EPS && left < bestLeft - EPS) {
+        best = bin
+        bestLeft = left
+      }
+    }
+    if (best) {
+      best.used += (best.used > 0 ? run.gap : 0) + run.height
+      best.runs.push(run)
+      if (!best.own) best.key = Math.min(best.key, run.order)
+    } else bins.push({ capacity, used: run.height, runs: [run], own: null, key: run.order })
+  }
+  bins.sort((a, b) => a.key - b.key)
+
+  // Not yet scheduled goes at the very end: on the last page if it fits there, else a page (or pages) of its own.
+  if (last) {
+    const tail = bins[bins.length - 1]
+    const room = bins.length ? capacity : firstCapacity
+    if (tail && !tooTall(last, capacity) && tail.used + last.gap + last.height <= tail.capacity + EPS) {
+      tail.used += last.gap + last.height
+      tail.runs.push(last)
+    } else if (!tooTall(last, room)) bins.push({ capacity: room, used: last.height, runs: [last], own: null, key: last.order })
+    else bins.push(ownPages(last, room))
+  }
+
+  const pages: PageSlice[] = []
+  for (const bin of bins) {
+    const runsInOrder = [...bin.runs].sort((a, b) => a.order - b.order)
+    let continued: string | null = null
+    let placed: PlacedBlock[] = []
+    let bottom = 0
+    if (bin.own) {
+      pages.push(...bin.own.slice(0, -1))
+      const tail = bin.own[bin.own.length - 1]
+      continued = tail.continued
+      placed = [...tail.blocks]
+      bottom = tail.height
+    }
+    for (const run of runsInOrder) {
+      const next = placeRun(blocks, run, bottom, placed.length > 0)
+      placed.push(...next.placed)
+      bottom = next.bottom
+    }
+    pages.push({ continued, blocks: placed, height: bottom })
   }
   return pages
 }

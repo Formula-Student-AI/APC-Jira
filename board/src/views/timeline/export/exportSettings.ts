@@ -4,7 +4,7 @@
 import { PLAN_LABEL } from '../../../config'
 
 export type ExportFormat = 'pdf' | 'png'
-export type Paper = 'a4' | 'a3'
+export type Paper = 'a4' | 'a3' | 'a2'
 /** Every task, or a summary: each subteam with one row per domain under it */
 export type RowsMode = 'tasks' | 'summary'
 
@@ -107,7 +107,7 @@ export function parseSettings(raw: unknown): ExportSettings {
   return {
     version: 1,
     format: raw.format === 'pdf' || raw.format === 'png' ? raw.format : d.format,
-    paper: raw.paper === 'a4' || raw.paper === 'a3' ? raw.paper : d.paper,
+    paper: raw.paper === 'a4' || raw.paper === 'a3' || raw.paper === 'a2' ? raw.paper : d.paper,
     pdf: parseFormat(raw.pdf, d.pdf),
     png: parseFormat(raw.png, d.png),
     period: parsePeriod(raw.period, d.period),

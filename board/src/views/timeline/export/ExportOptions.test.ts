@@ -15,7 +15,7 @@ function render(patch: Partial<ExportOptionsProps> = {}): string {
     note: '',
     preparedBy: 'Jane Smith',
     scope: 'From the Timeline as it is now: All subteams. Change these with the subteam buttons and the filter box.',
-    pageCounts: { a4: 3, a3: 2 },
+    pageCounts: { a4: 3, a3: 2, a2: 1 },
     periodLabels: {
       plan: 'Whole plan (Sep 2026 – Aug 2027)',
       next3: 'Next 3 months (Nov 2026 – Jan 2027)',
@@ -73,9 +73,12 @@ describe('ExportOptions', () => {
   })
 
   it('labels the papers with their page counts, or none while unknown', () => {
-    expect(render()).toContain('<span>A4 · 3 pages</span>')
-    expect(render({ pageCounts: { a4: 1, a3: null } })).toContain('<span>A4 · 1 page</span>')
-    expect(render({ pageCounts: { a4: 1, a3: null } })).toContain('<span>A3</span>')
+    const html = render()
+    expect(html).toContain('<span>A4 · 3 pages</span>')
+    expect(html).toContain('<span>A3 · 2 pages</span>')
+    expect(html).toContain('<span>A2 · 1 page</span>')
+    expect(render({ pageCounts: { a4: 1, a3: null, a2: null } })).toContain('<span>A4 · 1 page</span>')
+    expect(render({ pageCounts: { a4: 1, a3: null, a2: null } })).toContain('<span>A3</span>')
   })
 
   it('shows the fixed image size instead of the papers for an image', () => {

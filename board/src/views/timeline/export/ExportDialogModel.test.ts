@@ -233,14 +233,17 @@ describe('empty exports', () => {
 })
 
 describe('lengthNotices', () => {
-  it('suggests A3 past 20 A4 pages, and one row per domain past 20 A3 pages', () => {
+  it('suggests A3 past 20 A4 pages, A2 past 20 A3 pages, and one row per domain past 20 A2 pages', () => {
     expect(lengthNotices('pdf', MANY_PAGES, settings())).toEqual([])
     const [a4] = lengthNotices('pdf', 24, settings())
     expect(a4).toMatchObject({ kind: 'warning', fix: { label: 'Try A3', action: 'a3' } })
     expect(a4.text).toMatch(/^This PDF runs to 24 pages\./)
     const [a3] = lengthNotices('pdf', 21, settings({ paper: 'a3' }))
-    expect(a3.fix).toEqual({ label: 'Use one row per domain', action: 'summary' })
-    const summary = settings({ paper: 'a3', pdf: { ...defaultSettings().pdf, rows: 'summary' } })
+    expect(a3).toMatchObject({ kind: 'warning', fix: { label: 'Try A2', action: 'a2' } })
+    expect(a3.text).toMatch(/A2 fits more rows on each page/)
+    const [a2] = lengthNotices('pdf', 21, settings({ paper: 'a2' }))
+    expect(a2.fix).toEqual({ label: 'Use one row per domain', action: 'summary' })
+    const summary = settings({ paper: 'a2', pdf: { ...defaultSettings().pdf, rows: 'summary' } })
     expect(lengthNotices('pdf', 21, summary)[0].fix).toBeUndefined()
   })
 
@@ -261,6 +264,7 @@ describe('applyFix', () => {
     const png = settings({ format: 'png', png: { ...pdf.png, rows: 'tasks' } })
     expect(applyFix(png, 'summary')).toEqual({ ...png, png: { ...png.png, rows: 'summary' } })
     expect(applyFix(png, 'a3')).toEqual({ ...png, format: 'pdf', paper: 'a3' })
+    expect(applyFix(pdf, 'a2')).toEqual({ ...pdf, format: 'pdf', paper: 'a2' })
     expect(applyFix(settings({ period: { preset: 'next6' } }), 'plan').period).toEqual({ preset: 'plan' })
     expect(applyFix(pdf, 'subtasks').subtasks).toBe(true)
     expect(applyFix(pdf, 'undated').undated).toBe(true)

@@ -130,7 +130,8 @@ exactly what the Timeline shows: the subteams picked and the filter (change thos
 collapsed subteams are included). Ctrl+P opens Export only on the Timeline and only when no other dialog
 is open. The preview on the right is drawn by the same code as the export, so what you see is what you send.
 
-- **PDF**, to email or print: A4 or A3 landscape, each labelled with its page count. Press **Print or save
+- **PDF**, to email or print: A4, A3 or A2 landscape (A2 for a wall chart: the whole plan, usually on one
+  page), each labelled with its page count. Press **Print or save
   as PDF…**, then in the print window choose **Save as PDF** (or a printer) and leave **Margins** on
   **Default**. In Firefox and Safari, also untick **Print headers and footers**. The PDF is named like
   `Bristol FSAI 2026-27 Plan - Timeline - 2026-11-10`. On a phone, choose Save as PDF or Save to Files in
@@ -144,7 +145,10 @@ is open. The preview on the right is drawn by the same code as the export, so wh
   text** gives a description of the slide to paste into the picture's alt text.
 
 Every page has the logo, the title, what it covers, "Status as of" and the next key date, the phases and key
-dates lanes, a legend of only what is used, and "Page n of N", so any page can be forwarded on its own. Colour always means subteam. Status is shown by how full a bar is (hollow: not
+dates lanes, a legend of only what is used, and "Page n of N", so any page can be forwarded on its own. A
+subteam is never split across pages when it fits on one: a big subteam (more rows than a page holds) starts
+a page of its own and runs on, and the smaller ones are packed together to fill pages, so the PDF is as short
+as it can be; Not yet scheduled always comes last. Colour always means subteam. Status is shown by how full a bar is (hollow: not
 started; tinted: in progress; solid: done), with a red hatch for Blocked, a red trail for Overdue (due before
 the as-of date and not done) and an amber triangle for At risk (waits on work that is blocked, overdue, or
 due after it starts), and always in words as well, so a greyscale print loses nothing. Slipped work is never
@@ -474,7 +478,7 @@ The export's layout is tested in node, but printing and saving images can only b
 browsers. Before a release that changes the export (`board/src/views/timeline/export/`), check it in
 **Chrome and Edge on Windows, Chrome and Safari on macOS, Firefox, Safari on iOS and Chrome on Android**:
 
-- [ ] **A4 and A3**, saved as PDF: exactly the page count the dialog shows, landscape at the right size, no
+- [ ] **A4, A3 and A2**, saved as PDF: exactly the page count the dialog shows, landscape at the right size, no
       blank page at the end, and no row cut across a page break.
 - [ ] No header or footer from the browser (title, date or the board's address); in Firefox and Safari,
       once Print headers and footers is unticked.

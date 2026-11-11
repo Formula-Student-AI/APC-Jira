@@ -160,7 +160,7 @@ export interface LeftOut {
   phasesOutside: number
 }
 
-export type NoticeFix = 'summary' | 'a3' | 'plan' | 'subtasks' | 'undated'
+export type NoticeFix = 'summary' | 'a3' | 'a2' | 'plan' | 'subtasks' | 'undated'
 
 export interface Notice {
   kind: 'info' | 'warning'

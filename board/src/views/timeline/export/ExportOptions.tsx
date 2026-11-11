@@ -42,7 +42,7 @@ export interface ExportOptionsProps {
 }
 
 const pageCount = (paper: Paper, count: number | null) => {
-  const name = paper === 'a4' ? 'A4' : 'A3'
+  const name = paper.toUpperCase()
   return count === null ? name : `${name} · ${count} ${count === 1 ? 'page' : 'pages'}`
 }
 
@@ -107,7 +107,7 @@ export function ExportOptions(props: ExportOptionsProps) {
       {format === 'pdf' ? (
         <fieldset className="xp-fieldset">
           <legend className="xp-legend">Paper</legend>
-          {(['a4', 'a3'] as const).map((paper) => (
+          {(['a4', 'a3', 'a2'] as const).map((paper) => (
             <Choice
               key={paper}
               type="radio"
@@ -118,7 +118,8 @@ export function ExportOptions(props: ExportOptionsProps) {
             />
           ))}
           <p className="xp-hint xp-hint-block">
-            Both landscape. A3 keeps A4's type sizes, for a wider chart and more rows a page.
+            All landscape. A3 and A2 keep A4's type sizes, for a wider chart and more rows a page: A2 fits the
+            whole plan on a wall chart.
           </p>
         </fieldset>
       ) : (

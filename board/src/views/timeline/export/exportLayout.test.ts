@@ -12,9 +12,9 @@ import {
   task,
 } from './exportLayout.fixtures'
 import { CLASH_STROKE, LINK_STROKE } from './exportLayoutMarks'
-import { paginate } from './exportPaginate'
+import { packPages } from './exportPaginate'
 import { INK, NEUTRAL } from './exportPalette'
-import { A3, A4, SLIDE, slideScale, type SheetSpec } from './exportSheets'
+import { A2, A3, A4, SLIDE, slideScale, type SheetSpec } from './exportSheets'
 import type { Plan, PlanKeyDate } from './planTypes'
 import type { LinePrim, Measure, Page, Prim, TextPrim } from './scene'
 
@@ -432,9 +432,10 @@ describe('dependency lines', () => {
 describe('pages', () => {
   it('number as many pages as the paginator makes, and each says so', () => {
     for (const plan of [makePlan([]), samplePlan(), longPlan(25), longPlan(100), longPlan(300, { groups: 7 })]) {
-      for (const sheet of [A4, A3]) {
+      for (const sheet of [A4, A3, A2]) {
         const { frame, blocks, slices } = paginateDocument(plan, sheet, measure)
-        expect(paginate(blocks, frame.firstCapacity, frame.capacity, frame.continuedHeight)).toEqual(slices)
+        const undated = plan.groups.find((group) => group.undated)?.key ?? null
+        expect(packPages(blocks, frame.firstCapacity, frame.capacity, frame.continuedHeight, undated)).toEqual(slices)
         const { pages } = layoutDocument(plan, sheet, measure)
         expect(pages).toHaveLength(slices.length)
         pages.forEach((page, i) => {

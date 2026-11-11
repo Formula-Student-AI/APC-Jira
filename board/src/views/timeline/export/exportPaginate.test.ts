@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { paginate, type PageSlice, type PaginateBlock } from './exportPaginate'
+import { packPages, paginate, type PageSlice, type PaginateBlock } from './exportPaginate'
 
 // Paper sizes: a group header is 18 pt with 4 pt above it, a task row 15 pt (25 when wrapped), a subtask 13.
 const CONTINUED = 18
@@ -190,3 +190,98 @@ function random(seed: number): () => number {
     return state / 2 ** 32
   }
 }
+
+describe('packPages', () => {
+  // A group of n rows is 18 + 15n tall, and 4 more when it follows another group on a page.
+  const keys = (blocks: PaginateBlock[], pages: PageSlice[]) =>
+    pages.map((page) => [...new Set(page.blocks.map((block) => blocks[block.index].group))])
+
+  it('always returns at least one page', () => {
+    expect(packPages([], 300, 380, CONTINUED)).toEqual([{ continued: null, blocks: [], height: 0 }])
+  })
+
+  it('keeps a subteam that fits a page whole, where flowing the rows would split it', () => {
+    const blocks = [...group('A', 6), ...group('B', 6), ...group('C', 2)]
+    // Flowing them in order puts two of B's rows at the foot of page 1 and the rest on page 2.
+    expect(paginate(blocks, 170, 170, CONTINUED)[1].continued).toBe('B')
+    const pages = packPages(blocks, 170, 170, CONTINUED)
+    // Packed: C fills page 1 after A, and B has page 2 to itself, whole.
+    expect(keys(blocks, pages)).toEqual([['A', 'C'], ['B']])
+    expect(pages.map((page) => page.continued)).toEqual([null, null])
+    expect(indexes(pages)).toEqual([[...range(0, 6), ...range(14, 16)], range(7, 13)])
+    // C follows A with the space above a group: A is 18 + 90 tall, then 4, then C.
+    expect(pages[0].blocks.find((block) => block.index === 14)?.y).toBe(108 + 4)
+    expect(pages[0].height).toBe(108 + 4 + 48)
+  })
+
+  it('gives a subteam taller than a page pages of its own, and fills its last page with small ones', () => {
+    const blocks = [...group('A', 2), ...group('B', 14), ...group('C', 2)]
+    const pages = packPages(blocks, 170, 170, CONTINUED)
+    // B starts a page of its own (not after A) and runs on; C fills the room B leaves on its last page.
+    expect(keys(blocks, pages)).toEqual([['A'], ['B'], ['B', 'C']])
+    expect(pages.map((page) => page.continued)).toEqual([null, null, 'B'])
+    expect(indexes(pages)[1][0]).toBe(3)
+    expect(indexes(pages)[2].slice(-3)).toEqual(range(18, 20))
+  })
+
+  it('packs small subteams tallest first onto the page each fills best, keeping board order on a page', () => {
+    const blocks = [...group('A', 3), ...group('B', 5), ...group('C', 1), ...group('D', 4)]
+    const pages = packPages(blocks, 160, 160, CONTINUED)
+    // B fills page 1 to the point after A (63 + 4 + 93 = 160); D and C share page 2, C first as on the board.
+    expect(keys(blocks, pages)).toEqual([['A', 'B'], ['C', 'D']])
+    expect(pages[0].height).toBe(160)
+  })
+
+  it('puts the first subteam on the first page, splitting it only if the first page is too small for it', () => {
+    const blocks = [...group('A', 5), ...group('B', 2)]
+    // A note leaves page 1 only 80 pt: A (93 pt) can't fit whole there, so it runs on.
+    const pages = packPages(blocks, 80, 200, CONTINUED)
+    expect(keys(blocks, pages)[0]).toEqual(['A'])
+    expect(pages[0].height).toBeLessThanOrEqual(80)
+    expect(pages[1].continued).toBe('A')
+    // With room, A stays whole on page 1.
+    expect(keys(blocks, packPages(blocks, 200, 200, CONTINUED))).toEqual([['A', 'B']])
+  })
+
+  it('keeps Not yet scheduled at the very end', () => {
+    const blocks = [...group('A', 2), ...group('B', 2), ...group('undated', 2)]
+    // It joins the last page when it fits there...
+    expect(keys(blocks, packPages(blocks, 200, 200, CONTINUED, 'undated'))).toEqual([['A', 'B', 'undated']])
+    // ...or takes a page after it, even where another page has room.
+    expect(keys(blocks, packPages(blocks, 120, 120, CONTINUED, 'undated'))).toEqual([['A', 'B'], ['undated']])
+  })
+
+  it('places every block exactly once, in order within each group, never past its page', () => {
+    // Random boards: 1 to 8 groups of 0 to 30 rows, on pages of 120 to 400 pt.
+    let seed = 7
+    const next = () => (seed = (seed * 16807) % 2147483647) / 2147483647
+    for (let board = 0; board < 300; board++) {
+      const capacity = 120 + Math.floor(next() * 280)
+      const first = capacity - Math.floor(next() * 40)
+      const blocks = Array.from({ length: 1 + Math.floor(next() * 8) }, (_, g) => group(`g${g}`, Math.floor(next() * 31))).flat()
+      const pages = packPages(blocks, first, capacity, CONTINUED)
+      const placed = indexes(pages).flat()
+      expect([...placed].sort((a, b) => a - b)).toEqual(range(0, blocks.length - 1))
+      pages.forEach((page, p) => {
+        const room = p === 0 ? first : capacity
+        // Only a page with a single block too tall for it may run over.
+        if (page.blocks.length > 1) expect(page.height).toBeLessThanOrEqual(room + 1e-6)
+        // A group's blocks on a page are in their own order and never overlap.
+        for (let k = 1; k < page.blocks.length; k++) {
+          const before = page.blocks[k - 1]
+          expect(page.blocks[k].y).toBeGreaterThanOrEqual(before.y + blocks[before.index].height - 1e-6)
+        }
+      })
+      // A group that fits a page whole is on one page only.
+      const pagesOf = new Map<string, Set<number>>()
+      pages.forEach((page, p) => page.blocks.forEach((block) => {
+        const key = blocks[block.index].group
+        pagesOf.set(key, (pagesOf.get(key) ?? new Set()).add(p))
+      }))
+      for (const [key, on] of pagesOf) {
+        const rows = blocks.filter((block) => block.group === key).length - 1
+        if (18 + 15 * rows <= Math.min(first, capacity)) expect(on.size, `${key} on pages ${[...on]}`).toBe(1)
+      }
+    }
+  })
+})

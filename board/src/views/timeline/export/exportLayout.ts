@@ -8,7 +8,7 @@
 import { buildFrame, type Frame } from './exportLayoutFrame'
 import type { TaskView } from './exportLayoutGrid'
 import { drawPage } from './exportLayoutPage'
-import { paginate, type PageSlice, type PaginateBlock } from './exportPaginate'
+import { packPages, type PageSlice, type PaginateBlock } from './exportPaginate'
 import { slideScale, type SheetSpec } from './exportSheets'
 import type { Plan } from './planTypes'
 import type { Measure, Page } from './scene'
@@ -30,11 +30,13 @@ export interface Pagination {
   slices: PageSlice[]
 }
 
-/** The frame and pages for `sheet` exactly as given (a slide at the sheet's own row step, without fitting). */
+/** The frame and pages for `sheet` exactly as given (a slide at the sheet's own row step, without fitting):
+ *  each subteam kept whole where it fits a page, and Not yet scheduled last (packPages). */
 export function paginateDocument(plan: Plan, sheet: SheetSpec, measure: Measure): Pagination {
   const frame = buildFrame(plan, sheet, measure)
   const blocks = frame.entries.map((entry) => entry.block)
-  return { frame, blocks, slices: paginate(blocks, frame.firstCapacity, frame.capacity, frame.continuedHeight) }
+  const undated = plan.groups.find((group) => group.undated)?.key ?? null
+  return { frame, blocks, slices: packPages(blocks, frame.firstCapacity, frame.capacity, frame.continuedHeight, undated) }
 }
 
 /** The largest of `steps` at which every row fits one slide; failing that, several slides at 18 pt. */
@@ -81,7 +83,7 @@ function linkNotes({ frame, slices }: Pagination): string[] {
 }
 
 /**
- * Pages for `plan` on `sheet` (A4, A3 or the slide). For the slide it tries sheet.rowSteps largest first
+ * Pages for `plan` on `sheet` (A4, A3, A2 or the slide). For the slide it tries sheet.rowSteps largest first
  * (slideScale) and uses the largest at which every row fits one slide; if even the smallest doesn't fit, the
  * export becomes several slides at 18 pt with continued groups. With nothing to show it returns one page with
  * the title block, lanes and 'Nothing to export' with the reason.

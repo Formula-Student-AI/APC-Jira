@@ -1,4 +1,4 @@
-// "Export timeline": the Timeline as a stakeholder-ready plan Gantt chart, either a PDF (A4 or A3 landscape,
+// "Export timeline": the Timeline as a stakeholder-ready plan Gantt chart, either a PDF (A4, A3 or A2 landscape,
 // printed by the browser from pages laid out here) or 16:9 PNG slides, with a live preview drawn by the same
 // code as the output. It holds exactly what the Timeline shows. This component keeps the settings
 // (remembered on this device, all but the note), the chain from the board to pages (buildPlan, then
@@ -172,10 +172,14 @@ export function ExportDialog({ items, shownTeams, query, today, onClose }: Expor
   const text = useMemo(() => planText([pdf.value, png?.value]), [pdf, png])
   const assets = useExportAssets(text)
   const { measure } = assets
-  // Both papers, for the page counts beside them.
+  // Every paper, for the page counts beside them.
   const papers = useMemo(() => {
     if (!pdf.value) return null
-    return { a4: layoutFor(pdf.value, SHEETS.a4, measure), a3: layoutFor(pdf.value, SHEETS.a3, measure) }
+    return {
+      a4: layoutFor(pdf.value, SHEETS.a4, measure),
+      a3: layoutFor(pdf.value, SHEETS.a3, measure),
+      a2: layoutFor(pdf.value, SHEETS.a2, measure),
+    }
   }, [pdf, measure])
   const slides = useMemo(() => (png?.value ? layoutFor(png.value, SLIDE, measure) : null), [png, measure])
 
@@ -439,6 +443,7 @@ export function ExportDialog({ items, shownTeams, query, today, onClose }: Expor
           pageCounts={{
             a4: assets.ready ? (papers?.a4.value?.pages.length ?? null) : null,
             a3: assets.ready ? (papers?.a3.value?.pages.length ?? null) : null,
+            a2: assets.ready ? (papers?.a2.value?.pages.length ?? null) : null,
           }}
           periodLabels={periodLabels}
           months={months}

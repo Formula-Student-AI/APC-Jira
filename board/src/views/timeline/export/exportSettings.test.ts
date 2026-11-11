@@ -76,6 +76,10 @@ describe('parseSettings', () => {
     expect(parseSettings({})).toEqual(defaultSettings())
   })
 
+  it('remembers every paper, A2 included', () => {
+    for (const paper of ['a4', 'a3', 'a2'] as const) expect(parseSettings(stored({ paper })).paper).toBe(paper)
+  })
+
   it('replaces unknown values field by field, keeping the rest', () => {
     const d = defaultSettings()
     const parsed = parseSettings(stored({ format: 'svg', paper: 'letter', subtasks: 'yes', undated: 1, links: null }))
