@@ -522,11 +522,12 @@
 }
 
 /* Across the timeline: a dashed line in the milestone's colour, with its name at the top. */
+/* No z-index of its own: its line and its name are layered apart, so every name sits over every line
+   (and Today's), even a name cascaded below a later milestone's line. */
 .tl-marker {
   position: absolute;
   top: 0;
   bottom: 0;
-  z-index: 3;
   width: 0;
 }
 .tl-marker::before {
@@ -535,18 +536,23 @@
   top: 0;
   bottom: 0;
   left: -1px;
+  z-index: 3;
   border-left: 2px dashed var(--opt-solid);
   opacity: 0.55;
 }
+/* Its name, on its line of the cascade (TimelineView sets each name's top, so none overlap). */
 .tl-marker-label {
   position: sticky;
   top: 56px;
+  z-index: 4;
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  max-width: 280px;
   height: 20px;
   margin-left: 4px;
   padding: 0 8px 0 6px;
+  overflow: hidden;
   border: 1px solid var(--opt-border);
   border-radius: 999px;
   background: var(--opt-bg);
@@ -572,14 +578,16 @@
   border-left: 1px solid color-mix(in srgb, var(--opt-solid) 35%, transparent);
   background: color-mix(in srgb, var(--opt-solid) 8%, transparent);
 }
-/* Its name, a little below the Today and milestone labels. */
+/* Its name, on the lines below the milestones' (TimelineView sets each name's top, so none overlap). It
+   may run on past a short phase's end: the shading shows the dates. */
 .tl-band-label {
   position: sticky;
   top: 80px;
+  z-index: 4;
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  max-width: calc(100% - 8px);
+  max-width: 280px;
   height: 20px;
   margin-left: 4px;
   padding: 0 8px 0 6px;
@@ -590,10 +598,19 @@
   color: var(--opt-fg);
   font-size: 11px;
   font-weight: 600;
-  text-overflow: ellipsis;
   white-space: nowrap;
   pointer-events: auto;
   cursor: pointer;
+}
+/* A name too long for the 280 px a label may take ends in '…' (TimelineView measures names the same way). */
+.tl-key-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tl-marker-label > svg,
+.tl-band-label > svg {
+  flex: none;
 }
 .tl-band-label .phase-icon path,
 .tl-phase .phase-icon path {

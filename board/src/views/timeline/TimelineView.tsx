@@ -48,6 +48,7 @@ import {
   DIAMOND_R,
   dragBar,
   GROUP_H,
+  cascadeLines,
   isWholeTeam,
   linkX,
   milestoneMarkers,
@@ -67,20 +68,79 @@ import {
   type MilestoneMarker,
   type PhaseBand,
   type Range,
+  type Stretch,
   type TimelineGroup,
   type Zoom,
 } from './timelineMath'
 import './timeline.css'
 
 const ZOOM_KEY = 'fsai-board:timeline-zoom'
-/** Room above the first subteam for the names of Today and the whole team's milestones, and with a second
- *  line for its phases' names: they stick 56 px and 80 px down the scroll area (see .tl-marker-label). */
-const NAMES_H = { one: 28, two: 52 }
 
 /** A subteam's own milestones and phases, drawn in its section only. */
 interface SectionKeyDates {
   markers: MilestoneMarker[]
   bands: PhaseBand[]
+}
+
+// Names of milestones, phases and Today, in a cascade of lines so none overlap. The whole team's stick to the
+// top of the scroll area, from 56 px down (below the 52 px timescale), above the first subteam; a subteam's
+// sit in its heading row, from 3 px down, the heading growing when they need more than two lines.
+const NAME = { top: 56, topLine: 24, sectionTop: 3, sectionLine: 21, gap: 6, max: 280 }
+/** Px around a name's text: padding, border, icon and gap (see .tl-marker-label, .tl-band-label, .tl-today-label). */
+const AROUND = { milestone: 30, phase: 31, today: 16 }
+/** Each label starts this far right of its line or band edge (their margin-left). */
+const LABEL_INSET = 4
+
+/** Each milestone's and phase's line, by item id (the phases' lines come after the milestones'). */
+interface NameLines {
+  line: Map<string, number>
+  /** Lines used */
+  count: number
+}
+
+type Measure = (text: string) => number
+
+/** Measures text in the labels' type (11 px semibold, in the app's font) on a canvas; an estimate without one. */
+function nameMeasure(): Measure {
+  const context = typeof document === 'undefined' ? null : document.createElement('canvas').getContext('2d')
+  if (!context) return (text) => text.length * 6.6
+  context.font = `600 11px ${getComputedStyle(document.body).fontFamily}`
+  return (text) => context.measureText(text).width
+}
+
+/** nameMeasure, made again once the app's fonts have loaded, so names measured before them are measured again. */
+function useNameMeasure(): Measure {
+  const [measure, setMeasure] = useState<Measure>(() => nameMeasure())
+  useEffect(() => {
+    if (typeof document === 'undefined' || !document.fonts || document.fonts.status === 'loaded') return
+    let live = true
+    void document.fonts.ready.then(() => {
+      if (live) setMeasure(() => nameMeasure())
+    })
+    return () => {
+      live = false
+    }
+  }, [])
+  return measure
+}
+
+/**
+ * Lines for the names: Today first on the top line (when given), the milestones' names, then the phases'
+ * on lines of their own below, each name on the top line where it clears the others (cascadeLines).
+ */
+function nameLines(markers: MilestoneMarker[], bands: PhaseBand[], todayX: number | null, measure: Measure): NameLines {
+  const stretch = (x: number, text: string, around: number): Stretch => {
+    const x0 = x + LABEL_INSET
+    // 2 px spare for the difference between canvas and page text.
+    return { x0, x1: x0 + Math.min(NAME.max, around + measure(text)) + 2 }
+  }
+  const today = todayX === null ? [] : [stretch(todayX, 'Today', AROUND.today)]
+  const first = cascadeLines([...today, ...markers.map((marker) => stretch(marker.x, marker.title, AROUND.milestone))], NAME.gap)
+  const second = cascadeLines(bands.map((band) => stretch(band.x, band.title, AROUND.phase)), NAME.gap)
+  const line = new Map<string, number>()
+  markers.forEach((marker, i) => line.set(marker.id, first.lines[i + today.length]))
+  bands.forEach((band, i) => line.set(band.id, first.count + second.lines[i]))
+  return { line, count: first.count + second.count }
 }
 
 // Export is its own chunk, fetched ahead when the pointer or focus reaches its button. If it can't load
@@ -130,8 +190,6 @@ export function TimelineView({ view, query, teams }: TimelineViewProps) {
   const width = Math.ceil(range.days * px)
   const todayIndex = dayIndex(range, todayDate)
   const { groups, undated } = useMemo(() => groupForTimeline(items, subteams), [items, subteams])
-  const layout = useMemo(() => rowLayout(groups, collapsed), [groups, collapsed])
-  const links = useMemo(() => timelineLinks(groups, layout.centres, range, px, datesClash), [groups, layout, range, px])
   // Milestones and phases are for everyone, whatever the filter. The whole team's (isWholeTeam) run across
   // every subteam shown; a subteam's run down its own section, when it is shown.
   const allItems = useBoard((s) => s.items)
@@ -158,8 +216,28 @@ export function TimelineView({ view, query, teams }: TimelineViewProps) {
     return map
   }, [markers, bands, allSubteams])
   const todayShown = todayIndex >= 0 && todayIndex < range.days
-  const namesH =
-    wholeTeam.bands.length > 0 ? NAMES_H.two : todayShown || wholeTeam.markers.length > 0 ? NAMES_H.one : 0
+  // Their names cascade so none overlap: measured again once the fonts have loaded.
+  const measure = useNameMeasure()
+  const topNames = useMemo(
+    () => nameLines(wholeTeam.markers, wholeTeam.bands, todayShown ? todayIndex * px + px / 2 : null, measure),
+    [wholeTeam, todayShown, todayIndex, px, measure],
+  )
+  const sectionNames = useMemo(
+    () => new Map([...bySubteam].map(([subteam, own]) => [subteam, nameLines(own.markers, own.bands, null, measure)])),
+    [bySubteam, measure],
+  )
+  const namesH = topNames.count > 0 ? LABEL_INSET + topNames.count * NAME.topLine : 0
+  // A heading grows when its subteam's names need more lines than its usual two.
+  const headingH = useMemo(() => {
+    const heights = new Map<string, number>()
+    for (const group of groups) {
+      const count = group.value === null ? 0 : (sectionNames.get(group.value)?.count ?? 0)
+      heights.set(group.key, Math.max(GROUP_H, LABEL_INSET + count * NAME.sectionLine))
+    }
+    return heights
+  }, [groups, sectionNames])
+  const layout = useMemo(() => rowLayout(groups, collapsed, (group) => headingH.get(group.key) ?? GROUP_H), [groups, collapsed, headingH])
+  const links = useMemo(() => timelineLinks(groups, layout.centres, range, px, datesClash), [groups, layout, range, px])
   const [adding, setAdding] = useState<KeyDateKind | null>(null)
   const [exporting, setExporting] = useState(false)
   const exportButton = useRef<HTMLButtonElement>(null)
@@ -293,7 +371,15 @@ export function TimelineView({ view, query, teams }: TimelineViewProps) {
         <div className="tl-canvas" style={canvasStyle}>
           <Scale range={range} zoom={zoom} px={px} todayIndex={todayIndex} />
           <div className="tl-body">
-            <Gridlines range={range} zoom={zoom} px={px} todayIndex={todayIndex} markers={wholeTeam.markers} bands={wholeTeam.bands} />
+            <Gridlines
+              range={range}
+              zoom={zoom}
+              px={px}
+              todayIndex={todayIndex}
+              markers={wholeTeam.markers}
+              bands={wholeTeam.bands}
+              names={topNames}
+            />
             <LinkLayer
               links={links}
               top={namesH}
@@ -308,6 +394,8 @@ export function TimelineView({ view, query, teams }: TimelineViewProps) {
                 key={group.key}
                 group={group}
                 keyDates={group.value === null ? undefined : bySubteam.get(group.value)}
+                names={group.value === null ? undefined : sectionNames.get(group.value)}
+                headingH={headingH.get(group.key) ?? GROUP_H}
                 collapsed={collapsed.has(group.key)}
                 onToggle={() => toggle(group.key)}
                 range={range}
@@ -489,10 +577,16 @@ interface GridlinesProps {
   todayIndex: number
   markers: MilestoneMarker[]
   bands: PhaseBand[]
+  names: NameLines
+}
+
+interface NamedProps {
+  /** How far down each name sits (by item id): its line of the cascade */
+  top: (id: string) => number
 }
 
 /** Phases: their dates shaded, with the name at the top (click it to open). */
-function PhaseBands({ bands }: { bands: PhaseBand[] }) {
+function PhaseBands({ bands, top }: NamedProps & { bands: PhaseBand[] }) {
   const options = useBoard((s) => s.options)
   return bands.map((band) => (
     <span
@@ -503,41 +597,45 @@ function PhaseBands({ bands }: { bands: PhaseBand[] }) {
       <button
         type="button"
         className="tl-band-label"
+        style={{ top: top(band.id) }}
         tabIndex={-1}
         title={`${band.title}, ${formatDayRange(band.start, band.end)}`}
         onClick={() => openItem(band.number)}
       >
         <PhaseIcon size={11} label="" />
-        {band.title}
+        <span className="tl-key-name">{band.title}</span>
       </button>
     </span>
   ))
 }
 
 /** Milestones: a dashed line, with the name at the top (click it to open). */
-function MilestoneLines({ markers }: { markers: MilestoneMarker[] }) {
+function MilestoneLines({ markers, top }: NamedProps & { markers: MilestoneMarker[] }) {
   const options = useBoard((s) => s.options)
   return markers.map((marker) => (
     <span key={marker.id} className={`tl-marker ${colorClass(optionColor(options, 'subteam', marker.subteam))}`} style={{ left: marker.x }}>
       <button
         type="button"
         className="tl-marker-label"
+        style={{ top: top(marker.id) }}
         tabIndex={-1}
         title={`${marker.title}, ${formatDay(marker.date)}`}
         onClick={() => openItem(marker.number)}
       >
         <MilestoneIcon size={10} label="" />
-        {marker.title}
+        <span className="tl-key-name">{marker.title}</span>
       </button>
     </span>
   ))
 }
 
-/** The whole team's milestones and phases, across every subteam, with the month lines and Today. */
-function Gridlines({ range, zoom, px, todayIndex, markers, bands }: GridlinesProps) {
+/** The whole team's milestones and phases, across every subteam, with the month lines and Today. Their names
+ *  stick to the top of the scroll area, each on its line of the cascade. */
+function Gridlines({ range, zoom, px, todayIndex, markers, bands, names }: GridlinesProps) {
+  const top = (id: string) => NAME.top + (names.line.get(id) ?? 0) * NAME.topLine
   return (
     <div className="tl-grid" aria-hidden="true">
-      <PhaseBands bands={bands} />
+      <PhaseBands bands={bands} top={top} />
       {/* A month that began before the range would put its line left of the dates, under the labels. */}
       {monthSpans(range, zoom)
         .filter((month) => month.start > 0)
@@ -549,15 +647,18 @@ function Gridlines({ range, zoom, px, todayIndex, markers, bands }: GridlinesPro
           <span className="tl-today-label">Today</span>
         </span>
       )}
-      <MilestoneLines markers={markers} />
+      <MilestoneLines markers={markers} top={top} />
     </div>
   )
 }
 
 interface GroupRowsProps {
   group: TimelineGroup
-  /** The subteam's own milestones and phases (not the whole team's) */
+  /** The subteam's own milestones and phases (not the whole team's), and their names' lines */
   keyDates: SectionKeyDates | undefined
+  names: NameLines | undefined
+  /** Its heading's height: GROUP_H, or more when its names need more than two lines */
+  headingH: number
   collapsed: boolean
   onToggle: () => void
   range: Range
@@ -565,18 +666,19 @@ interface GroupRowsProps {
   linking: Linking
 }
 
-function GroupRows({ group, keyDates, collapsed, onToggle, range, px, linking }: GroupRowsProps) {
+function GroupRows({ group, keyDates, names, headingH, collapsed, onToggle, range, px, linking }: GroupRowsProps) {
   const shown = new Set(group.items.map((item) => item.id))
+  const top = (id: string) => NAME.sectionTop + (names?.line.get(id) ?? 0) * NAME.sectionLine
   return (
     <section className="tl-section" aria-label={group.name}>
       {/* The subteam's own milestones and phases run down its section only, named in its heading row. */}
       {keyDates && (keyDates.markers.length > 0 || keyDates.bands.length > 0) && (
         <div className="tl-section-grid" aria-hidden="true">
-          <PhaseBands bands={keyDates.bands} />
-          <MilestoneLines markers={keyDates.markers} />
+          <PhaseBands bands={keyDates.bands} top={top} />
+          <MilestoneLines markers={keyDates.markers} top={top} />
         </div>
       )}
-      <div className="tl-group">
+      <div className="tl-group" style={headingH === GROUP_H ? undefined : { height: headingH }}>
         <button type="button" className="tl-group-toggle" aria-expanded={!collapsed} onClick={onToggle}>
           {collapsed ? <ChevronRightIcon /> : <ChevronDownIcon />}
           <OptionDot field="subteam" name={group.value} />

@@ -72,7 +72,8 @@ HyPower-Bristol's BSEP plan. The board itself started empty.
    **◆ Milestone**, give it a name and a date. It shows as a diamond on its date, with a dashed line
    down the Timeline: a whole-team milestone (or one of Admin's, as Admin stands for the whole team)
    runs across every subteam shown, and a subteam's runs down that subteam's section only, named in its
-   heading (`WHOLE_TEAM_SUBTEAM` in `board/src/config.ts` names Admin). Any task can be made a milestone with the
+   heading (`WHOLE_TEAM_SUBTEAM` in `board/src/config.ts` names Admin). Names that would overlap step
+   down a line each, a cascade, so none covers another. Any task can be made a milestone with the
    **Milestone** switch in its panel. Link tasks to a milestone ("blocks") to see in red when they
    would finish too late. `is:milestone` in the filter box lists them.
    **Phases** (periods such as concept design, manufacturing or testing) work the same way: on the

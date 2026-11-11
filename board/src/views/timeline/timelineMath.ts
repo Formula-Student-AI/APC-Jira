@@ -161,12 +161,20 @@ export function groupForTimeline(items: Item[], subteams: FieldOption[]): { grou
 export const ROW_H = 36
 export const GROUP_H = 46
 
-/** Where each shown item's row is: the y of its centre, from the top of the rows, plus the total height. */
-export function rowLayout(groups: TimelineGroup[], collapsed: ReadonlySet<string>): { centres: Map<number, number>; height: number } {
+/**
+ * Where each shown item's row is: the y of its centre, from the top of the rows, plus the total height.
+ * A subteam's heading is GROUP_H tall, or taller (`headingH`) when its own milestones' and phases' names
+ * need more lines.
+ */
+export function rowLayout(
+  groups: TimelineGroup[],
+  collapsed: ReadonlySet<string>,
+  headingH: (group: TimelineGroup) => number = () => GROUP_H,
+): { centres: Map<number, number>; height: number } {
   const centres = new Map<number, number>()
   let y = 0
   for (const group of groups) {
-    y += GROUP_H
+    y += headingH(group)
     if (collapsed.has(group.key)) continue
     for (const item of group.items) {
       centres.set(item.number, y + ROW_H / 2)
@@ -275,6 +283,33 @@ export function linkX(item: Dated, bar: Bar, side: 'start' | 'end', px: number):
     return side === 'end' ? centre + DIAMOND_R : centre - DIAMOND_R
   }
   return side === 'end' ? (bar.end + 1) * px : bar.start * px
+}
+
+/** A name label's stretch across the timeline, in px. */
+export interface Stretch {
+  x0: number
+  x1: number
+}
+
+/**
+ * Lines for name labels so that none overlap, in a cascade: in the order given (by x), each takes the top
+ * line where it is at least `gap` clear of every label already there, so labels that crowd together step
+ * down a line at a time, and a line is used again as soon as there is room. Returns each label's line
+ * (0 is the top) and the number of lines used.
+ */
+export function cascadeLines(stretches: readonly Stretch[], gap: number): { lines: number[]; count: number } {
+  const taken: Stretch[][] = []
+  const lines = stretches.map((stretch) => {
+    const clear = (placed: Stretch[]) => placed.every((other) => stretch.x0 >= other.x1 + gap || stretch.x1 + gap <= other.x0)
+    let line = taken.findIndex(clear)
+    if (line < 0) {
+      line = taken.length
+      taken.push([])
+    }
+    taken[line].push(stretch)
+    return line
+  })
+  return { lines, count: taken.length }
 }
 
 /**
