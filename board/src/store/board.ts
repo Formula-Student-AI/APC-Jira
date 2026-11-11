@@ -350,8 +350,9 @@ function onSubteamMemberChange(payload: RealtimePostgresChangesPayload<SubteamMe
 }
 
 /**
- * The whole list, or null if it can't be read. It is only a record, which nothing else on the board needs,
- * so the board still loads without it (say the database is a step behind this page), keeping the list it had.
+ * The whole list, or null if it can't be read. It is only a record (assigning uses it to list a subteam's
+ * people first), so the board still loads without it (say the database is a step behind this page), keeping
+ * the list it had.
  */
 function readSubteamMembers(): Promise<SubteamMember[] | null> {
   return fetchAll<SubteamMember>('subteam_members', 'added_at').catch((error: unknown) => {

@@ -290,6 +290,56 @@
   margin: 0;
   font-size: 13px;
 }
+/* Assignees: the chosen subteam's people (and anyone already chosen) as buttons to tick. */
+.hdr-newform-people {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.hdr-person {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  height: 28px;
+  padding: 0 10px 0 4px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.hdr-person:hover {
+  background: var(--surface-hover);
+}
+.hdr-person[aria-pressed='true'] {
+  border-color: var(--accent-border);
+  background: var(--accent-soft);
+}
+.hdr-person-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hdr-person-check {
+  flex: none;
+  color: var(--accent-text);
+}
+.hdr-newform-hint {
+  margin-top: 6px;
+}
+/* "Someone else": the member list, opened in place under the people. */
+.hdr-newform-picker {
+  margin-top: 8px;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
 
 .toasts {
   position: fixed;

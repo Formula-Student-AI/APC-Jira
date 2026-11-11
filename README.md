@@ -250,16 +250,22 @@ items of the subteams you lead. Leads also look after their subteam's domains an
 
 ### Subteam members
 
-A record of **who is in which subteam**, for keeping track of the team. It changes no task: who is assigned
-to what, and who leads a subteam, stay as they are, and nothing else on the board reads it. Someone can be in
-more than one subteam.
+A record of **who is in which subteam**, for keeping track of the team. It changes no task by itself: who is
+assigned to what, and who leads a subteam, stay as they are. Someone can be in more than one subteam. A
+subteam's leads are shown under its name, not counted as members (they are set in **Subteam leads**): making
+someone a lead takes them off that subteam's member list, and someone who stops leading is put back in it by
+hand if they stay.
 
 - **Who can change it:** the board admins, for every subteam, in **Board settings > Subteam members**, which
-  also lists the active members who aren't in a subteam yet; and each subteam's leads, for their own, in
-  **user menu > Subteam members**. Press **Add members** to tick people in or out, or the **×** beside a name.
-- The app shows it to board admins (every subteam) and to each subteam's leads (their own). The database lets
-  any signed-in member read it. Deleting a member takes them out of their subteams; deleting a subteam takes
-  its list with it. Renaming a subteam keeps it.
+  also lists the active members who neither lead nor are in a subteam yet; and each subteam's leads, for their
+  own, in **user menu > Subteam members**. Press **Add members** to tick people in or out, or the **×** beside
+  a name.
+- **Assigning a task:** in **New item**, once a subteam is chosen, its people (its leads, then its members)
+  are there to tick, and **Someone else** opens the whole list. A task's **Assignees** menu lists its subteam's
+  people first too, then everyone else. Anyone can still be assigned.
+- Board admins see and change every subteam's list, and each subteam's leads their own; everyone sees a
+  subteam's people when assigning one of its tasks. The database lets any signed-in member read it. Deleting a
+  member takes them out of their subteams; deleting a subteam takes its list with it. Renaming a subteam keeps it.
 - As for domains, a lead's powers need a verified sign-in, or the board owner's permission for username-only
   sign-ins (`board_settings.trust_mode_admins`). The database enforces it (`subteam_members` in `schema.sql`).
 

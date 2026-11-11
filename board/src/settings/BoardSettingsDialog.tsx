@@ -10,7 +10,17 @@ import { formatBytes } from '../lib/images'
 import { MemberMenu } from '../panel/MemberPicker'
 import { MAX_TOTAL_BYTES } from '../store/attachments'
 import { memberName } from '../panel/members'
-import { addMember, deleteMember, renameMember, setBoardAdmin, setMemberActive, updateOption, useBoard } from '../store/board'
+import {
+  addMember,
+  deleteMember,
+  pushToast,
+  renameMember,
+  setBoardAdmin,
+  setMemberActive,
+  setSubteamMember,
+  updateOption,
+  useBoard,
+} from '../store/board'
 import { useFieldOptions, useMe, useMembersList } from '../store/hooks'
 import type { FieldOption, Member } from '../types'
 import { Avatar } from '../ui/Avatar'
@@ -20,6 +30,7 @@ import { OptionDot } from '../ui/OptionChip'
 import { DomainsEditor } from './DomainsEditor'
 import { deletionText, memberUse } from './memberDeletion'
 import { AddOptionForm, OptionRow } from './OptionEditor'
+import { useSaveProblems } from './saveProblems'
 import { SubteamMembersEditor } from './SubteamMembersEditor'
 import { useBusy } from './useBusy'
 import './settings.css'
@@ -36,6 +47,8 @@ const TABS: { id: Tab; label: string }[] = [
 
 export function BoardSettingsDialog({ onClose }: { onClose: () => void }) {
   const [tab, setTab] = useState<Tab>('leads')
+  // Kept here, so a Subteam members change that fails after you've moved to another tab still says so there.
+  const memberProblems = useSaveProblems()
   return (
     <Modal title="Board settings" onClose={onClose} width={760}>
       <p className="muted settings-note">
@@ -50,7 +63,7 @@ export function BoardSettingsDialog({ onClose }: { onClose: () => void }) {
         ))}
       </div>
       {tab === 'leads' && <LeadsTab />}
-      {tab === 'subteam-members' && <SubteamMembersEditor />}
+      {tab === 'subteam-members' && <SubteamMembersEditor saveProblems={memberProblems} />}
       {tab === 'domains' && <DomainsEditor />}
       {tab === 'options' && <OptionsTab />}
       {tab === 'members' && <MembersTab />}
@@ -113,7 +126,16 @@ function LeadsRow({ option }: { option: FieldOption }) {
   const [busy, run] = useBusy()
   const toggle = (username: string, select: boolean) => {
     const leads = select ? [...option.leads, username] : option.leads.filter((u) => u !== username)
-    run(() => updateOption(option.id, { leads }))
+    run(async () => {
+      const saved = await updateOption(option.id, { leads })
+      // Someone is a subteam's lead or one of its members, not both: a new lead comes off its member list
+      // (Subteam members), where a lead would only be hidden.
+      const member = useBoard.getState().subteamMembers.some((row) => row.subteam === option.id && row.username === username)
+      if (saved && select && member) {
+        const problem = await setSubteamMember(option.id, username, false)
+        if (problem) pushToast('error', problem)
+      }
+    })
   }
 
   return (

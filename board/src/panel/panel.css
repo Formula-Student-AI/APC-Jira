@@ -245,6 +245,13 @@
   padding: 8px;
   margin: 0;
 }
+/* "Mechanical" (a task's subteam: its leads and members) and "Everyone else" in the member list. */
+.ip-member-group {
+  margin: 6px 8px 2px;
+  color: var(--text-subtle);
+  font-size: 12px;
+  font-weight: 600;
+}
 .ip-check {
   display: inline-flex;
   width: 14px;

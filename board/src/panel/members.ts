@@ -42,3 +42,14 @@ export function memberRows(
   if (!q) return rows
   return rows.filter((row) => row.name.toLowerCase().includes(q) || row.username.toLowerCase().includes(q))
 }
+
+/**
+ * Splits picker rows into the people to offer `first`, in that order (say a subteam's leads, then its
+ * members), and everyone else, in the order given.
+ */
+export function groupMemberRows(rows: readonly MemberRow[], first: readonly string[]): { first: MemberRow[]; rest: MemberRow[] } {
+  const byUsername = new Map(rows.map((row) => [row.username, row]))
+  const firstRows = [...new Set(first)].flatMap((username) => byUsername.get(username) ?? [])
+  const taken = new Set(firstRows.map((row) => row.username))
+  return { first: firstRows, rest: rows.filter((row) => !taken.has(row.username)) }
+}

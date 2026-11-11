@@ -34,13 +34,20 @@ describe('memberUse', () => {
     expect(memberUse([], [option('d1', 'domain', 'LV systems', ['ab12345'])], 'ab12345').leads).toEqual([])
   })
 
-  it('lists the subteams they are in, in board order, leaving out ones no longer on the board', () => {
+  it('lists the subteams they are a member of, in board order, leaving out ones no longer on the board', () => {
     const row = (subteam: string, username: string): SubteamMember => ({ subteam, username, added_by: null, added_at: '' })
-    const rows = [row('pow', 'ab12345'), row('elec', 'ab12345'), row('gone', 'ab12345'), row('mech', 'cd67890')]
-    expect(memberUse([], options, 'ab12345', rows).inSubteams).toEqual(['Electrical', 'Powertrain'])
-    expect(memberUse([], options, 'cd67890', rows).inSubteams).toEqual(['Mechanical'])
+    const rows = [row('pow', 'ef11111'), row('mech', 'ef11111'), row('gone', 'ef11111'), row('mech', 'gh22222')]
+    expect(memberUse([], options, 'ef11111', rows).inSubteams).toEqual(['Mechanical', 'Powertrain'])
+    expect(memberUse([], options, 'gh22222', rows).inSubteams).toEqual(['Mechanical'])
     expect(memberUse([], options, 'zz99999', rows).inSubteams).toEqual([])
-    expect(memberUse([], options, 'ab12345').inSubteams).toEqual([])
+    expect(memberUse([], options, 'ef11111').inSubteams).toEqual([])
+  })
+
+  it("doesn't count a lead as a member of the subteam they lead", () => {
+    const row = (subteam: string, username: string): SubteamMember => ({ subteam, username, added_by: null, added_at: '' })
+    // cd67890 leads Electrical and is also in its list, and in Mechanical's.
+    const rows = [row('elec', 'cd67890'), row('mech', 'cd67890')]
+    expect(memberUse([], options, 'cd67890', rows)).toMatchObject({ leads: ['Electrical'], inSubteams: ['Mechanical'] })
   })
 })
 
@@ -67,8 +74,8 @@ describe('deletionText', () => {
 
   it('says which subteams they are taken out of, after the rest', () => {
     expect(deletionText({ assigned: 0, leads: [], inSubteams: ['Mechanical'] })).toBe(`They'll be taken out of Mechanical. ${rest}`)
-    expect(deletionText({ assigned: 2, leads: ['Electrical'], inSubteams: ['Electrical', 'Admin'] })).toBe(
-      `They'll be taken off the 2 items they're assigned to, no longer lead Electrical and be taken out of Electrical and Admin. ${rest}`,
+    expect(deletionText({ assigned: 2, leads: ['Electrical'], inSubteams: ['Mechanical', 'Admin'] })).toBe(
+      `They'll be taken off the 2 items they're assigned to, no longer lead Electrical and be taken out of Mechanical and Admin. ${rest}`,
     )
   })
 

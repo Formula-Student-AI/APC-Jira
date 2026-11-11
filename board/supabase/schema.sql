@@ -1376,9 +1376,9 @@ create policy attachments_files_delete on storage.objects
 
 -- -----------------------------------------------------------------------------
 -- Subteam members: who is in which subteam, a record kept by board admins, and by each subteam's leads for
--- their own subteam. Nothing else reads it: it changes no task, assignee, lead or permission. A member can be
--- in several subteams. The rows go when the member or the subteam is deleted (a subteam is only deleted
--- once no task uses it, and renaming one keeps its id).
+-- their own subteam. It changes no task, assignee, lead or permission: the app only lists a subteam's people
+-- first when assigning one of its tasks. A member can be in several subteams. The rows go when the member or
+-- the subteam is deleted (a subteam is only deleted once no task uses it, and renaming one keeps its id).
 -- -----------------------------------------------------------------------------
 
 create table if not exists public.subteam_members (

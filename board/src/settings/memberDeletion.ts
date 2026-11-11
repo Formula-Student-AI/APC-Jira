@@ -9,7 +9,7 @@ export interface MemberUse {
   assigned: number
   /** Names of the subteams they lead, in board order */
   leads: string[]
-  /** Names of the subteams they are in (Subteam members), in board order */
+  /** Names of the subteams they are a member of (Subteam members), in board order; not the ones they lead */
   inSubteams: string[]
 }
 
@@ -25,7 +25,8 @@ export function memberUse(
   const subteams = options.filter((o) => o.field === 'subteam')
   const leads = subteams.filter((o) => o.leads.includes(username)).map((o) => o.name)
   const mine = new Set(subteamMembers.filter((row) => row.username === username).map((row) => row.subteam))
-  const inSubteams = subteams.filter((o) => mine.has(o.id)).map((o) => o.name)
+  // A lead isn't counted as a member of the subteam they lead: "stop leading" says it.
+  const inSubteams = subteams.filter((o) => mine.has(o.id) && !o.leads.includes(username)).map((o) => o.name)
   return { assigned, leads, inSubteams }
 }
 

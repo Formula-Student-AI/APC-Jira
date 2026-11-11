@@ -1,9 +1,10 @@
 // React hooks over the stores. Selectors return stable references (no new arrays per render).
 import { useMemo } from 'react'
 import { combineFilters, matchesFilter, parseFilter } from '../lib/filter'
-import { canManageDomains, domainsOf, optionsFor, subteamLeads } from '../lib/options'
+import { canManageDomains, domainsOf, optionsFor, subteamLeads, subteamOption } from '../lib/options'
 import { byPosition } from '../lib/position'
 import { subtasksOf } from '../lib/subtasks'
+import { subteamPeople, type SubteamPerson } from '../lib/subteamRoster'
 import type { FieldOption, Item, Member } from '../types'
 import { useAuth } from './auth'
 import { useBoard, type SaveState } from './board'
@@ -32,6 +33,17 @@ export function useFieldOptions(field: string): FieldOption[] {
 export function useSubteamLeads(subteam: string | null | undefined): string[] {
   const options = useBoard((s) => s.options)
   return useMemo(() => subteamLeads(options, subteam), [options, subteam])
+}
+
+/**
+ * The people of the subteam called `subteam`, to offer first when assigning one of its tasks: its active
+ * leads, then its active members (Subteam members). None when there's no subteam.
+ */
+export function useSubteamPeople(subteam: string | null | undefined): SubteamPerson[] {
+  const options = useBoard((s) => s.options)
+  const rows = useBoard((s) => s.subteamMembers)
+  const members = useBoard((s) => s.members)
+  return useMemo(() => subteamPeople(subteamOption(options, subteam), rows, members), [options, subteam, rows, members])
 }
 
 /** A subteam's domains in order (none when there's no subteam). */

@@ -225,6 +225,18 @@
   min-width: 0;
   font-weight: 600;
 }
+/* Subteam members: the subteam, its member count, and its leads under it (shown, not counted). */
+.settings-member-team {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.settings-member-leads {
+  padding-left: 18px; /* under the name, past the dot */
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
 .settings-lead-people {
   display: flex;
   flex-wrap: wrap;
