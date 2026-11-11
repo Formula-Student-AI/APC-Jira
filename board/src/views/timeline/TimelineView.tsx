@@ -2,8 +2,9 @@
 // Drag a bar to move it, drag its ends to change the dates; arrow keys do the same on a focused bar.
 // Links between tasks are drawn as lines from the end of the blocking bar to the start of the blocked one
 // (red when the dates clash); drag from the round handle at either end of a bar onto another task to link them.
-// Milestones are diamonds on their date, each with a line across the whole timeline; phases are bands
-// shaded across the whole timeline over their dates. Export makes a PDF or slide images of what it shows.
+// Milestones are diamonds on their date, each with a line down the timeline; phases are bands shaded over
+// their dates. The whole team's (and Admin's, which stands for it) run across every subteam; any other
+// subteam's run down its own section only. Export makes a PDF or slide images of what it shows.
 
 import { addDays } from 'date-fns'
 import { BlockedIcon, CalendarIcon, ChevronDownIcon, ChevronRightIcon, DownloadIcon } from '@primer/octicons-react'
@@ -47,6 +48,7 @@ import {
   DIAMOND_R,
   dragBar,
   GROUP_H,
+  isWholeTeam,
   linkX,
   milestoneMarkers,
   phaseBands,
@@ -71,6 +73,15 @@ import {
 import './timeline.css'
 
 const ZOOM_KEY = 'fsai-board:timeline-zoom'
+/** Room above the first subteam for the names of Today and the whole team's milestones, and with a second
+ *  line for its phases' names: they stick 56 px and 80 px down the scroll area (see .tl-marker-label). */
+const NAMES_H = { one: 28, two: 52 }
+
+/** A subteam's own milestones and phases, drawn in its section only. */
+interface SectionKeyDates {
+  markers: MilestoneMarker[]
+  bands: PhaseBand[]
+}
 
 // Export is its own chunk, fetched ahead when the pointer or focus reaches its button. If it can't load
 // (after a redeploy, or offline), a small dialog says so: the app has no error boundary to catch it.
@@ -121,10 +132,34 @@ export function TimelineView({ view, query, teams }: TimelineViewProps) {
   const { groups, undated } = useMemo(() => groupForTimeline(items, subteams), [items, subteams])
   const layout = useMemo(() => rowLayout(groups, collapsed), [groups, collapsed])
   const links = useMemo(() => timelineLinks(groups, layout.centres, range, px, datesClash), [groups, layout, range, px])
-  // Milestones and phases are for everyone: their lines and bands show whatever the filter or subteams picked.
+  // Milestones and phases are for everyone, whatever the filter. The whole team's (isWholeTeam) run across
+  // every subteam shown; a subteam's run down its own section, when it is shown.
   const allItems = useBoard((s) => s.items)
   const markers = useMemo(() => milestoneMarkers(Object.values(allItems), range, px), [allItems, range, px])
   const bands = useMemo(() => phaseBands(Object.values(allItems), range, px), [allItems, range, px])
+  const wholeTeam = useMemo<SectionKeyDates>(
+    () => ({
+      markers: markers.filter((marker) => isWholeTeam(marker.subteam, allSubteams)),
+      bands: bands.filter((band) => isWholeTeam(band.subteam, allSubteams)),
+    }),
+    [markers, bands, allSubteams],
+  )
+  const bySubteam = useMemo(() => {
+    const map = new Map<string, SectionKeyDates>()
+    const own = (subteam: string) => {
+      const found = map.get(subteam)
+      if (found) return found
+      const made: SectionKeyDates = { markers: [], bands: [] }
+      map.set(subteam, made)
+      return made
+    }
+    for (const marker of markers) if (marker.subteam && !isWholeTeam(marker.subteam, allSubteams)) own(marker.subteam).markers.push(marker)
+    for (const band of bands) if (band.subteam && !isWholeTeam(band.subteam, allSubteams)) own(band.subteam).bands.push(band)
+    return map
+  }, [markers, bands, allSubteams])
+  const todayShown = todayIndex >= 0 && todayIndex < range.days
+  const namesH =
+    wholeTeam.bands.length > 0 ? NAMES_H.two : todayShown || wholeTeam.markers.length > 0 ? NAMES_H.one : 0
   const [adding, setAdding] = useState<KeyDateKind | null>(null)
   const [exporting, setExporting] = useState(false)
   const exportButton = useRef<HTMLButtonElement>(null)
@@ -258,12 +293,21 @@ export function TimelineView({ view, query, teams }: TimelineViewProps) {
         <div className="tl-canvas" style={canvasStyle}>
           <Scale range={range} zoom={zoom} px={px} todayIndex={todayIndex} />
           <div className="tl-body">
-            <Gridlines range={range} zoom={zoom} px={px} todayIndex={todayIndex} markers={markers} bands={bands} />
-            <LinkLayer links={links} height={layout.height} draft={linking.draft} layerRef={layerRef} draftPathRef={draftPathRef} />
+            <Gridlines range={range} zoom={zoom} px={px} todayIndex={todayIndex} markers={wholeTeam.markers} bands={wholeTeam.bands} />
+            <LinkLayer
+              links={links}
+              top={namesH}
+              height={layout.height}
+              draft={linking.draft}
+              layerRef={layerRef}
+              draftPathRef={draftPathRef}
+            />
+            {namesH > 0 && <div className="tl-names" style={{ height: namesH }} aria-hidden="true" />}
             {groups.map((group) => (
               <GroupRows
                 key={group.key}
                 group={group}
+                keyDates={group.value === null ? undefined : bySubteam.get(group.value)}
                 collapsed={collapsed.has(group.key)}
                 onToggle={() => toggle(group.key)}
                 range={range}
@@ -381,6 +425,8 @@ function useLinking(
 
 interface LinkLayerProps {
   links: LinkLine[]
+  /** Where the first subteam starts, below the room for the whole team's names */
+  top: number
   height: number
   draft: LinkDraft | null
   layerRef: RefObject<SVGSVGElement | null>
@@ -388,9 +434,9 @@ interface LinkLayerProps {
 }
 
 /** The link lines, under the bars; also the line being dragged out of a bar. */
-function LinkLayer({ links, height, draft, layerRef, draftPathRef }: LinkLayerProps) {
+function LinkLayer({ links, top, height, draft, layerRef, draftPathRef }: LinkLayerProps) {
   return (
-    <svg ref={layerRef} className="tl-links" height={Math.max(1, height)} aria-hidden="true">
+    <svg ref={layerRef} className="tl-links" style={{ top }} height={Math.max(1, height)} aria-hidden="true">
       {links.map((link) => (
         <path key={link.key} className={`tl-link${link.clash ? ' tl-link-clash' : ''}`} d={link.path} />
       ))}
@@ -445,29 +491,53 @@ interface GridlinesProps {
   bands: PhaseBand[]
 }
 
-function Gridlines({ range, zoom, px, todayIndex, markers, bands }: GridlinesProps) {
+/** Phases: their dates shaded, with the name at the top (click it to open). */
+function PhaseBands({ bands }: { bands: PhaseBand[] }) {
   const options = useBoard((s) => s.options)
+  return bands.map((band) => (
+    <span
+      key={band.id}
+      className={`tl-band ${colorClass(optionColor(options, 'subteam', band.subteam))}`}
+      style={{ left: band.x, width: band.width }}
+    >
+      <button
+        type="button"
+        className="tl-band-label"
+        tabIndex={-1}
+        title={`${band.title}, ${formatDayRange(band.start, band.end)}`}
+        onClick={() => openItem(band.number)}
+      >
+        <PhaseIcon size={11} label="" />
+        {band.title}
+      </button>
+    </span>
+  ))
+}
+
+/** Milestones: a dashed line, with the name at the top (click it to open). */
+function MilestoneLines({ markers }: { markers: MilestoneMarker[] }) {
+  const options = useBoard((s) => s.options)
+  return markers.map((marker) => (
+    <span key={marker.id} className={`tl-marker ${colorClass(optionColor(options, 'subteam', marker.subteam))}`} style={{ left: marker.x }}>
+      <button
+        type="button"
+        className="tl-marker-label"
+        tabIndex={-1}
+        title={`${marker.title}, ${formatDay(marker.date)}`}
+        onClick={() => openItem(marker.number)}
+      >
+        <MilestoneIcon size={10} label="" />
+        {marker.title}
+      </button>
+    </span>
+  ))
+}
+
+/** The whole team's milestones and phases, across every subteam, with the month lines and Today. */
+function Gridlines({ range, zoom, px, todayIndex, markers, bands }: GridlinesProps) {
   return (
     <div className="tl-grid" aria-hidden="true">
-      {/* Phases: their dates shaded across the timeline, with the name at the top (click it to open). */}
-      {bands.map((band) => (
-        <span
-          key={band.id}
-          className={`tl-band ${colorClass(optionColor(options, 'subteam', band.subteam))}`}
-          style={{ left: band.x, width: band.width }}
-        >
-          <button
-            type="button"
-            className="tl-band-label"
-            tabIndex={-1}
-            title={`${band.title}, ${formatDayRange(band.start, band.end)}`}
-            onClick={() => openItem(band.number)}
-          >
-            <PhaseIcon size={11} label="" />
-            {band.title}
-          </button>
-        </span>
-      ))}
+      <PhaseBands bands={bands} />
       {/* A month that began before the range would put its line left of the dates, under the labels. */}
       {monthSpans(range, zoom)
         .filter((month) => month.start > 0)
@@ -479,31 +549,15 @@ function Gridlines({ range, zoom, px, todayIndex, markers, bands }: GridlinesPro
           <span className="tl-today-label">Today</span>
         </span>
       )}
-      {/* Milestones: a line across the timeline, with the name at the top (click it to open). */}
-      {markers.map((marker) => (
-        <span
-          key={marker.id}
-          className={`tl-marker ${colorClass(optionColor(options, 'subteam', marker.subteam))}`}
-          style={{ left: marker.x }}
-        >
-          <button
-            type="button"
-            className="tl-marker-label"
-            tabIndex={-1}
-            title={`${marker.title}, ${formatDay(marker.date)}`}
-            onClick={() => openItem(marker.number)}
-          >
-            <MilestoneIcon size={10} label="" />
-            {marker.title}
-          </button>
-        </span>
-      ))}
+      <MilestoneLines markers={markers} />
     </div>
   )
 }
 
 interface GroupRowsProps {
   group: TimelineGroup
+  /** The subteam's own milestones and phases (not the whole team's) */
+  keyDates: SectionKeyDates | undefined
   collapsed: boolean
   onToggle: () => void
   range: Range
@@ -511,10 +565,17 @@ interface GroupRowsProps {
   linking: Linking
 }
 
-function GroupRows({ group, collapsed, onToggle, range, px, linking }: GroupRowsProps) {
+function GroupRows({ group, keyDates, collapsed, onToggle, range, px, linking }: GroupRowsProps) {
   const shown = new Set(group.items.map((item) => item.id))
   return (
     <section className="tl-section" aria-label={group.name}>
+      {/* The subteam's own milestones and phases run down its section only, named in its heading row. */}
+      {keyDates && (keyDates.markers.length > 0 || keyDates.bands.length > 0) && (
+        <div className="tl-section-grid" aria-hidden="true">
+          <PhaseBands bands={keyDates.bands} />
+          <MilestoneLines markers={keyDates.markers} />
+        </div>
+      )}
       <div className="tl-group">
         <button type="button" className="tl-group-toggle" aria-expanded={!collapsed} onClick={onToggle}>
           {collapsed ? <ChevronRightIcon /> : <ChevronDownIcon />}

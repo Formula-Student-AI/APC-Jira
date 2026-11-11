@@ -599,6 +599,50 @@
 .tl-phase .phase-icon path {
   fill: var(--opt-solid);
 }
+/* ------------------------------------------------------------ whose milestones and phases */
+
+/* Room above the first subteam for the names of Today and the whole team's milestones and phases, so at
+   rest they never sit on a subteam's own names in its heading row. The label column carries on beside it. */
+.tl-names {
+  position: relative;
+}
+.tl-names::before {
+  content: '';
+  position: sticky;
+  left: 0;
+  z-index: 4;
+  display: block;
+  width: var(--tl-label-w);
+  height: 100%;
+  border-right: 1px solid var(--border-muted);
+  background: var(--bg);
+}
+
+/* A subteam's own milestones and phases run down its section only (heading and rows, or just the heading
+   when it is collapsed), with their names in its heading row: milestones on the first line, phases on the
+   second. The whole team's (and Admin's) run down the whole timeline, in .tl-grid. */
+.tl-section {
+  position: relative;
+}
+.tl-section-grid {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: var(--tl-label-w);
+  width: var(--tl-width);
+  pointer-events: none;
+}
+.tl-section-grid .tl-marker-label {
+  position: absolute;
+  top: 3px;
+  left: 0;
+}
+.tl-section-grid .tl-band-label {
+  position: absolute;
+  top: 24px;
+  left: 0;
+}
+
 /* In its row: a bar with a coloured top edge instead of the left one. */
 .tl-bar.tl-phase {
   background: color-mix(in srgb, var(--opt-solid) 20%, var(--surface));

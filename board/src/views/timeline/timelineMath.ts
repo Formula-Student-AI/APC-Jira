@@ -12,7 +12,7 @@ import {
   min as earliest,
   startOfMonth,
 } from 'date-fns'
-import { PLAN_END, PLAN_START } from '../../config'
+import { PLAN_END, PLAN_START, WHOLE_TEAM_SUBTEAM } from '../../config'
 import { parseDay, toDay } from '../../lib/format'
 import { byPosition } from '../../lib/position'
 import { withSubtasksUnderParents } from '../../lib/subtasks'
@@ -277,6 +277,18 @@ export function linkX(item: Dated, bar: Bar, side: 'start' | 'end', px: number):
   return side === 'end' ? (bar.end + 1) * px : bar.start * px
 }
 
+/**
+ * Whether a milestone or phase of `subteam` is the whole team's, and so runs across every subteam on the
+ * Timeline: no subteam, the subteam that stands for the whole team (WHOLE_TEAM_SUBTEAM, e.g. Admin), or a
+ * subteam no longer on the board (whose items are listed under No subteam). Any other subteam's milestones
+ * and phases are drawn in that subteam's own section only.
+ */
+export function isWholeTeam(subteam: string | null, subteams: readonly FieldOption[]): boolean {
+  if (!subteam) return true
+  if (subteam.toLowerCase() === WHOLE_TEAM_SUBTEAM.toLowerCase()) return true
+  return !subteams.some((option) => option.field === 'subteam' && option.name === subteam)
+}
+
 export interface MilestoneMarker {
   id: string
   number: number
@@ -288,7 +300,8 @@ export interface MilestoneMarker {
   x: number
 }
 
-/** Every dated milestone on the board (whatever the view shows), as a line across the timeline. */
+/** Every dated milestone on the board (whatever the view shows), as a line down the timeline: the whole
+ *  team's across every subteam, a subteam's down its own section (isWholeTeam). */
 export function milestoneMarkers(items: Iterable<Item>, range: Range, px: number): MilestoneMarker[] {
   const markers: MilestoneMarker[] = []
   for (const item of items) {
@@ -317,7 +330,8 @@ export interface PhaseBand {
   width: number
 }
 
-/** Every dated phase on the board (whatever the view shows), as a band shaded across the timeline. */
+/** Every dated phase on the board (whatever the view shows), as a band shaded over its dates: the whole
+ *  team's across every subteam, a subteam's down its own section (isWholeTeam). */
 export function phaseBands(items: Iterable<Item>, range: Range, px: number): PhaseBand[] {
   const bands: PhaseBand[] = []
   for (const item of items) {

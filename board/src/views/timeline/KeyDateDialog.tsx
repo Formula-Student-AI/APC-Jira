@@ -1,8 +1,13 @@
 // "◆ Milestone" and "Phase" on the Timeline. A milestone is a key date (design freeze, competition): a
-// diamond with a line across the timeline. A phase is a period (concept design, manufacturing): a band
-// shaded across the timeline. Both are items like any other, so they can be linked and edited.
+// diamond with a line down the timeline. A phase is a period (concept design, manufacturing): a band
+// shaded over its dates. The whole team's (and Admin's) run across every subteam, any other subteam's down
+// its own section. Both are items like any other, so they can be linked and edited.
+
+/** Where the line or band goes, by the subteam picked. */
+const REACH = `across every subteam for the whole team or ${WHOLE_TEAM_SUBTEAM}, otherwise down its own subteam only.`
 
 import { useId, useState, type FormEvent } from 'react'
+import { WHOLE_TEAM_SUBTEAM } from '../../config'
 import { useToday } from '../../lib/clock'
 import { isWholeDay } from '../../lib/format'
 import { DateBox } from '../../ui/DateBox'
@@ -18,13 +23,13 @@ const TEXT: Record<KeyDateKind, { title: string; button: string; placeholder: st
     title: 'New milestone',
     button: 'Add milestone',
     placeholder: 'e.g. Design freeze, FS UK competition',
-    note: 'It shows as a diamond on its date, with a line across the whole Timeline. Link tasks to it (“blocks”) to see in red when they would finish too late.',
+    note: `It shows as a diamond on its date, with a line down the Timeline: ${REACH} Link tasks to it (“blocks”) to see in red when they would finish too late.`,
   },
   phase: {
     title: 'New phase',
     button: 'Add phase',
     placeholder: 'e.g. Concept design, Manufacturing, Testing',
-    note: 'Its dates are shaded across the whole Timeline, with its name at the top. Drag its bar to move it, or its ends to change the dates.',
+    note: `Its dates are shaded, with its name at the top: ${REACH} Drag its bar to move it, or its ends to change the dates.`,
   },
 }
 

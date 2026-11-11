@@ -8,6 +8,12 @@ export const PLAN_LABEL = '2026–27 Plan'
 /** The plan year, whole days inclusive. The Timeline always shows it; update all three for 2027–28. */
 export const PLAN_START = '2026-09-01'
 export const PLAN_END = '2027-08-31'
+/**
+ * The subteam that stands for the whole team (it is a section of its own only for convenience). On the
+ * Timeline its milestones and phases run across every subteam, as the whole team's do; any other
+ * subteam's stay in its own section. Matched whatever its case: update it if the subteam is renamed.
+ */
+export const WHOLE_TEAM_SUBTEAM = 'Admin'
 export const EMAIL_DOMAIN = 'bristol.ac.uk'
 
 export const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL ?? ''

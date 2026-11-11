@@ -70,12 +70,15 @@ HyPower-Bristol's BSEP plan. The board itself started empty.
    start, it's the other way round).
    **Milestones** (key dates such as a design freeze or the competition): on the Timeline, press
    **◆ Milestone**, give it a name and a date. It shows as a diamond on its date, with a dashed line
-   across the whole Timeline (whatever subteams are shown). Any task can be made a milestone with the
+   down the Timeline: a whole-team milestone (or one of Admin's, as Admin stands for the whole team)
+   runs across every subteam shown, and a subteam's runs down that subteam's section only, named in its
+   heading (`WHOLE_TEAM_SUBTEAM` in `board/src/config.ts` names Admin). Any task can be made a milestone with the
    **Milestone** switch in its panel. Link tasks to a milestone ("blocks") to see in red when they
    would finish too late. `is:milestone` in the filter box lists them.
    **Phases** (periods such as concept design, manufacturing or testing) work the same way: on the
-   Timeline press **Phase**, give it a name, a start and an end date. Its dates are shaded across
-   the whole Timeline with its name at the top, and it has a bar in its row you can drag or resize.
+   Timeline press **Phase**, give it a name, a start and an end date. Its dates are shaded with its name
+   at the top, across every subteam or down its own subteam's section in the same way, and it has a bar
+   in its row you can drag or resize.
    In an item's panel, **Type** switches between Task, Milestone and Phase. `is:phase` lists them.
    **Subtasks** (the steps of a bigger task, as in Jira): in the task's panel press **+** next to
    **Subtasks**, type a step and press Enter. The box stays open for the next step. Each subtask is a
